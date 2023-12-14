@@ -1,0 +1,16 @@
+# See Section 1.2.1 "Using 'Makevars'" of Writing R Extensions
+# cran.r-project.org/doc/manuals/R-exts.pdf
+
+PKG_CPPFLAGS=@PKG_CPPFLAGS@ -Iluajit/src
+PKG_CXXFLAGS=@PKG_CXXFLAGS@
+PKG_LIBS=@PKG_LIBS@ -Lluajit/src -lluajit
+
+$(SHLIB): luajit/src/libluajit.a
+
+# Build LuaJIT
+# The amalg target amalgamates luajit source into one large C file, which allows
+# GCC to generate 'shorter and faster code' (see Installation docs for LuaJIT).
+# This also overrides CC for compiling the library, but lets LuaJIT set its own
+# CFLAGS and other options, as these presumably have been chosen carefully.
+luajit/src/libluajit.a:
+	@(cd luajit && @make@ amalg BUILDMODE=static CC="$(CC)")

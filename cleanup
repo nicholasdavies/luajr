@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+# TODO commented this out to avoid rebuilding luajit every time . . . is it needed?
+# when exactly is cleanup used?
+
+# # Clean up generated header files
+# rm -f inst/include/luajr_conf.h inst/include/luajr_lua.h \
+#  inst/include/luajr_lauxlib.h inst/include/luajr_lualib.h \
+#  inst/include/luajr_luajitr.h
+#
+# # Clean up Makevars
+# rm -f src/Makevars
+#
+# # Clean up built package
+# if [ `uname` = Darwin ]; then
+#   cd src/luajit && MACOSX_DEPLOYMENT_TARGET=10.8 $MAKE clean
+# else
+#   cd src/luajit && $MAKE clean
+# fi
