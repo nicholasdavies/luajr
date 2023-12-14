@@ -1,0 +1,23 @@
+luajit as subfolder in src/luajit
+---------------------------------
+
+I did this by using git subtree, explained here:
+
+https://blog.developer.atlassian.com/the-power-of-git-subtree/
+
+In particular, I added git aliases sba and sbu to ~/.gitconfig:
+
+[alias]
+	# the acronym stands for "subtree add"
+	sba = "!f() { git subtree add --prefix $2 $1 master --squash; }; f"
+	# the acronym stands for "subtree update"
+	sbu = "!f() { git subtree pull --prefix $2 $1 master --squash; }; f"
+
+then from the top-level luajr directory, added luajit as a subdirectory of src as follows:
+
+git sba https://luajit.org/git/luajit.git src/luajit
+
+to update the subdirectory (i.e. pull any updates to luajit), use:
+
+git sbu https://luajit.org/git/luajit.git src/luajit
+
