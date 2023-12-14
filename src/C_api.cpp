@@ -63,11 +63,11 @@ void luajr_pushsexp(lua_State* L, SEXP x, char as)
                 lua_createtable(L, len - nrec, nrec);
                 for (unsigned int i = 0; i < len; ++i)
                 {
-                    if (names != R_NilValue && LENGTH(STRING_ELT(names, i)) > 0)
+                    if (names != R_NilValue && LENGTH(STRING_ELT(names, i)) > 0) {
                         lua_pushstring(L, CHAR(STRING_ELT(names, i))); // TODO what if string is NA?
                         lua_pushboolean(L, LOGICAL_ELT(x, i));
                         lua_rawset(L, -3); // {-3}[{-2}] = {-1}; pop(2)
-                    else {
+                    } else {
                         lua_pushboolean(L, LOGICAL_ELT(x, i));
                         lua_rawseti(L, -2, i + 1); // {-2}[i+1] = {-1}; pop(1)
                     }

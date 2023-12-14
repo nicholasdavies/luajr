@@ -15,9 +15,9 @@ In particular, I added git aliases sba and sbu to ~/.gitconfig:
 
 then from the top-level luajr directory, added luajit as a subdirectory of src as follows:
 
-git sba https://luajit.org/git/luajit.git src/luajit
+git sba https://github.com/LuaJIT/LuaJIT.git src/luajit
 
 to update the subdirectory (i.e. pull any updates to luajit), use:
 
-git sbu https://luajit.org/git/luajit.git src/luajit
+git sbu https://github.com/LuaJIT/LuaJIT.git src/luajit
 

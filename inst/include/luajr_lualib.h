@@ -33,7 +33,6 @@ extern int  (*luaopen_debug) (lua_State *L);
 extern int  (*luaopen_bit) (lua_State *L);
 extern int  (*luaopen_jit) (lua_State *L);
 extern int  (*luaopen_ffi) (lua_State *L);
-extern int  (*luaopen_string_buffer) (lua_State *L);
 
 extern void  (*luaL_openlibs) (lua_State *L);
 

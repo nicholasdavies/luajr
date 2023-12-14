@@ -39,8 +39,7 @@
 #define lua_upvalueindex(i)	(LUA_GLOBALSINDEX-(i))
 
 
-/* thread status */
-#define LUA_OK		0
+/* thread status; 0 is OK */
 #define LUA_YIELD	1
 #define LUA_ERRRUN	2
 #define LUA_ERRSYNTAX	3
@@ -227,7 +226,6 @@ extern int   (*lua_status) (lua_State *L);
 #define LUA_GCSTEP		5
 #define LUA_GCSETPAUSE		6
 #define LUA_GCSETSTEPMUL	7
-#define LUA_GCISRUNNING		9
 
 extern int  (*lua_gc) (lua_State *L, int what, int data);
 
@@ -348,13 +346,6 @@ extern void * (*lua_upvalueid) (lua_State *L, int idx, int n);
 extern void  (*lua_upvaluejoin) (lua_State *L, int idx1, int n1, int idx2, int n2);
 extern int  (*lua_loadx) (lua_State *L, lua_Reader reader, void *dt,
 		       const char *chunkname, const char *mode);
-extern const lua_Number * (*lua_version) (lua_State *L);
-extern void  (*lua_copy) (lua_State *L, int fromidx, int toidx);
-extern lua_Number  (*lua_tonumberx) (lua_State *L, int idx, int *isnum);
-extern lua_Integer  (*lua_tointegerx) (lua_State *L, int idx, int *isnum);
-
-/* From Lua 5.3. */
-extern int  (*lua_isyieldable) (lua_State *L);
 
 
 struct lua_Debug {

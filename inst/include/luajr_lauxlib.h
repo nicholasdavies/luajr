@@ -15,6 +15,9 @@
 #include "luajr_lua.h"
 
 
+#define luaL_getn(L,i)          ((int)lua_objlen(L, i))
+#define luaL_setn(L,i,j)        ((void)0)  /* no op! */
+
 /* extra error code for `luaL_load' */
 #define LUA_ERRFILE     (LUA_ERRERR+1)
 
@@ -55,10 +58,6 @@ extern int  (*luaL_error) (lua_State *L, const char *fmt, ...);
 extern int  (*luaL_checkoption) (lua_State *L, int narg, const char *def,
                                    const char *const lst[]);
 
-/* pre-defined references */
-#define LUA_NOREF       (-2)
-#define LUA_REFNIL      (-1)
-
 extern int  (*luaL_ref) (lua_State *L, int t);
 extern void  (*luaL_unref) (lua_State *L, int t, int ref);
 
@@ -85,11 +84,6 @@ extern int  (*luaL_loadbufferx) (lua_State *L, const char *buff, size_t sz,
 				   const char *name, const char *mode);
 extern void  (*luaL_traceback) (lua_State *L, lua_State *L1, const char *msg,
 				int level);
-extern void  (*luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
-extern void  (*luaL_pushmodule) (lua_State *L, const char *modname,
-				   int sizehint);
-extern void * (*luaL_testudata) (lua_State *L, int ud, const char *tname);
-extern void  (*luaL_setmetatable) (lua_State *L, const char *tname);
 
 
 /*
@@ -118,11 +112,6 @@ extern void  (*luaL_setmetatable) (lua_State *L, const char *tname);
 #define luaL_getmetatable(L,n)	(lua_getfield(L, LUA_REGISTRYINDEX, (n)))
 
 #define luaL_opt(L,f,n,d)	(lua_isnoneornil(L,(n)) ? (d) : f(L,(n)))
-
-/* From Lua 5.2. */
-#define luaL_newlibtable(L, l) \
-	lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
-#define luaL_newlib(L, l)	(luaL_newlibtable(L, l), luaL_setfuncs(L, l, 0))
 
 /*
 ** {======================================================
@@ -157,5 +146,22 @@ extern void  (*luaL_pushresult) (luaL_Buffer *B);
 
 
 /* }====================================================== */
+
+
+/* compatibility with ref system */
+
+/* pre-defined references */
+#define LUA_NOREF       (-2)
+#define LUA_REFNIL      (-1)
+
+#define lua_ref(L,lock) ((lock) ? luaL_ref(L, LUA_REGISTRYINDEX) : \
+      (lua_pushstring(L, "unlocked references are obsolete"), lua_error(L), 0))
+
+#define lua_unref(L,ref)        luaL_unref(L, LUA_REGISTRYINDEX, (ref))
+
+#define lua_getref(L,ref)       lua_rawgeti(L, LUA_REGISTRYINDEX, (ref))
+
+
+#define luaL_reg	luaL_Reg
 
 #endif
