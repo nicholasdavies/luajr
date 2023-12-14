@@ -8,6 +8,8 @@
 
 One of the advantages of using `luajr` is that LuaJIT runs Lua code with very fast compilation times, fast execution times, and no need for an external toolchain, as the LuaJIT compiler is "built in" to the luajr package. This contrasts with e.g. `Rcpp`, which results in compiled code with very fast execution times but slow compilation times and the need to invoke an external C++ compiler toolchain like `gcc` or `clang`.
 
+<!--
+
 ## Installation
 
 You can install the released version of luajr from [CRAN](https://CRAN.R-project.org) with:
@@ -24,3 +26,5 @@ This is a basic example which shows you how to solve a common problem:
 library(luajr)
 ## basic example code
 ```
+
+-->
