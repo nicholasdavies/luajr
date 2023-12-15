@@ -13,6 +13,7 @@ library(luajr)
 # TODO C api -- is it actually usable from C? Or should I just call it a C++
 # api?
 
+lua("a")
 lua("a = 2")
 
 L2 = lua_open()
@@ -23,17 +24,19 @@ lua("print(a)", L = L2)
 rm(L2)
 
 # Testing args codes
-lua('tellme = function(x)
+lua('tellme = function(x, level)
+    level = level or 0
     if type(x) == "table" then
         for k,v in pairs(x) do
-            print(tostring(k) .. " => " .. tostring(v))
+            io.write(string.rep(" ", level) .. tostring(k) .. " => ")
+            tellme(v, level + 1)
         end
     else
         print(x)
     end
 end')
 
-tellme = lua_func("tellme", args = "t")
+tellme = lua_func("tellme", args = "s")
 
 c1 = TRUE
 c2 = c(FALSE, TRUE, FALSE)
@@ -42,6 +45,8 @@ c3 = c(falz = FALSE, troo = TRUE)
 tellme(c1)
 tellme(c2)
 tellme(c3)
+
+tellme(list(1, 2, 3:6, list(4,5,6, list(7,8,9))))
 
 names(c3)[2] = NA_character_
 tellme(c3)
