@@ -25,8 +25,13 @@
 #' \code{'t'}, which is applied to all elements contained in the list (including
 #' other lists).
 #'
-#' For external pointers, the only acceptable \code{args} code is \code{'*'},
-#' which is type \emph{userdata}.
+#' Note that Lua does not preserve the order of entries in lists. This means
+#' that an R vector with names will often go out of order when passed into
+#' Lua. A warning is therefore emitted when a named list or vector gets passed
+#' in to Lua.
+#'
+#' For external pointers, the \code{args} code is ignored and the external
+#' pointer is passed to Lua as type \emph{userdata}.
 #'
 #' Attributes are ignored other than 'names' and 'class', so e.g. matrices will
 #' end up as a numeric vector.

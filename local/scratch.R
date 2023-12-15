@@ -22,6 +22,30 @@ lua("print(a)", L = NULL)
 lua("print(a)", L = L2)
 rm(L2)
 
+# Testing args codes
+lua('tellme = function(x)
+    if type(x) == "table" then
+        for k,v in pairs(x) do
+            print(tostring(k) .. " => " .. tostring(v))
+        end
+    else
+        print(x)
+    end
+end')
+
+tellme = lua_func("tellme", args = "t")
+
+c1 = TRUE
+c2 = c(FALSE, TRUE, FALSE)
+c3 = c(falz = FALSE, troo = TRUE)
+
+tellme(c1)
+tellme(c2)
+tellme(c3)
+
+names(c3)[2] = NA_character_
+tellme(c3)
+
 # OK so there are two use cases.
 
 # In one (miasma models), basically I want to be able to pass lua function

@@ -4,127 +4,122 @@
 #define LUA_TPROTO	(LUA_TTHREAD+1)
 #define LUA_TCDATA	(LUA_TTHREAD+2)
 
+// Helper function to push a 'primitive vector' (LGLSXP, INTSXP, REALSXP,
+// STRSXP) to the Lua stack.
+template <typename Push>
+void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
+    bool can_simplify = true)
+{
+    unsigned int nrec = 0;
+
+    // Get names of R object
+    SEXP names = Rf_getAttrib(x, R_NamesSymbol);
+
+    // TODO edge cases to handle: repeated names; NA names; non-character names
+
+    // Warn about names
+    if (names != R_NilValue)
+        Rcpp::warning("An R object with names has been passed to Lua. Lua does not preserve a given order of items in a table.");
+
+    if (can_simplify && as == 's' && len == 1)
+    {
+        // Primitive
+        push(L, x, 0);
+    }
+    else if (as == 's' || as == 't')
+    {
+        // Table
+        if (names != R_NilValue)
+        {
+            for (unsigned int i = 0; i < len; ++i)
+                if (LENGTH(STRING_ELT(names, i)) > 0)
+                    ++nrec;
+        }
+        lua_createtable(L, len - nrec, nrec);
+        for (unsigned int i = 0; i < len; ++i)
+        {
+            if (names != R_NilValue && LENGTH(STRING_ELT(names, i)) > 0)
+            {
+                lua_pushstring(L, CHAR(STRING_ELT(names, i)));
+                push(L, x, i);
+                lua_rawset(L, -3);
+            }
+            else
+            {
+                push(L, x, i);
+                lua_rawseti(L, -2, i + 1);
+            }
+        }
+    }
+    else if (as == 'a')
+    {
+        // Array
+        lua_createtable(L, len, 0);
+        for (unsigned int i = 0; i < len; ++i)
+        {
+            push(L, x, i);
+            lua_rawseti(L, -2, i + 1);
+        }
+    }
+    else
+    {
+        Rcpp::stop("Unrecognised args code ", as, " for type ", Rf_type2char(TYPEOF(x)));
+    }
+}
+
 // Analogous to Lua's lua_pushXXX(lua_State* L, XXX x) functions, this pushes
 // the R object [x] onto Lua's stack.
-// TODO this needs to be able to handle vectors...
+// Supported: NILSXP, LGLSXP, INTSXP, REALSXP, STRSXP, VECSXP, EXTPTRSXP.
+// Not supported: SYMSXP, LISTSXP, CLOSXP, ENVSXP, PROMSXP, LANGSXP, SPECIALSXP,
+// BUILTINSXP, CHARSXP, CPLXSXP, DOTSXP, ANYSXP, EXPRSXP, BCODESXP, WEAKREFSXP,
+// RAWSXP, S4SXP.
 void luajr_pushsexp(lua_State* L, SEXP x, char as)
 {
     // Get length of R object
     unsigned int len = Rf_length(x);
-    SEXP names = Rf_getAttrib(x, R_NamesSymbol);
-    unsigned int nrec = 0;
 
-    if (len == 0) {
+    if (len == 0)
+    {
         // Length 0: always pass nil.
         lua_pushnil(L);
-    } else switch (TYPEOF(x)) {
+    }
+    else switch (TYPEOF(x))
+    {
         // Otherwise: switch on type...
         case NILSXP: // NULL
             lua_pushnil(L);
             break;
-        case SYMSXP: // symbols
-            Rcpp::stop("Cannot convert SYMSXP to Lua.");
-            break;
-        case LISTSXP: // pairlists
-            Rcpp::stop("Cannot convert LISTSXP to Lua.");
-            break;
-        case CLOSXP: // closures
-            Rcpp::stop("Cannot convert CLOSXP to Lua.");
-            break;
-        case ENVSXP: // environments
-            Rcpp::stop("Cannot convert ENVSXP to Lua.");
-            break;
-        case PROMSXP: // promises
-            Rcpp::stop("Cannot convert PROMSXP to Lua.");
-            break;
-        case LANGSXP: // language objects
-            Rcpp::stop("Cannot convert LANGSXP to Lua.");
-            break;
-        case SPECIALSXP: // special functions
-            Rcpp::stop("Cannot convert SPECIALSXP to Lua.");
-            break;
-        case BUILTINSXP: // builtin functions
-            Rcpp::stop("Cannot convert BUILTINSXP to Lua.");
-            break;
-        case CHARSXP: // internal character strings
-            Rcpp::stop("Cannot convert CHARSXP to Lua.");
-            break;
-        case LGLSXP: // logical vectors: s, a, t
-            if (as == 's' && len == 1) {
-                // Primitive
-                lua_pushboolean(L, LOGICAL_ELT(x, 0));
-            } else if (as == 's' || as == 't') {
-                // Table
-                if (names != R_NilValue) {
-                    for (unsigned int i = 0; i < len; ++i) // TODO and what if string is NA or if names is not character?
-                        if (LENGTH(STRING_ELT(names, i)) > 0)
-                            ++nrec;
-                }
-                lua_createtable(L, len - nrec, nrec);
-                for (unsigned int i = 0; i < len; ++i)
-                {
-                    if (names != R_NilValue && LENGTH(STRING_ELT(names, i)) > 0) {
-                        lua_pushstring(L, CHAR(STRING_ELT(names, i))); // TODO what if string is NA?
-                        lua_pushboolean(L, LOGICAL_ELT(x, i));
-                        lua_rawset(L, -3); // {-3}[{-2}] = {-1}; pop(2)
-                    } else {
-                        lua_pushboolean(L, LOGICAL_ELT(x, i));
-                        lua_rawseti(L, -2, i + 1); // {-2}[i+1] = {-1}; pop(1)
-                    }
-                }
-            } else if (as == 'a') {
-                // Array
-                lua_createtable(L, len, 0);
-                for (unsigned int i = 0; i < len; ++i)
-                {
-                    lua_pushboolean(L, LOGICAL_ELT(x, i));
-                    lua_rawseti(L, -2, i + 1); // {-2}[i+1] = {-1}; pop(1)
-                }
-            } else {
-                Rcpp::stop("Unrecognised args code ", as, " for type ", Rf_type2char(TYPEOF(x)));
-            }
+        case LGLSXP:
+            push_R_vector(L, x, as, len,
+                [](lua_State* L, SEXP x, unsigned int i)
+                    { lua_pushboolean(L, LOGICAL_ELT(x, i)); });
             break;
         case INTSXP: // integer vectors: s, a, t
-            lua_pushinteger(L, Rcpp::as<Rcpp::IntegerVector>(x)[0]);
+            push_R_vector(L, x, as, len,
+                [](lua_State* L, SEXP x, unsigned int i)
+                    { lua_pushinteger(L, INTEGER_ELT(x, i)); });
             break;
         case REALSXP: // numeric vectors: s, a, t
-            lua_pushnumber(L, Rcpp::as<Rcpp::NumericVector>(x)[0]);
-            break;
-        case CPLXSXP: // complex vectors
-            Rcpp::stop("Cannot convert CPLXSXP to Lua.");
+            push_R_vector(L, x, as, len,
+                [](lua_State* L, SEXP x, unsigned int i)
+                    { lua_pushnumber(L, REAL_ELT(x, i)); });
             break;
         case STRSXP: // character vectors: s, a, t
-            lua_pushstring(L, Rcpp::as<Rcpp::StringVector>(x)[0]);
-            break;
-        case DOTSXP: // dot-dot-dot object
-            Rcpp::stop("Cannot convert DOTSXP to Lua.");
-            break;
-        case ANYSXP: // make "any" args work
-            Rcpp::stop("Cannot convert ANYSXP to Lua.");
+            push_R_vector(L, x, as, len,
+                [](lua_State* L, SEXP x, unsigned int i)
+                { lua_pushstring(L, CHAR(STRING_ELT(x, i))); });
             break;
         case VECSXP: // list (generic vector): s, a, t
-            Rcpp::stop("No list yet");
+            push_R_vector(L, x, as, len,
+                [as](lua_State* L, SEXP x, unsigned int i)
+                    { luajr_pushsexp(L, VECTOR_ELT(x, i), as); },
+                false);
             break;
-        case EXPRSXP: // expression vector
-            Rcpp::stop("Cannot convert EXPRSXP to Lua.");
-            break;
-        case BCODESXP: // byte code
-            Rcpp::stop("Cannot convert BCODESXP to Lua.");
-            break;
-        case EXTPTRSXP: // external pointer: '*'
+        case EXTPTRSXP: // external pointer
             lua_pushlightuserdata(L, Rcpp::as<void*>(x));
             break;
-        case WEAKREFSXP: // weak reference
-            Rcpp::stop("Cannot convert WEAKREFSXP to Lua.");
-            break;
-        case RAWSXP: // raw vector
-            Rcpp::stop("Cannot convert RAWSXP to Lua.");
-            break;
-        case S4SXP: // S4 classes not of simple type
-            Rcpp::stop("Cannot convert S4SXP to Lua.");
-            break;
         default:
-            Rcpp::stop("Unknown R type encountered.");
+            Rcpp::stop("Cannot convert %s to Lua.", Rf_type2char(TYPEOF(x)));
     }
 }
 
