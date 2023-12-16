@@ -17,13 +17,13 @@ void R_pass_to_Lua(lua_State* L, Rcpp::List args, const char* acode);
 SEXP Lua_return_to_R(lua_State* L, int nret);
 
 // C API functions
-void luajr_pushsexp(lua_State* L, SEXP x, char as); // Push SEXP to Lua stack
-SEXP luajr_tosexp(lua_State* L, int index);         // Get Lua value as SEXP
+void luajr_pushsexp(lua_State* L, SEXP x, char as);
+SEXP luajr_tosexp(lua_State* L, int index);
 
 // R API functions and related functions
 SEXP luajr_open();
 lua_State* luajr_getstate(SEXP Lxp);
 
 // Lua API functions
-extern "C" void CreateReturnMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
-extern "C" void CreateReturnDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
+extern "C" int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
+extern "C" int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);

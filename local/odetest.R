@@ -1,12 +1,16 @@
-# luajr version?
-
 library(luajr)
 library(ggplot2)
 library(data.table)
 
+# TODO do these two lines at creation of state
 lua(paste0("luajr_dynlib_path = \"", getLoadedDLLs()[["luajr"]][["path"]], "\""))
+lua(filename = "./inst/lua/R.lua")
+
+
 lua(filename = "./local/odetest.lua")
 runner = lua_func("run")
+
+sol <- runner()
 
 rm(sol)
 

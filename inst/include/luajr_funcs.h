@@ -162,6 +162,6 @@ API_FUNCTION(void, luajr_pushsexp, lua_State* L, SEXP x, char as)
 API_FUNCTION(SEXP, luajr_tosexp, lua_State* L, int index)
 API_FUNCTION(SEXP, luajr_open)
 API_FUNCTION(lua_State*, luajr_getstate, SEXP Lxp)
-API_FUNCTION(void, CreateReturnMatrix, unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
-API_FUNCTION(void, CreateReturnDataFrame, unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
+API_FUNCTION(int, AllocRDataMatrix, unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
+API_FUNCTION(int, AllocRDataFrame, unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
 

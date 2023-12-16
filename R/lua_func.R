@@ -50,13 +50,15 @@ lua_func = function(code, args = "s", L = NULL)
     fptr = luajr_func_create(code, L);
     func = function(...) {
         # robj_ret can be used by the Lua function to return R objects.
-        robj_ret = NULL;
+        robj_ret = vector("list", 4);
+
         # Call the function.
         ret = luajr_func_call(fptr, list(...), args, L);
-        # If robj_ret has been set, return that.
-        if (!is.null(robj_ret)) {
-            return (robj_ret)
-        }
+
+        # # If robj_ret has been set, return that.
+        # if (length(robj_ret) > 0) {
+        #     return (robj_ret)
+        # }
         # Otherwise, return the returned Lua value converted to an R object.
         # If this is a NULL, return it invisibly.
         if (is.null(ret)) {

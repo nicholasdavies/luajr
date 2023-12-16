@@ -12,25 +12,8 @@ extern "C" SEXP R_compact_intrange(R_xlen_t n1, R_xlen_t n2);
 
 // Allocate an R numeric matrix, outputting addresses of each column into ptrs.
 // The matrix is returned to R via the robj_ret mechanism.
-extern "C" void CreateReturnMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
+extern "C" int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
 {
-    // Create matrix
-    Rcpp::NumericMatrix m(nrow, ncol);
-
-    // Set column names and retrieve pointers
-    Rcpp::CharacterVector rnames(ncol);
-    for (unsigned int c = 0; c < ncol; ++c)
-    {
-        rnames[c] = names[c];
-        ptrs[c] = &m(0, c);
-    }
-    Rcpp::colnames(m) = rnames;
-
-    // Assign matrix to robj_ret in calling R environment
-    SEXP current_env = R_GetCurrentEnv();
-    Rf_defineVar(RObjRetSymbol, (SEXP)m, current_env);
-
-    /* "Close to R" approach
     // Create matrix
     SEXP m = PROTECT(Rf_allocMatrix(REALSXP, nrow, ncol));
     SEXP colnames = PROTECT(Rf_allocVector3(STRSXP, ncol, NULL));
@@ -44,18 +27,36 @@ extern "C" void CreateReturnMatrix(unsigned int nrow, unsigned int ncol, const c
     SEXP dimnames = PROTECT(Rf_allocVector3(VECSXP, 2, 0));
     ((SEXP*)DATAPTR(dimnames))[0] = R_NilValue;
     ((SEXP*)DATAPTR(dimnames))[1] = colnames;
+    Rf_dimnamesgets(m, dimnames);
 
-    // // Assign matrix to robj_ret in calling R environment
-    // SEXP current_env = R_GetCurrentEnv();
-    // Rf_defineVar(RObjRetSymbol, (SEXP)m, current_env);
+    // Assign matrix within robj_ret in calling R environment
+    SEXP current_env = R_GetCurrentEnv();
+    SEXP robj_ret = Rf_findVar(RObjRetSymbol, current_env);
+    int robj_ret_len = Rf_length(robj_ret);
+    for (int i = 0; i < robj_ret_len; ++i)
+    {
+        if (VECTOR_ELT(robj_ret, i) == R_NilValue)
+        {
+            SET_VECTOR_ELT(robj_ret, i, m);
+            UNPROTECT(3);
+            return i;
+        }
+    }
 
-    UNPROTECT(3);
-     */
+    // No free spaces in robj_ret: grow list
+    SEXP new_robj_ret = PROTECT(Rf_allocVector3(VECSXP, robj_ret_len * 2, NULL));
+    for (int i = 0; i < robj_ret_len; ++i)
+        SET_VECTOR_ELT(new_robj_ret, i, VECTOR_ELT(robj_ret, i));
+    SET_VECTOR_ELT(new_robj_ret, robj_ret_len, m);
+    Rf_defineVar(RObjRetSymbol, new_robj_ret, current_env);
+
+    UNPROTECT(4);
+    return robj_ret_len;
 }
 
 // Allocate an R data frame, outputting addresses of each column into ptrs.
 // The matrix is returned to R via the robj_ret mechanism.
-extern "C" void CreateReturnDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
+extern "C" int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
 {
     // We use '((SEXP*)DATAPTR(x))[i] = v;' throughout, which is fine so long as
     // x is not an altrep vector, by memory.c definition of SET_VECTOR_ELT_0.
@@ -85,10 +86,27 @@ extern "C" void CreateReturnDataFrame(unsigned int nrow, unsigned int ncol, cons
     SEXP attr_rownames = R_compact_intrange(1, nrow); // Alternative: Rcpp::Function("seq_len")(nrow);
     Rf_setAttrib(df, R_RowNamesSymbol, attr_rownames);
 
-    // Assign data.frame to robj_ret in calling R environment
+    // Assign data.frame within robj_ret in calling R environment
     SEXP current_env = R_GetCurrentEnv();
-    Rf_defineVar(RObjRetSymbol, (SEXP)df, current_env);
+    SEXP robj_ret = Rf_findVar(RObjRetSymbol, current_env);
+    int robj_ret_len = Rf_length(robj_ret);
+    for (int i = 0; i < robj_ret_len; ++i)
+    {
+        if (VECTOR_ELT(robj_ret, i) == R_NilValue)
+        {
+            SET_VECTOR_ELT(robj_ret, i, df);
+            UNPROTECT(3);
+            return i;
+        }
+    }
 
-    UNPROTECT(3);
+    // No free spaces in robj_ret: grow list
+    SEXP new_robj_ret = PROTECT(Rf_allocVector3(VECSXP, robj_ret_len * 2, NULL));
+    for (int i = 0; i < robj_ret_len; ++i)
+        SET_VECTOR_ELT(new_robj_ret, i, VECTOR_ELT(robj_ret, i));
+    SET_VECTOR_ELT(new_robj_ret, robj_ret_len, df);
+    Rf_defineVar(RObjRetSymbol, new_robj_ret, current_env);
+
+    UNPROTECT(4);
+    return robj_ret_len;
 }
-

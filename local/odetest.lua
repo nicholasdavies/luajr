@@ -1,10 +1,5 @@
-ffi = require('ffi')
-
-ffi.cdef[[
-void CreateReturnMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
-void CreateReturnDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
-]]
-local luajr = ffi.load(luajr_dynlib_path)
+local ffi = require('ffi')
+local R = require('R')
 
 beta = 0.05
 gamma = 0.025
@@ -64,16 +59,17 @@ function run()
     q = { S = 0, I = 0, R = 0 }
 
     -- Solution storage
-    data = ffi.new("double*[4]")
-    --luajr.CreateReturnMatrix(1000, 4, ffi.new("const char*[4]", {"t", "S", "I", "R"}), data)
-    luajr.CreateReturnDataFrame(1000, 4, ffi.new("const char*[4]", {"t", "S", "I", "R"}), data)
+    --df = R.Matrix(1000, 4, {"t", "S", "I", "R"})
+    df = R.DataFrame(1000, 4, {"t", "S", "I", "R"})
 
     for t = 0,999 do
-        data[0][t] = t
-        data[1][t] = x.S
-        data[2][t] = x.I
-        data[3][t] = x.R
+        df.t[t] = t
+        df.S[t] = x.S
+        df.I[t] = x.I
+        df.R[t] = x.R
 
         rk4_step(t, 1.0, x, k1, k2, k3, k4, q)
     end
+
+    return df
 end

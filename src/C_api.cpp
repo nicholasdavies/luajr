@@ -149,20 +149,32 @@ SEXP luajr_tosexp(lua_State* L, int index)
             break;
         case LUA_TTABLE:
         {
-            // Add each table entry to a list
-            Rcpp::List list;
-            lua_pushnil(L);
-            while (lua_next(L, index) != 0) {
-                SEXP val = luajr_tosexp(L, -1);
-                if (lua_type(L, -2) == LUA_TNUMBER)
-                    list.insert(lua_tointeger(L, -2) - 1, val);
-                else if (lua_type(L, -2) == LUA_TSTRING)
-                    list.push_back(val, lua_tostring(L, -2));
-                else
-                    Rcpp::stop("Non-number, non-string table keys cannot be represented in an R list.");
+            // Check if this is an R object table (i.e. has field __robj_ret_i)
+            lua_getfield(L, index, "__robj_ret_i");
+            if (!lua_isnil(L, -1))
+            {
+                // Value is R object table
+                retval = VECTOR_ELT(Rf_findVar(RObjRetSymbol, R_GetCurrentEnv()), lua_tointeger(L, -1));
                 lua_pop(L, 1);
             }
-            retval = list;
+            else
+            {
+                // Value is a regular table: add each entry to a list
+                lua_pop(L, 1);
+                Rcpp::List list;
+                lua_pushnil(L);
+                while (lua_next(L, index) != 0) {
+                    SEXP val = luajr_tosexp(L, -1);
+                    if (lua_type(L, -2) == LUA_TNUMBER)
+                        list.insert(lua_tointeger(L, -2) - 1, val);
+                    else if (lua_type(L, -2) == LUA_TSTRING)
+                        list.push_back(val, lua_tostring(L, -2));
+                    else
+                        Rcpp::stop("Non-number, non-string table keys cannot be represented in an R list.");
+                    lua_pop(L, 1);
+                }
+                retval = list;
+            }
             break;
         }
         case LUA_TLIGHTUSERDATA:

@@ -1,8 +1,5 @@
 library(luajr)
 
-# TODO add arg to lua_func which is like args code or sth. This is in progress:
-# see line 52 of C_api.cpp, which is almost ready for testing, I think.
-
 # TODO lock (threadwise) on R operations from within Lua
 
 # TODO can't the lua code return some kind of ID which basically tells
@@ -12,6 +9,8 @@ library(luajr)
 
 # TODO C api -- is it actually usable from C? Or should I just call it a C++
 # api?
+
+# TODO document, including vignettes
 
 lua("a")
 lua("a = 2")

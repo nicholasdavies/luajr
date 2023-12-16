@@ -38,25 +38,29 @@ SEXP Lua_return_to_R(lua_State* L, int nret)
     {
         return R_NilValue;
     }
-
-    // Multiple return values: collapse into one table
-    if (nret > 1)
+    else if (nret == 1)
     {
-        // Creates a new table at the top of the stack with space for nret array elements.
-        lua_createtable(L, nret, 0);
-
-        // Move table underneath returned values
-        lua_insert(L, -nret - 1);
+        // One return value: convert to SEXP, pop, and return
+        SEXP retval = luajr_tosexp(L, -1);
+        lua_pop(L, 1);
+        return retval;
+    }
+    else
+    {
+        // Multiple return values: return as list
+        SEXP retlist = PROTECT(Rf_allocVector3(VECSXP, nret, NULL));
 
         // Add elements to table (popping from top of stack)
-        for (int i = nret; i > 0; --i)
-            lua_rawseti(L, -nret - 1, i);
-    }
+        for (int i = 0; i < nret; ++i)
+        {
+            SEXP v = PROTECT(luajr_tosexp(L, -nret + i));
+            SET_VECTOR_ELT(retlist, i, v);
+        }
 
-    // One return value: convert to SEXP, pop, and return
-    SEXP retval = luajr_tosexp(L, -1);
-    lua_pop(L, 1);
-    return retval;
+        lua_pop(L, nret);
+        UNPROTECT(1 + nret);
+        return retlist;
+    }
 }
 
 // Create a registry entry.
