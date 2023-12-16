@@ -23,3 +23,9 @@ to update the subdirectory (i.e. pull any updates to luajit), use:
 
 git sbu https://github.com/LuaJIT/LuaJIT.git src/luajit v2.1
 
+Warnings when making luajit
+---------------------------
+
+Having -march=native in CFLAGS causes a warning about an uninitialized fs.len
+to be emitted when compiling ljamalg.o. Having looked at the offending source,
+it's not a real issue.

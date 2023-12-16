@@ -1,11 +1,8 @@
 library(luajr)
 
-# TODO lock (threadwise) on R operations from within Lua
+# TODO pass by reference into Lua
 
-# TODO can't the lua code return some kind of ID which basically tells
-# lua_func_call where to look for the return values? Then we could use normal
-# Lua return statements. How about it returns some cdata? Note
-# https://luajit.org/ext_ffi_semantics.html#gc
+# TODO lock (threadwise) on R operations from within Lua
 
 # TODO C api -- is it actually usable from C? Or should I just call it a C++
 # api?

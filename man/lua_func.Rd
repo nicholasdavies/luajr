@@ -4,7 +4,7 @@
 \alias{lua_func}
 \title{Create a Lua function callable from R.}
 \usage{
-lua_func(code, args = "f", L = NULL)
+lua_func(code, args = "s", L = NULL)
 }
 \arguments{
 \item{code}{Lua expression evaluating to a function.}
@@ -27,8 +27,8 @@ integer vector, numeric vector, string vector, list, and external pointer.
 The parameter \code{args} is a string with one character for each
 argument passed to the Lua function, recycled as needed.
 
-For \code{NULL} or any argument with length 0, the result is \strong{nil}
-regardless of the corresponding \code{args} code.
+For \code{NULL} or any argument with length 0, the result in Lua is
+\strong{nil} regardless of the corresponding \code{args} code.
 
 For logical, integer, double, and character vectors, if the corresponding
 \code{args} code is \code{'s'} (simplify), then if the R vector has length
@@ -44,8 +44,13 @@ the list), but the \code{args} code can be \code{'s'}, \code{'a'}, or
 \code{'t'}, which is applied to all elements contained in the list (including
 other lists).
 
-For external pointers, the only acceptable \code{args} code is \code{'*'},
-which is type \emph{userdata}.
+Note that Lua does not preserve the order of entries in lists. This means
+that an R vector with names will often go out of order when passed into
+Lua. A warning is therefore emitted when a named list or vector gets passed
+in to Lua.
+
+For external pointers, the \code{args} code is ignored and the external
+pointer is passed to Lua as type \emph{userdata}.
 
 Attributes are ignored other than 'names' and 'class', so e.g. matrices will
 end up as a numeric vector.

@@ -1,5 +1,12 @@
 #include "shared.h"
 #include "../inst/include/registry.h"
+#include <Rcpp.h>
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+#include "luajit_rolling.h"
+}
 
 // Global definitions
 lua_State* L0 = 0;
@@ -22,13 +29,13 @@ void luajr_init(DllInfo *dll)
 #undef API_FUNCTION
 }
 
-void R_pass_to_Lua(lua_State* L, Rcpp::List args, const char* acode)
+void R_pass_to_Lua(lua_State* L, SEXP args, const char* acode)
 {
     unsigned int acode_length = std::strlen(acode);
     if (acode_length == 0)
         Rcpp::stop("Length of args code is zero.");
-    for (int i = 0; i < args.size(); ++i)
-        luajr_pushsexp(L, args[i], acode[i % acode_length]);
+    for (int i = 0; i < Rf_length(args); ++i)
+        luajr_pushsexp(L, VECTOR_ELT(args, i), acode[i % acode_length]);
 }
 
 SEXP Lua_return_to_R(lua_State* L, int nret)

@@ -1,19 +1,16 @@
 // [[Rcpp::plugins(cpp11)]]
 
-#include <Rcpp.h>
-extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-#include "luajit_rolling.h"
-}
+// Forward declarations
+struct SEXPREC;
+struct lua_State;
+typedef SEXPREC* SEXP;
 
 // Globals
 extern lua_State* L0;       // The shared global Lua state
 extern SEXP RObjRetSymbol;  // Cached lookup symbol for robj_ret
 
 // Internal functions
-void R_pass_to_Lua(lua_State* L, Rcpp::List args, const char* acode);
+void R_pass_to_Lua(lua_State* L, SEXP args, const char* acode);
 SEXP Lua_return_to_R(lua_State* L, int nret);
 
 // C API functions

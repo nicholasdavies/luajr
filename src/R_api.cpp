@@ -2,6 +2,12 @@
 
 #include "shared.h"
 #include "../inst/include/registry.h"
+#include <Rcpp.h>
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
 
 const int LUAJR_STATE_CODE = 0x7CA57A7E;
 

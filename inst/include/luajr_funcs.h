@@ -156,7 +156,7 @@ API_FUNCTION(void, luaJIT_profile_stop, lua_State *L)
 API_FUNCTION(const char *, luaJIT_profile_dumpstack, lua_State *L, const char *fmt, int depth, size_t *len)
 
 // Specific to luajr
-API_FUNCTION(void, R_pass_to_Lua, lua_State* L, Rcpp::List args, const char* acode)
+API_FUNCTION(void, R_pass_to_Lua, lua_State* L, SEXP args, const char* acode)
 API_FUNCTION(SEXP, Lua_return_to_R, lua_State* L, int nret)
 API_FUNCTION(void, luajr_pushsexp, lua_State* L, SEXP x, char as)
 API_FUNCTION(SEXP, luajr_tosexp, lua_State* L, int index)

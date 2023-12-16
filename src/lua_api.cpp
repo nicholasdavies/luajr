@@ -2,6 +2,8 @@
 // [[Rcpp::plugins(cpp11)]]
 
 #include "shared.h"
+#include <R.h>
+#include <Rinternals.h>
 
 // Create compact integer range (for rownames of data.frame)
 extern "C" SEXP R_compact_intrange(R_xlen_t n1, R_xlen_t n2);

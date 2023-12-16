@@ -1,4 +1,8 @@
 #include "shared.h"
+#include <Rcpp.h>
+extern "C" {
+#include "lua.h"
+}
 
 // Additional types specific to LuaJIT. From lj_obj.h.
 #define LUA_TPROTO	(LUA_TTHREAD+1)
@@ -18,6 +22,7 @@ void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
     // TODO edge cases to handle: repeated names; NA names; non-character names
 
     // Warn about names
+    // TODO handle this better
     if (names != R_NilValue)
         Rcpp::warning("An R object with names has been passed to Lua. Lua does not preserve a given order of items in a table.");
 
