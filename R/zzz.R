@@ -1,5 +1,5 @@
 .onLoad <- function(libname, pkgname) {
-    # TODO set luajr_dynlib_path or equivalent
+    # TODO set luajr_dynlib_path or equivalent; getLoadedDLLs()[["luajr"]][["path"]]
     invisible()
 }
 

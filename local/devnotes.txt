@@ -1,3 +1,46 @@
+Better R argument passing
+-------------------------
+
+I think I need to overhaul the current system of args codes s, a, and t,
+for pass by reference and other improvements. I think these are the things to
+think about:
+ scalars and small tuples
+   I think the solution here is these should be passed by value and imported
+   as normal Lua objects (nil if length = 0, atomic if length = 1, table if
+   length > 1). Perhaps args codes 1,2,3 etc can be used to force length?
+ number/logical vectors (logical, int, real)
+   I think what we want to do here is insist that these are arrays and have
+   them pass by reference. With a fully kitted out metatable, it would be
+   possible to allow vector ops (+, *, etc), but that can be saved for later.
+   I think strip vector names, too (or require workarounds to use them).
+   But then what if we really want them to be scalars -- x[0] is cumbersome
+   and requires length checks within lua.  not sure. Also, what if we want to
+   resize a vector? Do we have bounds checks? I think there need to be two
+   kinds of vector essentially, a bare kind which is just cdata and a protected
+   kind which would have bounds checking, know its length, allow resizing, etc.
+ character vectors
+   have to be handled carefully so that reassigning their elements doesn't
+   crash R.
+ data.frame
+   would be great to be able to pass in by reference similar to current
+   R.DataFrame structure (i.e. elements have the names of the columns).
+   on the other hand, this doesn't preserve order of columns; is that
+   important? could have as extra info an array based mechanism i.e. so that
+   df.x and df.y can be used as well as df[0] and df[1]. This would use
+   a metatable approach. __newindex could be used to add new columns I guess.
+   this wouldn't need a metatable approach actually, the table would just have
+   both integer and string keys pointing to the same data.
+ lists
+   similar to data.frame I guess; need to handle names gracefully. Which I
+   think requires an overload of __index in the metatable. (and __newindex?)
+ matrix/array with multiple dimensions
+   probaby the easiest way of allowing access to matrices is e.g. x[row][col].
+Note that params to a function can be inspected; see
+https://stackoverflow.com/questions/3097209/lua-get-the-list-of-parameter-names-of-a-function-from-outside-the-function
+This would allow me to do positional argument passing -- basically if any
+parameters are named, kick in to positional arguments.
+
+
 luajit as subfolder in src/luajit
 ---------------------------------
 
@@ -22,6 +65,7 @@ git sba https://github.com/LuaJIT/LuaJIT.git src/luajit v2.1
 to update the subdirectory (i.e. pull any updates to luajit), use:
 
 git sbu https://github.com/LuaJIT/LuaJIT.git src/luajit v2.1
+
 
 Warnings when making luajit
 ---------------------------

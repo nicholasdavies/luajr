@@ -1,13 +1,13 @@
 library(luajr)
 
-# TODO pass by reference into Lua
-
+# TODO make R lua module code available
+# TODO allow pass by reference into Lua (see devnotes)
 # TODO lock (threadwise) on R operations from within Lua
-
-# TODO C api -- is it actually usable from C? Or should I just call it a C++
-# api?
-
+# TODO make naming of luajr C api consistent (luajr_ prefix, etc)
+# TODO C api: Check it is actually usable from C, or just call it a C++ api
 # TODO document, including vignettes
+# TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
+# TODO work through all of the r packages guide
 
 lua("a")
 lua("a = 2")
