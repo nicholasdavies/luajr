@@ -1,6 +1,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^Makefile$
 ^LICENSE\.md$
 ^local$
 ^README\.Rmd$
