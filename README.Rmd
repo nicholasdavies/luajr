@@ -1,0 +1,56 @@
+---
+output: github_document
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# luajr: Use LuaJIT Scripting with R
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+'luajr' provides an interface to Mike Pall's 'LuaJIT' (<https://luajit.org>), a just-in-time compiler for the Lua scripting language (<https://www.lua.org>). It allows users to run Lua code from 'R'.
+
+One of the advantages of using 'luajr' is that 'LuaJIT' runs Lua code with very fast compilation times, fast execution times, and no need for an external toolchain, as the LuaJIT compiler is "built in" to the 'luajr' package. This contrasts with e.g. 'Rcpp', which results in compiled code with very fast execution times but slow compilation times and the need to invoke an external C++ compiler toolchain like 'gcc' or 'clang'.
+
+## Installation
+
+You can install the development version of luajr from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("nicholasdavies/luajr")
+```
+<!--
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+library(luajr)
+## basic example code
+```
+
+What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+
+```{r cars}
+summary(cars)
+```
+
+You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
+
+You can also embed plots, for example:
+
+```{r pressure, echo = FALSE}
+plot(pressure)
+```
+
+In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+-->
