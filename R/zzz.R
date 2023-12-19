@@ -1,5 +1,14 @@
+# Package cache
+cache_env = new.env(parent = emptyenv())
+cache_env$luajr.lua = NULL
+
 .onLoad <- function(libname, pkgname) {
-    # TODO set luajr_dynlib_path or equivalent; getLoadedDLLs()[["luajr"]][["path"]]
+    cache_env$luajr.lua = paste0(
+        readLines(system.file("lua", "luajr.lua", package = "luajr", mustWork = TRUE)),
+        collapse = "\n")
+    cache_env$luajr.lua = gsub("@luajr_dylib_path@",
+        getLoadedDLLs()[["luajr"]][["path"]],
+        cache_env$luajr.lua)
     invisible()
 }
 

@@ -1,5 +1,5 @@
 local ffi = require('ffi')
-local R = require('R')
+local luajr = require('luajr')
 
 beta = 0.05
 gamma = 0.025
@@ -59,8 +59,8 @@ function run()
     q = { S = 0, I = 0, R = 0 }
 
     -- Solution storage
-    --df = R.Matrix(1000, 4, {"t", "S", "I", "R"})
-    df = R.DataFrame(1000, 4, {"t", "S", "I", "R"})
+    --df = luajr.Matrix(1000, 4, {"t", "S", "I", "R"})
+    df = luajr.DataFrame(1000, 4, {"t", "S", "I", "R"})
 
     for t = 0,999 do
         df.t[t] = t

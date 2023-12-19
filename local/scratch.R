@@ -1,13 +1,18 @@
 library(luajr)
 
-# TODO make R lua module code available
+# TODO writing R extensions: "They are unusual in their copying semantics in
+# that when an R object is copied, the external pointer object is not
+# duplicated. (For this reason external pointers should only be used as part of
+# an object with normal semantics, for example an attribute or an element of a
+# list.)" -- Lua states are just external pointers, is this a problem?
 # TODO allow pass by reference into Lua (see devnotes)
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
 # TODO C api: Check it is actually usable from C, or just call it a C++ api
 # TODO document, including vignettes
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
-# TODO work through all of the r packages guide
+# TODO work through all of the r packages guide (1x2x3x4x5x) (6x7x8x) (9_10_11_12_)
+# TODO once there is something to cite, usethis::use_citation()?
 
 lua("a")
 lua("a = 2")

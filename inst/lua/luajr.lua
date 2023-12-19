@@ -4,14 +4,14 @@ ffi.cdef[[
 int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
 int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
 ]]
-local luajr = ffi.load(luajr_dynlib_path)
+local luajr_internal = ffi.load("@luajr_dylib_path@")
 
-local R = {}
+local luajr = {}
 
-function R.DataMatrix(nrow, ncol, names)
+function luajr.DataMatrix(nrow, ncol, names)
     data = ffi.new("double*[?]", ncol)
     cnames = ffi.new("const char*[?]", ncol, names)
-    id = luajr.AllocRDataMatrix(nrow, ncol, cnames, data)
+    id = luajr_internal.AllocRDataMatrix(nrow, ncol, cnames, data)
     m = { __robj_ret_i = id }
     for i = 1, #names do
         m[names[i]] = data[i-1]
@@ -19,10 +19,10 @@ function R.DataMatrix(nrow, ncol, names)
     return m
 end
 
-function R.DataFrame(nrow, ncol, names)
+function luajr.DataFrame(nrow, ncol, names)
     data = ffi.new("double*[?]", ncol)
     cnames = ffi.new("const char*[?]", ncol, names)
-    id = luajr.AllocRDataFrame(nrow, ncol, cnames, data)
+    id = luajr_internal.AllocRDataFrame(nrow, ncol, cnames, data)
     df = { __robj_ret_i = id }
     for i = 1, #names do
         df[names[i]] = data[i-1]
@@ -30,4 +30,4 @@ function R.DataFrame(nrow, ncol, names)
     return df
 end
 
-package.preload.R = function() return R end
+package.preload.luajr = function() return luajr end
