@@ -28,7 +28,7 @@ inlineCxxPlugin = function(...)
 #' * [using luajr from C++]
 #' * [using luajr from Lua]
 #'
-#' For Introduction, see \code{vignette("intro", package = "luajr")}
+#' For Introduction, see `vignette("intro", package = "luajr")`
 #'
 #' @docType package
 #' @name luajr

@@ -2,8 +2,8 @@
 #'
 #' When in interactive mode, provides a basic read-eval-print loop with LuaJIT.
 #'
-#' @param L \link[=lua_open]{Lua state} in which to run the code. \code{NULL}
-#' (default) to use the default Lua state for \pkg{luajr}.
+#' @param L [Lua state][lua_open] in which to run the code. `NULL` (default) to
+#' use the default Lua state for \pkg{luajr}.
 #' @export
 lua_shell = function(L = NULL)
 {

@@ -5,22 +5,26 @@
 \alias{luajr}
 \title{luajr: Use LuaJIT Scripting with R}
 \description{
-'luajr' provides an interface to Mike Pall's LuaJIT (<https://luajit.org>),
+'luajr' provides an interface to Mike Pall's LuaJIT (\url{https://luajit.org}),
 a just-in-time compiler for the Lua scripting language
-(<https://www.lua.org>). It allows users to run Lua code from R.
+(\url{https://www.lua.org}). It allows users to run Lua code from R.
 }
 \section{The R API}{
 
-* [lua()]
-* [lua_func()]
-* [lua_shell()]
-* [lua_open()]
+\itemize{
+\item \code{\link[=lua]{lua()}}
+\item \code{\link[=lua_func]{lua_func()}}
+\item \code{\link[=lua_shell]{lua_shell()}}
+\item \code{\link[=lua_open]{lua_open()}}
+}
 }
 
 \section{Other information}{
 
-* [using luajr from C++]
-* [using luajr from Lua]
+\itemize{
+\item \link{using luajr from C++}
+\item \link{using luajr from Lua}
+}
 
 For Introduction, see \code{vignette("intro", package = "luajr")}
 }

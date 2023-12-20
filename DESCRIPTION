@@ -3,7 +3,7 @@ Type: Package
 Title: Use LuaJIT Scripting with R
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", role = c("cre", "aut", "cph")),
+    person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", role = c("cre", "aut", "cph"), comment = c(ORCID = "0000-0002-1740-1412")),
     person("Mike", "Pall", role = "cph", comment = "Author of the embedded LuaJIT compiler"),
     person("Lua.org, PUC-Rio", role = "cph", comment = "Authors of the Lua scripting language"))
 Description: 'luajr' provides an interface to Mike Pall's 'LuaJIT'
@@ -13,8 +13,6 @@ URL: https://github.com/nicholasdavies/luajr
 BugReports: https://github.com/nicholasdavies/luajr/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
-RoxygenNote: 7.2.3
 SystemRequirements: GNU make
 LinkingTo: 
     Rcpp
@@ -24,4 +22,7 @@ Suggests:
     crayon,
     knitr,
     rmarkdown
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr

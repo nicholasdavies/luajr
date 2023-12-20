@@ -37,6 +37,8 @@ lua_State* new_lua_state()
     // params[1] -- first parameter, if any.
     // params[2] -- second parameter, if any.
     // #params   -- number of parameters.
+    // Note, this could be a use case for sysdata within the R package, maybe.
+    // Or could save the bytecode to an .h file (this is supported by luajit).
 
     // "rcpp"
     Rcpp::Environment package_env = Rcpp::Environment::namespace_env("luajr");
@@ -91,20 +93,20 @@ void finalize_lua_state(SEXP Lxp)
 //' All Lua code is executed within a given Lua state. A Lua state is similar to
 //' the global environment in R, in that it is where all variables and functions
 //' are defined. \pkg{luajr} automatically maintains a "default" Lua state, so
-//' most users of \pkg{luajr} will not need to use \code{\link{lua_open}}.
+//' most users of \pkg{luajr} will not need to use [lua_open()].
 //'
 //' However, if for whatever reason you want to maintain multiple different Lua
 //' states at a time, each with their own independent global variables and
-//' functions, \code{\link{lua_open}} can be used to create a new Lua state
-//' which can then be passed to \code{\link{lua}}, \code{\link{lua_func}} and
-//' \code{\link{lua_shell}} via the \code{L} parameter. These functions will
-//' then operate within that Lua state instead of the default one. The default
-//' Lua state can be specified explicitly with \code{L = NULL}.
+//' functions, [lua_open()] can be used to create a new Lua state which can then
+//' be passed to [lua()], [lua_func()] and [lua_shell()] via the `L` parameter.
+//' These functions will then operate within that Lua state instead of the
+//' default one. The default Lua state can be specified explicitly with
+//' `L = NULL`.
 //'
 //' Note that there is currently no way (provided by \pkg{luajr}) of saving a
 //' Lua state to disk so that the state can be restarted later. Also, there is
-//' no \code{lua_close} in \pkg{luajr} because when the R object returned by
-//' \code{\link{lua_open}} is garbage collected, the Lua state is closed then.
+//' no `lua_close` in \pkg{luajr} because when the R object returned by
+//' [lua_open()] is garbage collected, the Lua state is closed then.
 //'
 //' @return External pointer wrapping the Lua state.
 //' @examples

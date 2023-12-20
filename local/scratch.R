@@ -19,6 +19,7 @@ library(luajr)
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
 # TODO work through all of the r packages guide (1x2x3x4x5x) (6x7x8x) (9_10_11_12_)
 # TODO once there is something to cite, usethis::use_citation()?
+# TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7)
 
 lua("a")
 lua("a = 2")
