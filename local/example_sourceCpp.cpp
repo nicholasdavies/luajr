@@ -1,4 +1,5 @@
 // [[Rcpp::depends(luajr)]]
+#include <Rcpp.h>
 #include <luajr_api.h>
 #include <luajr_funcdef.hpp>
 

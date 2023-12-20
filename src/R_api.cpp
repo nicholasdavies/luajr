@@ -122,6 +122,16 @@ SEXP luajr_open()
     return Lxp;
 }
 
+// [[Rcpp::export]]
+void close_shared_state()
+{
+    if (L0 != 0)
+    {
+        lua_close(L0);
+        L0 = 0;
+    }
+}
+
 // Helper function to interpret the Lua state handle Lxp as either a reference
 // to the default luajr state (Lxp == NULL) or to a Lua state started with
 // lua_open and to return the corresponding lua_State*.

@@ -8,6 +8,7 @@ example1()
 # This is the same
 sourceCpp(code = "
 // [[Rcpp::depends(luajr)]]
+#include <Rcpp.h>
 #include <luajr_api.h>
 #include <luajr_funcdef.hpp>
 

@@ -5,6 +5,12 @@ library(luajr)
 # duplicated. (For this reason external pointers should only be used as part of
 # an object with normal semantics, for example an attribute or an element of a
 # list.)" -- Lua states are just external pointers, is this a problem?
+# TODO refactor names under src/:
+#    C_api -> pushto;
+#    internal -> luajr.cpp; put return/pass in pushto; register.cpp
+#    lua_api -> ffi?
+#    R_api -> state, run, func?
+#    mvoe register.h to src/?
 # TODO allow pass by reference into Lua (see devnotes)
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
@@ -54,6 +60,10 @@ tellme(c3)
 
 # OK so there are two use cases.
 
+# NOTE this use case isn't ideal, we don't really want to be repeatedly calling
+# small lua functions from within C++. This is contrary to the LuaJIT spirit.
+# Repeatedly calling C is fine. But this should still be a potential use case
+# although discouraged.
 # In one (miasma models), basically I want to be able to pass lua function
 # definitions (strings of lua code basically) to C++ functions defined within a
 # package and use those to run logic. So for example, see local/use_case.cpp,
@@ -69,6 +79,7 @@ solve_ode_model(c(1.0, 1.0), "function(x) return { -x[1], x[2] } end", 0, 10, 0.
 
 # OK - I have shown that this works (in principle) for cppFunction, sourceCpp
 # and in the package context -- though it does need documentation.
+# Have shown this in local/example_cppFunction.R, example_sourceCpp.R
 
 
 # In another use case, I want to be able to execute some arbitrary lua code.
@@ -101,7 +112,7 @@ lua("ffi = require('ffi')")
 lua("vdouble = ffi.typeof('double[?]')")
 
 luatest = lua_func(
-"function(steps)
+"function(steps, verbose)
     x = vdouble(16)
     for k = 1,steps do
         for i = 0,15 do
@@ -113,8 +124,10 @@ luatest = lua_func(
             end
         end
     end
-    print(x[0]+x[1]+x[2]+x[3]+x[4]+x[5]+x[6]+x[7]+
-        x[8]+x[9]+x[10]+x[11]+x[12]+x[13]+x[14]+x[15])
+    if verbose then
+        print(x[0]+x[1]+x[2]+x[3]+x[4]+x[5]+x[6]+x[7]+
+            x[8]+x[9]+x[10]+x[11]+x[12]+x[13]+x[14]+x[15])
+    end
 end")
 
 luatest_unroll = lua_func(
@@ -255,12 +268,14 @@ luatest_unroll = lua_func(
             x[15] = x[15] * 0.99
         end
     end
-    print(x[0]+x[1]+x[2]+x[3]+x[4]+x[5]+x[6]+x[7]+
-        x[8]+x[9]+x[10]+x[11]+x[12]+x[13]+x[14]+x[15])
+    if verbose then
+        print(x[0]+x[1]+x[2]+x[3]+x[4]+x[5]+x[6]+x[7]+
+            x[8]+x[9]+x[10]+x[11]+x[12]+x[13]+x[14]+x[15])
+    end
 end")
 
 cpptest = Rcpp::cppFunction(
-"void cpptest(unsigned int steps) {
+"void cpptest(unsigned int steps, bool verbose) {
     double* x = new double[16];
 
     for (unsigned int k = 0; k < steps; ++k)
@@ -277,13 +292,14 @@ cpptest = Rcpp::cppFunction(
         }
     }
 
-    Rcpp::Rcout << x[0]+x[1]+x[2]+x[3]+x[4]+x[5]+x[6]+x[7]+
-        x[8]+x[9]+x[10]+x[11]+x[12]+x[13]+x[14]+x[15] << '\\n';
+    if (verbose)
+        Rcpp::Rcout << x[0]+x[1]+x[2]+x[3]+x[4]+x[5]+x[6]+x[7]+
+            x[8]+x[9]+x[10]+x[11]+x[12]+x[13]+x[14]+x[15] << '\\n';
 
     delete[] x;
 }")
 
-rtest1 = function(steps)
+rtest1 = function(steps, verbose)
 {
     x = numeric(16);
 
@@ -299,10 +315,12 @@ rtest1 = function(steps)
         }
     }
 
-    print(sum(x))
+    if (verbose) {
+        print(sum(x))
+    }
 }
 
-rtest2 = function(steps)
+rtest2 = function(steps, verbose)
 {
     x = numeric(16);
 
@@ -316,13 +334,19 @@ rtest2 = function(steps)
         }
     }
 
-    print(sum(x))
+    if (verbose) {
+        print(sum(x))
+    }
 }
 
+system.time(luatest(5000, TRUE))  # .3s
+system.time(luatest_unroll(5000, TRUE))  # .07s
+system.time(cpptest(5000, TRUE))  # .04s
+system.time(rtest1(5000, TRUE))   # 40s
+system.time(rtest2(5000, TRUE))   # 3s
 
-system.time(luatest(5000))  # .3s
-system.time(luatest_unroll(5000))  # .07s
-system.time(cpptest(5000))  # .04s
-system.time(rtest1(5000))   # 40s
-system.time(rtest2(5000))   # 3s
-
+bench::mark(luatest(500, FALSE), min_time = 5)
+bench::mark(luatest_unroll(500, FALSE), min_time = 5)
+bench::mark(cpptest(500, FALSE), min_time = 5)
+bench::mark(rtest1(500, FALSE), min_time = 5)
+bench::mark(rtest2(500, FALSE), min_time = 5)

@@ -20,9 +20,14 @@ void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
     SEXP names = Rf_getAttrib(x, R_NamesSymbol);
 
     // TODO edge cases to handle: repeated names; NA names; non-character names
+    //  - repeated names is handled bc only R lists maintain names so all sublists will
+    // be available as 0/1/2 indices and otherwise only the first/last should apply
+    // (to be consistent with R, only the first??
+    //  - NA name, this gets converted to NA so it is fine
+    //  - non-character names, error
 
     // Warn about names
-    // TODO handle this better
+    // TODO handle this better; I think the decision in devnotes.txt is to always strip array passes
     if (names != R_NilValue)
         Rcpp::warning("An R object with names has been passed to Lua. Lua does not preserve a given order of items in a table.");
 

@@ -164,4 +164,3 @@ API_FUNCTION(SEXP, luajr_open)
 API_FUNCTION(lua_State*, luajr_getstate, SEXP Lxp)
 API_FUNCTION(int, AllocRDataMatrix, unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
 API_FUNCTION(int, AllocRDataFrame, unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
-
