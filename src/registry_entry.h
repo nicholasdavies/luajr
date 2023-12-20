@@ -1,5 +1,5 @@
-#ifndef REGISTRY_H
-#define REGISTRY_H
+#ifndef REGISTRY_ENTRY_H
+#define REGISTRY_ENTRY_H
 
 // [[Rcpp::plugins(cpp11)]]
 
@@ -36,4 +36,4 @@ private:
     lua_State* l; // lua_State in which registry is stored
 };
 
-#endif // REGISTRY_H
+#endif // REGISTRY_ENTRY_H

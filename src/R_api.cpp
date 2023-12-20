@@ -1,7 +1,7 @@
 // Functions designed to be called from R code (or constituents thereof).
 
 #include "shared.h"
-#include "../inst/include/registry.h"
+#include "registry_entry.h"
 #include <Rcpp.h>
 extern "C" {
 #include "lua.h"
@@ -124,16 +124,6 @@ SEXP luajr_open()
     R_RegisterCFinalizerEx(Lxp, finalize_lua_state, TRUE);
     UNPROTECT(2);
     return Lxp;
-}
-
-// [[Rcpp::export]]
-void close_shared_state()
-{
-    if (L0 != 0)
-    {
-        lua_close(L0);
-        L0 = 0;
-    }
 }
 
 // Helper function to interpret the Lua state handle Lxp as either a reference

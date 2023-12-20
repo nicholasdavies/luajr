@@ -1,3 +1,5 @@
+// push_to.cpp: Move values between R and Lua
+
 #include "shared.h"
 #include <Rcpp.h>
 extern "C" {
@@ -8,8 +10,7 @@ extern "C" {
 #define LUA_TPROTO	(LUA_TTHREAD+1)
 #define LUA_TCDATA	(LUA_TTHREAD+2)
 
-// Helper function to push a 'primitive vector' (LGLSXP, INTSXP, REALSXP,
-// STRSXP) to the Lua stack.
+// Helper function to push a vector to the Lua stack.
 template <typename Push>
 void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
     bool can_simplify = true)
@@ -203,3 +204,47 @@ SEXP luajr_tosexp(lua_State* L, int index)
     // Return the set return value as an R object.
     return retval;
 }
+
+// Take a list of values passed from R and pass them to Lua
+void R_pass_to_Lua(lua_State* L, SEXP args, const char* acode)
+{
+    unsigned int acode_length = std::strlen(acode);
+    if (acode_length == 0)
+        Rcpp::stop("Length of args code is zero.");
+    for (int i = 0; i < Rf_length(args); ++i)
+        luajr_pushsexp(L, VECTOR_ELT(args, i), acode[i % acode_length]);
+}
+
+// Take values returned from Lua and return them to R
+SEXP Lua_return_to_R(lua_State* L, int nret)
+{
+    // No return value: return NULL
+    if (nret == 0)
+    {
+        return R_NilValue;
+    }
+    else if (nret == 1)
+    {
+        // One return value: convert to SEXP, pop, and return
+        SEXP retval = luajr_tosexp(L, -1);
+        lua_pop(L, 1);
+        return retval;
+    }
+    else
+    {
+        // Multiple return values: return as list
+        SEXP retlist = PROTECT(Rf_allocVector3(VECSXP, nret, NULL));
+
+        // Add elements to table (popping from top of stack)
+        for (int i = 0; i < nret; ++i)
+        {
+            SEXP v = PROTECT(luajr_tosexp(L, -nret + i));
+            SET_VECTOR_ELT(retlist, i, v);
+        }
+
+        lua_pop(L, nret);
+        UNPROTECT(1 + nret);
+        return retlist;
+    }
+}
+

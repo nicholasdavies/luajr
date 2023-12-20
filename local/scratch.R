@@ -5,12 +5,6 @@ library(luajr)
 # duplicated. (For this reason external pointers should only be used as part of
 # an object with normal semantics, for example an attribute or an element of a
 # list.)" -- Lua states are just external pointers, is this a problem?
-# TODO refactor names under src/:
-#    C_api -> pushto;
-#    internal -> luajr.cpp; put return/pass in pushto; register.cpp
-#    lua_api -> ffi?
-#    R_api -> state, run, func?
-#    mvoe register.h to src/?
 # TODO allow pass by reference into Lua (see devnotes)
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)

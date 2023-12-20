@@ -18,6 +18,6 @@ cache_env$luajr.lua = NULL
 .onUnload = function(libname, pkgname)
 {
     # Close the shared Lua state
-    close_shared_state()
+    luajr_reset()
     invisible()
 }
