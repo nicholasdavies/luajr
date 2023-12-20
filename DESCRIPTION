@@ -1,6 +1,6 @@
 Package: luajr
 Type: Package
-Title: Use LuaJIT Scripting with R
+Title: LuaJIT Scripting
 Version: 0.0.0.9000
 Authors@R: c(
     person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", role = c("cre", "aut", "cph"), comment = c(ORCID = "0000-0002-1740-1412")),

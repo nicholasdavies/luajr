@@ -3,7 +3,7 @@
 \docType{package}
 \name{luajr}
 \alias{luajr}
-\title{luajr: Use LuaJIT Scripting with R}
+\title{luajr: LuaJIT Scripting}
 \description{
 'luajr' provides an interface to Mike Pall's LuaJIT (\url{https://luajit.org}),
 a just-in-time compiler for the Lua scripting language

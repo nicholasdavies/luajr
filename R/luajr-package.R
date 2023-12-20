@@ -12,7 +12,7 @@ inlineCxxPlugin = function(...)
         package = "luajr")(...)
 }
 
-#' luajr: Use LuaJIT Scripting with R
+#' luajr: LuaJIT Scripting
 #'
 #' 'luajr' provides an interface to Mike Pall's LuaJIT (<https://luajit.org>),
 #' a just-in-time compiler for the Lua scripting language

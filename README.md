@@ -1,5 +1,5 @@
 
-# luajr: Use LuaJIT Scripting with R
+# luajr: LuaJIT Scripting
 
 <!-- badges: start -->
 <!-- badges: end -->
