@@ -17,7 +17,7 @@ library(luajr)
 # TODO C api: Check it is actually usable from C, or just call it a C++ api
 # TODO document, including vignettes
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
-# TODO work through all of the r packages guide (1x2x3x4x5x) (6x7x8x) (9_10_11_12_)
+# TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13_14_15_)
 # TODO once there is something to cite, usethis::use_citation()?
 # TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7)
 
@@ -30,6 +30,17 @@ lua("a = 4", L = L2)
 lua("print(a)", L = NULL)
 lua("print(a)", L = L2)
 rm(L2)
+
+# Copying of Lua states
+L3 = lua_open()
+lua("animal = 'dog'", L = L3)
+L4 = L3
+rm(L3)
+rm(L4)
+gc()
+L3
+lua("print(animal)", L = L3)
+lua("print(animal)", L = L4)
 
 # Testing args codes
 lua('tellme = function(x, level)

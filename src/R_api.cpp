@@ -119,8 +119,10 @@ void finalize_lua_state(SEXP Lxp)
 // [[Rcpp::export(lua_open)]]
 SEXP luajr_open()
 {
-    SEXP Lxp = R_MakeExternalPtr(new_lua_state(), Rf_ScalarInteger(LUAJR_STATE_CODE), R_NilValue);
+    SEXP tag = PROTECT(Rf_ScalarInteger(LUAJR_STATE_CODE));
+    SEXP Lxp = PROTECT(R_MakeExternalPtr(new_lua_state(), tag, R_NilValue));
     R_RegisterCFinalizerEx(Lxp, finalize_lua_state, TRUE);
+    UNPROTECT(2);
     return Lxp;
 }
 
