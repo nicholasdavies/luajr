@@ -1,7 +1,10 @@
 // push_to.cpp: Move values between R and Lua
 
 #include "shared.h"
-#include <Rcpp.h>
+#include <R.h>
+#include <Rinternals.h>
+#include <vector>
+#include <string>
 extern "C" {
 #include "lua.h"
 }
@@ -19,18 +22,8 @@ void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
 
     // Get names of R object
     SEXP names = Rf_getAttrib(x, R_NamesSymbol);
-
-    // TODO edge cases to handle: repeated names; NA names; non-character names
-    //  - repeated names is handled bc only R lists maintain names so all sublists will
-    // be available as 0/1/2 indices and otherwise only the first/last should apply
-    // (to be consistent with R, only the first??
-    //  - NA name, this gets converted to NA so it is fine
-    //  - non-character names, error
-
-    // Warn about names
-    // TODO handle this better; I think the decision in devnotes.txt is to always strip array passes
-    // if (names != R_NilValue)
-    //     Rcpp::warning("An R object with names has been passed to Lua. Lua does not preserve a given order of items in a table.");
+    if (names != R_NilValue && TYPEOF(names) != STRSXP)
+        Rf_error("Non-character names attribute on vector.");
 
     if (can_simplify && as == 's' && len == 1)
     {
@@ -47,7 +40,9 @@ void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
                     ++nrec;
         }
         lua_createtable(L, len - nrec, nrec);
-        for (unsigned int i = 0; i < len; ++i)
+        // This moves through the vector backwards so that if there are repeated
+        // names, the earlier vector element with that name takes precedence.
+        for (int i = len - 1; i >= 0; --i)
         {
             if (names != R_NilValue && LENGTH(STRING_ELT(names, i)) > 0)
             {
@@ -74,7 +69,7 @@ void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
     }
     else
     {
-        Rcpp::stop("Unrecognised args code ", as, " for type ", Rf_type2char(TYPEOF(x)));
+        Rf_error("Unrecognised args code %c for type %s.", as, Rf_type2char(TYPEOF(x)));
     }
 }
 
@@ -127,10 +122,10 @@ void luajr_pushsexp(lua_State* L, SEXP x, char as)
                 false);
             break;
         case EXTPTRSXP: // external pointer
-            lua_pushlightuserdata(L, Rcpp::as<void*>(x));
+            lua_pushlightuserdata(L, R_ExternalPtrAddr(x));
             break;
         default:
-            Rcpp::stop("Cannot convert %s to Lua.", Rf_type2char(TYPEOF(x)));
+            Rf_error("Cannot convert %s to Lua.", Rf_type2char(TYPEOF(x)));
     }
 }
 
@@ -142,52 +137,85 @@ SEXP luajr_tosexp(lua_State* L, int index)
     // Convert index to absolute index
     index = (index > 0 || index <= LUA_REGISTRYINDEX) ? index : lua_gettop(L) + index + 1;
 
-    // Depending on the Lua type of the value at Lua stack index [index], set
-    // retval to the corresponding R type and value.
-    SEXP retval;
+    // Depending on the Lua type of the value at Lua stack index [index],
+    // return the corresponding R value.
     switch (lua_type(L, index))
     {
         case LUA_TNIL:
-            retval = R_NilValue;
-            break;
+            return R_NilValue;
         case LUA_TBOOLEAN:
-            retval = Rcpp::wrap<bool>(lua_toboolean(L, index));
-            break;
+            return Rf_ScalarLogical(lua_toboolean(L, index));
         case LUA_TNUMBER:
-            retval = Rcpp::wrap<double>(lua_tonumber(L, index));
-            break;
+            return Rf_ScalarReal(lua_tonumber(L, index));
         case LUA_TSTRING:
-            retval = Rcpp::wrap<std::string>(lua_tostring(L, index));
-            break;
+            return Rf_mkString(lua_tostring(L, index));
         case LUA_TTABLE:
         {
+            SEXP retval;
+
             // Check if this is an R object table (i.e. has field __robj_ret_i)
             lua_getfield(L, index, "__robj_ret_i");
             if (!lua_isnil(L, -1))
             {
                 // Value is R object table
                 retval = VECTOR_ELT(Rf_findVar(RObjRetSymbol, R_GetCurrentEnv()), lua_tointeger(L, -1));
-                lua_pop(L, 1);
+                lua_pop(L, 1); // from lua_getfield
             }
             else
             {
                 // Value is a regular table: add each entry to a list
-                lua_pop(L, 1);
-                Rcpp::List list;
+                lua_pop(L, 1); // from lua_getfield
+
+                // Iterate through all entries, to later insert into a list.
+                // TODO There is likely a better way of doing this
+                std::vector<SEXP> arr;
+                std::vector<SEXP> rec;
+                std::vector<std::string> rec_names;
+
                 lua_pushnil(L);
-                while (lua_next(L, index) != 0) {
-                    SEXP val = luajr_tosexp(L, -1);
+                while (lua_next(L, index) != 0)
+                {
+                    SEXP val = PROTECT(luajr_tosexp(L, -1));
                     if (lua_type(L, -2) == LUA_TNUMBER)
-                        list.insert(lua_tointeger(L, -2) - 1, val);
+                    {
+                        arr.push_back(val);
+                    }
                     else if (lua_type(L, -2) == LUA_TSTRING)
-                        list.push_back(val, lua_tostring(L, -2));
+                    {
+                        rec.push_back(val);
+                        rec_names.push_back(lua_tostring(L, -2));
+                    }
                     else
-                        Rcpp::stop("Non-number, non-string table keys cannot be represented in an R list.");
+                    {
+                        Rf_error("Lua type %s keys cannot be represented in an R list.",
+                            lua_typename(L, lua_type(L, -2)));
+                    }
                     lua_pop(L, 1);
                 }
-                retval = list;
+
+                // Create list
+                retval = PROTECT(Rf_allocVector3(VECSXP, arr.size() + rec.size(), NULL));
+                for (unsigned int j = 0; j < arr.size(); ++j)
+                    ((SEXP*)DATAPTR(retval))[j] = arr[j];
+                for (unsigned int j = 0; j < rec.size(); ++j)
+                    ((SEXP*)DATAPTR(retval))[arr.size() + j] = rec[j];
+
+                // Set names
+                if (!rec.empty())
+                {
+                    SEXP names = PROTECT(Rf_allocVector3(STRSXP, arr.size() + rec.size(), NULL));
+                    for (unsigned int j = 0; j < arr.size(); ++j)
+                        ((SEXP*)DATAPTR(names))[j] = R_BlankString;
+                    for (unsigned int j = 0; j < rec.size(); ++j)
+                        ((SEXP*)DATAPTR(names))[arr.size() + j] = Rf_mkChar(rec_names[j].c_str());
+                    Rf_setAttrib(retval, R_NamesSymbol, names);
+                    UNPROTECT(1);
+                }
+
+                // Return
+                UNPROTECT(arr.size() + rec.size() + 1);
             }
-            break;
+            return retval;
         }
         case LUA_TLIGHTUSERDATA:
         case LUA_TFUNCTION:
@@ -195,15 +223,10 @@ SEXP luajr_tosexp(lua_State* L, int index)
         case LUA_TTHREAD:
         case LUA_TPROTO:
         case LUA_TCDATA:
-            retval = Rcpp::XPtr<int>(reinterpret_cast<int*>(const_cast<void*>(lua_topointer(L, index))), false);
-            break;
+            return R_MakeExternalPtr(const_cast<void*>(lua_topointer(L, index)), R_NilValue, R_NilValue);
         default:
-            Rcpp::stop("Unknown return type detected: %d", lua_type(L, index));
-            break;
+            Rf_error("Unknown return type detected: %d", lua_type(L, index));
     }
-
-    // Return the set return value as an R object.
-    return retval;
 }
 
 // Take a list of values passed from R and pass them to Lua
@@ -211,7 +234,7 @@ void R_pass_to_Lua(lua_State* L, SEXP args, const char* acode)
 {
     unsigned int acode_length = std::strlen(acode);
     if (acode_length == 0)
-        Rcpp::stop("Length of args code is zero.");
+        Rf_error("Length of args code is zero.");
     for (int i = 0; i < Rf_length(args); ++i)
         luajr_pushsexp(L, VECTOR_ELT(args, i), acode[i % acode_length]);
 }

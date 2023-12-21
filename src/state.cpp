@@ -1,5 +1,6 @@
 #include "shared.h"
-#include <Rcpp.h>
+#include <R.h>
+#include <Rinternals.h>
 extern "C" {
 #include "lua.h"
 #include "lualib.h"
@@ -38,35 +39,29 @@ lua_State* new_lua_state()
     // Note, this could be a use case for sysdata within the R package, maybe.
     // Or could save the bytecode to an .h file (this is supported by luajit).
 
-    // "rcpp"
-    Rcpp::Environment package_env = Rcpp::Environment::namespace_env("luajr");
-    Rcpp::Environment cache_env(package_env["cache_env"]);
-    const char* code = Rcpp::as<const char*>(cache_env["luajr.lua"]);
-    luaL_dostring(l, code);
+    // // "rcpp"
+    // Rcpp::Environment package_env = Rcpp::Environment::namespace_env("luajr");
+    // Rcpp::Environment cache_env(package_env["cache_env"]);
+    // const char* code = Rcpp::as<const char*>(cache_env["luajr.lua"]);
+    // luaL_dostring(l, code);
 
     // "r"
-    // SEXP luajrNS = PROTECT(R_FindNamespace(Rf_mkString("luajr")));
-    // if (luajrNS == R_UnboundValue)
-    //     Rcpp::stop("missing luajr namespace: this should not happen");
-    //
-    // SEXP cache_env = PROTECT(Rf_findVarInFrame3(luajrNS, Rf_install("cache_env"), TRUE));
-    // if (cache_env == R_UnboundValue)
-    //     Rcpp::stop("missing cache_env in luajr namespace: this should not happen");
-    //
-    // // If cache_env is a promise, evaluate it
-    // if (TYPEOF(cache_env) == PROMSXP)
-    // {
-    //     //PROTECT(cache_env);
-    //     cache_env = Rf_eval(cache_env, R_GlobalEnv);
-    //     //UNPROTECT(1);
-    // }
-    //
-    // SEXP code = Rf_findVar(Rf_install("luajr.lua"), cache_env);
-    // if (code == R_UnboundValue)
-    //     Rcpp::stop("missing code in cache_env namespace: this should not happen");
-    //
-    // luaL_dostring(l, CHAR(STRING_ELT(code, 0)));
-    // UNPROTECT(1);
+    SEXP luajrNS = R_FindNamespace(Rf_mkString("luajr"));
+    SEXP cache_env = Rf_findVarInFrame3(luajrNS, Rf_install("cache_env"), TRUE);
+
+    // If cache_env is a promise, evaluate it
+    if (TYPEOF(cache_env) == PROMSXP)
+    {
+    	PROTECT(cache_env);
+		cache_env = Rf_eval(cache_env, R_GlobalEnv);
+		UNPROTECT(1);
+    }
+
+    SEXP code = Rf_findVar(Rf_install("luajr.lua"), cache_env);
+    if (code == R_UnboundValue)
+        Rf_error("Fatal error: could not find luajr:::cache_env$luajr.lua.");
+
+    luaL_dostring(l, CHAR(STRING_ELT(code, 0)));
 
     // "as char"
     // const char* code = "local ffi = require('ffi')\n\nffi.cdef[[\nint AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);\nint AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);\n]]\nlocal luajr_internal = ffi.load(\"/Library/Frameworks/R.framework/Versions/4.3-x86_64/Resources/library/luajr/libs/luajr.so\")\n\nlocal luajr = {}\n\nfunction luajr.DataMatrix(nrow, ncol, names)\n    data = ffi.new(\"double*[?]\", ncol)\n    cnames = ffi.new(\"const char*[?]\", ncol, names)\n    id = luajr_internal.AllocRDataMatrix(nrow, ncol, cnames, data)\n    m = { __robj_ret_i = id }\n    for i = 1, #names do\n        m[names[i]] = data[i-1]\n    end\n    return m\nend\n\nfunction luajr.DataFrame(nrow, ncol, names)\n    data = ffi.new(\"double*[?]\", ncol)\n    cnames = ffi.new(\"const char*[?]\", ncol, names)\n    id = luajr_internal.AllocRDataFrame(nrow, ncol, cnames, data)\n    df = { __robj_ret_i = id }\n    for i = 1, #names do\n        df[names[i]] = data[i-1]\n    end\n    return df\nend\n\npackage.preload.luajr = function() return luajr end";
@@ -161,6 +156,6 @@ lua_State* luajr_getstate(SEXP Lxp)
         return reinterpret_cast<lua_State*>(R_ExternalPtrAddr(Lxp));
     }
 
-    Rcpp::stop("Lua state should be NULL or a value returned from lua_open.");
+    Rf_error("Lua state should be NULL or a value returned from lua_open.");
     return L0;
 }
