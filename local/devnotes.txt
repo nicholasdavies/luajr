@@ -40,6 +40,11 @@ https://stackoverflow.com/questions/3097209/lua-get-the-list-of-parameter-names-
 This would allow me to do positional argument passing -- basically if any
 parameters are named, kick in to positional arguments.
 
+Whatever solution is chosen, need to make sure that Lua not remembering the
+order of named elements doesn't bite, or put back the warning in push_R_vector
+about Lua not remembering the order. I think the multiple definition of 0/1
+versus named elements will be key here.
+
 
 luajit as subfolder in src/luajit
 ---------------------------------

@@ -5,14 +5,16 @@ library(luajr)
 # duplicated. (For this reason external pointers should only be used as part of
 # an object with normal semantics, for example an attribute or an element of a
 # list.)" -- Lua states are just external pointers, is this a problem?
-# TODO get rid of Rcpp as much as possible -- slow compilation!
 # TODO allow pass by reference into Lua (see devnotes)
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
 # TODO C api: Check it is actually usable from C, or just call it a C++ api
 # TODO document, including vignettes
+# TODO as part of documentation, be thorough about how Lua types are returned to
+# R. In particular note how all number keys of a table are ignored in particular
+# value, regardless of whether positive, negative, non-integer, etc
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
-# TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x)
+# TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
 # TODO once there is something to cite, usethis::use_citation()?
 # TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7) [needed for = delete]
 
