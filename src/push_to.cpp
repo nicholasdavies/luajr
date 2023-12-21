@@ -29,8 +29,8 @@ void push_R_vector(lua_State* L, SEXP x, char as, unsigned int len, Push push,
 
     // Warn about names
     // TODO handle this better; I think the decision in devnotes.txt is to always strip array passes
-    if (names != R_NilValue)
-        Rcpp::warning("An R object with names has been passed to Lua. Lua does not preserve a given order of items in a table.");
+    // if (names != R_NilValue)
+    //     Rcpp::warning("An R object with names has been passed to Lua. Lua does not preserve a given order of items in a table.");
 
     if (can_simplify && as == 's' && len == 1)
     {
@@ -135,7 +135,8 @@ void luajr_pushsexp(lua_State* L, SEXP x, char as)
 }
 
 // Analogous to Lua's lua_toXXX(lua_State* L, int index) functions, this gets
-// the value at [index] on the stack as a SEXP that can be handed to R.
+// the value at [index] on the stack as a SEXP that can be handed to R. Note
+// that SEXPs returned from this function need to be protected in calling code.
 SEXP luajr_tosexp(lua_State* L, int index)
 {
     // Convert index to absolute index

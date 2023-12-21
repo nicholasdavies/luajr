@@ -21,8 +21,10 @@ Imports:
 Suggests:
     crayon,
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr
+Config/testthat/edition: 3

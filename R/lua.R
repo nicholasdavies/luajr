@@ -1,4 +1,4 @@
-#' Run Lua code.
+#' Run Lua code
 #'
 #' Runs the specified Lua code.
 #'

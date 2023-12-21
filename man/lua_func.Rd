@@ -2,7 +2,7 @@
 % Please edit documentation in R/lua_func.R
 \name{lua_func}
 \alias{lua_func}
-\title{Create a Lua function callable from R.}
+\title{Create a Lua function callable from R}
 \usage{
 lua_func(code, args = "s", L = NULL)
 }

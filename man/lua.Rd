@@ -2,7 +2,7 @@
 % Please edit documentation in R/lua.R
 \name{lua}
 \alias{lua}
-\title{Run Lua code.}
+\title{Run Lua code}
 \usage{
 lua(code, filename = NULL, L = NULL)
 }

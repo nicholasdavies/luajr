@@ -3,6 +3,7 @@
 export(lua)
 export(lua_func)
 export(lua_open)
+export(lua_reset)
 export(lua_shell)
 importFrom(Rcpp,sourceCpp)
 useDynLib(luajr, .registration = TRUE)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{lua_open}
 \alias{lua_open}
-\title{Create a new Lua state.}
+\title{Create a new Lua state}
 \usage{
 lua_open()
 }

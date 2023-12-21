@@ -5,64 +5,16 @@ library(luajr)
 # duplicated. (For this reason external pointers should only be used as part of
 # an object with normal semantics, for example an attribute or an element of a
 # list.)" -- Lua states are just external pointers, is this a problem?
+# TODO get rid of Rcpp as much as possible -- slow compilation!
 # TODO allow pass by reference into Lua (see devnotes)
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
 # TODO C api: Check it is actually usable from C, or just call it a C++ api
 # TODO document, including vignettes
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
-# TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13_14_15_)
+# TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x)
 # TODO once there is something to cite, usethis::use_citation()?
-# TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7)
-
-lua("a")
-lua("a = 2")
-
-L2 = lua_open()
-lua("a = 4", L = L2)
-
-lua("print(a)", L = NULL)
-lua("print(a)", L = L2)
-rm(L2)
-
-# Copying of Lua states
-L3 = lua_open()
-lua("animal = 'dog'", L = L3)
-L4 = L3
-rm(L3)
-rm(L4)
-gc()
-L3
-lua("print(animal)", L = L3)
-lua("print(animal)", L = L4)
-
-# Testing args codes
-lua('tellme = function(x, level)
-    level = level or 0
-    if type(x) == "table" then
-        for k,v in pairs(x) do
-            io.write(string.rep(" ", level) .. tostring(k) .. " => ")
-            tellme(v, level + 1)
-        end
-    else
-        print(x)
-    end
-end')
-
-tellme = lua_func("tellme", args = "s")
-
-c1 = TRUE
-c2 = c(FALSE, TRUE, FALSE)
-c3 = c(falz = FALSE, troo = TRUE)
-
-tellme(c1)
-tellme(c2)
-tellme(c3)
-
-tellme(list(1, 2, 3:6, list(4,5,6, list(7,8,9))))
-
-names(c3)[2] = NA_character_
-tellme(c3)
+# TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7) [needed for = delete]
 
 # OK so there are two use cases.
 
@@ -85,7 +37,7 @@ solve_ode_model(c(1.0, 1.0), "function(x) return { -x[1], x[2] } end", 0, 10, 0.
 
 # OK - I have shown that this works (in principle) for cppFunction, sourceCpp
 # and in the package context -- though it does need documentation.
-# Have shown this in local/example_cppFunction.R, example_sourceCpp.R
+# Have shown this in tests/testthat/test-C.R
 
 
 # In another use case, I want to be able to execute some arbitrary lua code.

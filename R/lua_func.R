@@ -1,4 +1,4 @@
-#' Create a Lua function callable from R.
+#' Create a Lua function callable from R
 #'
 #' Takes any Lua expression that evaluates to a function and provides an R
 #' function that can be called to invoke the Lua function.

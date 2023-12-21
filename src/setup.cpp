@@ -28,14 +28,3 @@ void luajr_init(DllInfo *dll)
 #include "../inst/include/luajr_funcs.h"
 #undef API_FUNCTION
 }
-
-// For package cleanup
-// [[Rcpp::export]]
-void luajr_reset()
-{
-    if (L0)
-    {
-        lua_close(L0);
-        L0 = 0;
-    }
-}

@@ -1,5 +1,4 @@
 // Functions designed to be called from Lua code using the LuaJIT FFI.
-// [[Rcpp::plugins(cpp11)]]
 
 #include "shared.h"
 #include <R.h>

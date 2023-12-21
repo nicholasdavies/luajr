@@ -17,6 +17,7 @@ SEXP Lua_return_to_R(lua_State* L, int nret);
 
 // R API functions and related functions
 SEXP luajr_open();
+lua_State* new_lua_state();
 lua_State* luajr_getstate(SEXP Lxp);
 
 // Lua API functions
