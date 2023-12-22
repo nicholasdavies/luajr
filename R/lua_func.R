@@ -47,13 +47,13 @@
 #' @export
 lua_func = function(code, args = "s", L = NULL)
 {
-    fptr = luajr_func_create(code, L);
+    fx = luajr_func_create(code, L);
     func = function(...) {
         # robj_ret can be used by the Lua function to return R objects.
         robj_ret = vector("list", 4);
 
         # Call the function.
-        ret = luajr_func_call(fptr, list(...), args, L);
+        ret = luajr_func_call(fx, list(...), args, L);
 
         # # If robj_ret has been set, return that.
         # if (length(robj_ret) > 0) {

@@ -18,8 +18,13 @@ SEXP Lua_return_to_R(lua_State* L, int nret);
 // R API functions and related functions
 SEXP luajr_open();
 lua_State* new_lua_state();
-lua_State* luajr_getstate(SEXP Lxp);
+lua_State* luajr_getstate(SEXP Lx);
 
 // Lua API functions
 extern "C" int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
 extern "C" int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
+
+// Helper functions
+SEXP MakePointer(void* x, int tag_code, void (*finalize)(SEXP));
+void* GetPointer(SEXP handle, int tag_code);
+

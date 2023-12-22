@@ -1,10 +1,9 @@
 test_that("states can be opened", {
-    # Open a new state and check its type -- should be externalptr
+    # Open a new state and check its type
     L2 = lua_open()
     expect_type(L2, "externalptr")
 
-    # Verify variables can be set within the state;
-    # after a = 2, we should have a == 2
+    # Verify variables can be set within a state.
     lua("a = 2", L = L2)
     expect_equal(lua("return a", L = L2), 2)
 })

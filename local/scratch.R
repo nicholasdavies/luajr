@@ -17,6 +17,25 @@ library(luajr)
 # TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
 # TODO once there is something to cite, usethis::use_citation()?
 # TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7) [needed for = delete]
+# TODO link against the specific luajit lib that is built (???)
+
+# parameter detection -- note with current version of LuaJIT, can only do this from Lua.
+lua("f1 = function() end")
+lua("f2 = function(a, b) end")
+lua("f3 = function(a, b, c, ...) end")
+
+lua("get_args = function(f)
+    info = debug.getinfo(f)
+    for i=1,info.nparams do
+        print(debug.getlocal(f, i))
+    end
+    if info.isvararg then
+        print('...')
+    end
+end")
+lua("get_args(f1)")
+lua("get_args(f2)")
+lua("get_args(f3)")
 
 # OK so there are two use cases.
 

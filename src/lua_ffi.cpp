@@ -25,7 +25,7 @@ extern "C" int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char
         ptrs[c] = (double*)DATAPTR(m) + nrow * c;
         ((SEXP*)DATAPTR(colnames))[c] = Rf_mkChar(names[c]);
     }
-    SEXP dimnames = PROTECT(Rf_allocVector3(VECSXP, 2, 0));
+    SEXP dimnames = PROTECT(Rf_allocVector3(VECSXP, 2, NULL));
     ((SEXP*)DATAPTR(dimnames))[0] = R_NilValue;
     ((SEXP*)DATAPTR(dimnames))[1] = colnames;
     Rf_dimnamesgets(m, dimnames);

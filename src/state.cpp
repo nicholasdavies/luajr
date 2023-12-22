@@ -72,10 +72,10 @@ lua_State* new_lua_state()
 
 // Destroy a Lua state pointed to by an R external pointer when it is no longer
 // needed (i.e. at program exit or garbage collection of the R pointer).
-void finalize_lua_state(SEXP Lxp)
+void finalize_lua_state(SEXP xptr)
 {
-    lua_close(reinterpret_cast<lua_State*>(R_ExternalPtrAddr(Lxp)));
-    R_ClearExternalPtr(Lxp);
+    lua_close(reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr)));
+    R_ClearExternalPtr(xptr);
 }
 
 //' Create a new Lua state
@@ -112,11 +112,7 @@ void finalize_lua_state(SEXP Lxp)
 // [[Rcpp::export(lua_open)]]
 SEXP luajr_open()
 {
-    SEXP tag = PROTECT(Rf_ScalarInteger(LUAJR_STATE_CODE));
-    SEXP Lxp = PROTECT(R_MakeExternalPtr(new_lua_state(), tag, R_NilValue));
-    R_RegisterCFinalizerEx(Lxp, finalize_lua_state, TRUE);
-    UNPROTECT(2);
-    return Lxp;
+    return MakePointer(new_lua_state(), LUAJR_STATE_CODE, finalize_lua_state);
 }
 
 //' Reset the default Lua state
@@ -143,17 +139,22 @@ void luajr_reset()
     }
 }
 
-// Helper function to interpret the Lua state handle Lxp as either a reference
-// to the default luajr state (Lxp == NULL) or to a Lua state started with
+// Helper function to interpret the Lua state handle Lx as either a reference
+// to the default luajr state (Lx == NULL) or to a Lua state started with
 // lua_open and to return the corresponding lua_State*.
-lua_State* luajr_getstate(SEXP Lxp)
+lua_State* luajr_getstate(SEXP Lx)
 {
-    if (Lxp == R_NilValue) {
+    if (Lx == R_NilValue)
+    {
         if (L0 == 0)
             L0 = new_lua_state();
         return L0;
-    } else if (TYPEOF(Lxp) == EXTPTRSXP && Rf_asInteger(R_ExternalPtrTag(Lxp)) == LUAJR_STATE_CODE) {
-        return reinterpret_cast<lua_State*>(R_ExternalPtrAddr(Lxp));
+    }
+    else
+    {
+        lua_State* l = reinterpret_cast<lua_State*>(GetPointer(Lx, LUAJR_STATE_CODE));
+        if (l)
+            return l;
     }
 
     Rf_error("Lua state should be NULL or a value returned from lua_open.");

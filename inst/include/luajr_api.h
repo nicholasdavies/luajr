@@ -18,7 +18,7 @@ extern SEXP (*Lua_return_to_R)(lua_State* L, int nret);
 extern void (*luajr_pushsexp)(lua_State* L, SEXP x, char as);
 extern SEXP (*luajr_tosexp)(lua_State* L, int index);
 extern SEXP (*luajr_open)();
-extern lua_State* (*luajr_getstate)(SEXP Lxp);
+extern lua_State* (*luajr_getstate)(SEXP Lx);
 extern int (*AllocRDataMatrix)(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
 extern int (*AllocRDataFrame)(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
 
