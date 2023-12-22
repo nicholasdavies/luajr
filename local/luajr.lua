@@ -1,10 +1,13 @@
+local args = {...}
+luajr_dylib_path = args[1]
+
 local ffi = require('ffi')
 
 ffi.cdef[[
 int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
 int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
 ]]
-local luajr_internal = ffi.load("@luajr_dylib_path@")
+local luajr_internal = ffi.load(luajr_dylib_path)
 
 local luajr = {}
 

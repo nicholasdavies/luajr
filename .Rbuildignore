@@ -3,3 +3,5 @@
 ^LICENSE\.md$
 ^local$
 ^README\.Rmd$
+^module.sh$
+

@@ -1,11 +1,23 @@
 #include "shared.h"
-#include <R.h>
-#include <Rinternals.h>
+#include <string>
 extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 #include "luajit_rolling.h"
+}
+#include "luajr_module.h"
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
+
+static std::string luajr_dylib_path;
+
+// Provide luajr dylib path from R to luajr
+// [[Rcpp::export]]
+void luajr_locate_dylib(const char* path)
+{
+    luajr_dylib_path = path;
 }
 
 const int LUAJR_STATE_CODE = 0x7CA57A7E;
@@ -14,58 +26,18 @@ const int LUAJR_STATE_CODE = 0x7CA57A7E;
 // and with the JIT compiler loaded.
 lua_State* new_lua_state()
 {
-    // "lua" (see TODO below)
+    // Create new state and open standard libraries; also enables JIT compiler
     lua_State* l = luaL_newstate();
-    luaL_openlibs(l); // also enables the JIT compiler
+    luaL_openlibs(l);
 
-    // TODO this needs optimizing:
-    // luajr::lua_open() [from R] takes:
-    // # 161 µs for lua + rcpp
-    // # 148 µs for lua + r
-    // # 145 µs for lua + as char
-    // # 64 µs for lua only
-    // the point: would be good to serialize the luajr lua module if poss
-    // A good solution to this would be to use the luajit standalone:
-    // https://luajit.org/running.html
-    // i.e. luajit -b luajr.lua luajr.raw
-    // then luajr.raw can be loaded with luaL_dofile() in the usual way.
-    // note use the installed version of the luajit standalone as the one
-    // inside this package isn't working for this task.
-    // Note, can pass args to a file using
-    // local params = {...}
-    // params[1] -- first parameter, if any.
-    // params[2] -- second parameter, if any.
-    // #params   -- number of parameters.
-    // Note, this could be a use case for sysdata within the R package, maybe.
-    // Or could save the bytecode to an .h file (this is supported by luajit).
+    // Run precompiled luajr Lua module pre-loading code in src/luajr_module.h,
+    // which is in turn generated from local/luajr.lua; this script takes one
+    // argument, the full path to the luajr dylib.
+    if (luaL_loadbuffer(l, reinterpret_cast<const char*>(luaJIT_BC_luajr), luaJIT_BC_luajr_SIZE, "luajr Lua module"))
+        Rf_error("Could not preload luajr Lua module.");
 
-    // // "rcpp"
-    // Rcpp::Environment package_env = Rcpp::Environment::namespace_env("luajr");
-    // Rcpp::Environment cache_env(package_env["cache_env"]);
-    // const char* code = Rcpp::as<const char*>(cache_env["luajr.lua"]);
-    // luaL_dostring(l, code);
-
-    // "r"
-    SEXP luajrNS = R_FindNamespace(Rf_mkString("luajr"));
-    SEXP cache_env = Rf_findVarInFrame3(luajrNS, Rf_install("cache_env"), TRUE);
-
-    // If cache_env is a promise, evaluate it
-    if (TYPEOF(cache_env) == PROMSXP)
-    {
-    	PROTECT(cache_env);
-		cache_env = Rf_eval(cache_env, R_GlobalEnv);
-		UNPROTECT(1);
-    }
-
-    SEXP code = Rf_findVar(Rf_install("luajr.lua"), cache_env);
-    if (code == R_UnboundValue)
-        Rf_error("Fatal error: could not find luajr:::cache_env$luajr.lua.");
-
-    luaL_dostring(l, CHAR(STRING_ELT(code, 0)));
-
-    // "as char"
-    // const char* code = "local ffi = require('ffi')\n\nffi.cdef[[\nint AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);\nint AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);\n]]\nlocal luajr_internal = ffi.load(\"/Library/Frameworks/R.framework/Versions/4.3-x86_64/Resources/library/luajr/libs/luajr.so\")\n\nlocal luajr = {}\n\nfunction luajr.DataMatrix(nrow, ncol, names)\n    data = ffi.new(\"double*[?]\", ncol)\n    cnames = ffi.new(\"const char*[?]\", ncol, names)\n    id = luajr_internal.AllocRDataMatrix(nrow, ncol, cnames, data)\n    m = { __robj_ret_i = id }\n    for i = 1, #names do\n        m[names[i]] = data[i-1]\n    end\n    return m\nend\n\nfunction luajr.DataFrame(nrow, ncol, names)\n    data = ffi.new(\"double*[?]\", ncol)\n    cnames = ffi.new(\"const char*[?]\", ncol, names)\n    id = luajr_internal.AllocRDataFrame(nrow, ncol, cnames, data)\n    df = { __robj_ret_i = id }\n    for i = 1, #names do\n        df[names[i]] = data[i-1]\n    end\n    return df\nend\n\npackage.preload.luajr = function() return luajr end";
-    // luaL_dostring(l, code);
+    lua_pushstring(l, luajr_dylib_path.c_str());
+    lua_pcall(l, 1, 0, 0);
 
     return l;
 }
@@ -140,8 +112,8 @@ void luajr_reset()
 }
 
 // Helper function to interpret the Lua state handle Lx as either a reference
-// to the default luajr state (Lx == NULL) or to a Lua state started with
-// lua_open and to return the corresponding lua_State*.
+// to the default luajr state (Lx == NULL) or to a Lua state opened with
+// luajr::lua_open, and to return the corresponding lua_State*.
 lua_State* luajr_getstate(SEXP Lx)
 {
     if (Lx == R_NilValue)

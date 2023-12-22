@@ -1,12 +1,13 @@
 #include "shared.h"
-#include <R.h>
-#include <Rinternals.h>
 extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 #include "luajit_rolling.h"
 }
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
 
 // Global definitions
 lua_State* L0 = 0;
@@ -32,6 +33,7 @@ void luajr_init(DllInfo *dll)
 // Helper to make an external pointer handle
 SEXP MakePointer(void* ptr, int tag_code, void (*finalize)(SEXP))
 {
+    // TODO Use this to wrap the external pointer in a list
     // SEXP x = PROTECT(Rf_allocVector3(VECSXP, 1, NULL));
     // SEXP tag = PROTECT(Rf_ScalarInteger(tag_code));
     // ((SEXP*)DATAPTR(x))[0] = R_MakeExternalPtr(ptr, tag, R_NilValue);
@@ -49,6 +51,7 @@ SEXP MakePointer(void* ptr, int tag_code, void (*finalize)(SEXP))
 // Helper to get the pointer from an external pointer handle
 void* GetPointer(SEXP x, int tag_code)
 {
+    // TODO Use this to wrap the external pointer in a list
     // if (TYPEOF(x) == VECSXP && Rf_length(x) == 1)
     // {
     //     SEXP ptr = ((SEXP*)DATAPTR(x))[0];

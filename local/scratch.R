@@ -1,10 +1,5 @@
 library(luajr)
 
-# TODO writing R extensions: "They are unusual in their copying semantics in
-# that when an R object is copied, the external pointer object is not
-# duplicated. (For this reason external pointers should only be used as part of
-# an object with normal semantics, for example an attribute or an element of a
-# list.)" -- Lua states are just external pointers, is this a problem?
 # TODO allow pass by reference into Lua (see devnotes)
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
@@ -18,6 +13,11 @@ library(luajr)
 # TODO once there is something to cite, usethis::use_citation()?
 # TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7) [needed for = delete]
 # TODO link against the specific luajit lib that is built (???)
+
+bench::mark(
+    L <- lua_open()
+) # 157 mis
+# 123 mis
 
 # parameter detection -- note with current version of LuaJIT, can only do this from Lua.
 lua("f1 = function() end")

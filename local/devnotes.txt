@@ -1,3 +1,21 @@
+Implementation of new argument passing and to-do list
+-----------------------------------------------------
+
+s simplify, v by value, r by reference, u for unchecked bare reference,
+c for checked bare reference (i.e. for testing that bare reference is safe)
+
+(1) r - by reference
+
+[ ] get integration of luajr.lua in
+
+(2) v - by value
+
+(3) u - unchecked bare reference
+
+(4) c - checked bare reference
+
+(5) s - simplify
+
 Better R argument passing
 -------------------------
 
@@ -12,10 +30,9 @@ think about:
    (2) what to do when a list or a xptr is passed in. I think 1,2,3 should work
    for logical/int/real, 1 should also work for null/xptr, numbers should not
    work for list, and list -> s means apply s to everything within list. Then
-   c for copy, r for reference of r-like objects? maybe then r is confusing as
-   it's like raw/R. so maybe s for simple (l for lua? p for primitive?), i for
-   in, o for out. I like s, i, and o I think. Hmm. No, s simplify, v by value,
-   r by reference.
+   s simplify, v by value, r by reference, u for unchecked bare reference,
+   c for checked bare reference (?) (i.e. for testing that bare reference would
+   be safe.)
  number/logical vectors (logical, int, real)
    I think what we want to do here is insist that these are arrays and have
    them pass by reference. With a fully kitted out metatable, it would be

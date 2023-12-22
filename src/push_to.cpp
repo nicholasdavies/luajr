@@ -1,13 +1,14 @@
 // push_to.cpp: Move values between R and Lua
 
 #include "shared.h"
-#include <R.h>
-#include <Rinternals.h>
 #include <vector>
 #include <string>
 extern "C" {
 #include "lua.h"
 }
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
 
 // Additional types specific to LuaJIT. From lj_obj.h.
 #define LUA_TPROTO	(LUA_TTHREAD+1)

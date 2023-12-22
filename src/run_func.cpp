@@ -2,14 +2,15 @@
 
 #include "shared.h"
 #include "registry_entry.h"
-#include <R.h>
-#include <Rinternals.h>
 #include <string>
 extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 }
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
 
 const int LUAJR_REGFUNC_CODE = 0x7CA12E6F;
 
