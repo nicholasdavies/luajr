@@ -1,8 +1,8 @@
 local ffi = require('ffi')
 local luajr = require('luajr')
 
-beta = 0.05
-gamma = 0.025
+local beta = 0.05
+local gamma = 0.025
 
 function gradient(t, x, dxdt)
     dxdt.S = -beta * x.I * x.S
