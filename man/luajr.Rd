@@ -14,8 +14,9 @@ a just-in-time compiler for the Lua scripting language
 \itemize{
 \item \code{\link[=lua]{lua()}}
 \item \code{\link[=lua_func]{lua_func()}}
-\item \code{\link[=lua_shell]{lua_shell()}}
 \item \code{\link[=lua_open]{lua_open()}}
+\item \code{\link[=lua_reset]{lua_reset()}}
+\item \code{\link[=lua_shell]{lua_shell()}}
 }
 }
 

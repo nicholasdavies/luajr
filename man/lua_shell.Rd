@@ -7,8 +7,11 @@
 lua_shell(L = NULL)
 }
 \arguments{
-\item{L}{\link[=lua_open]{Lua state} in which to run the code. \code{NULL} (default) to
-use the default Lua state for \pkg{luajr}.}
+\item{L}{\link[=lua_open]{Lua state} in which to run the code. \code{NULL} (default)
+uses the default Lua state for \pkg{luajr}.}
+}
+\value{
+Nothing.
 }
 \description{
 When in interactive mode, provides a basic read-eval-print loop with LuaJIT.

@@ -11,8 +11,8 @@ lua(code, filename = NULL, L = NULL)
 
 \item{filename}{If non-\code{NULL}, name of file to run.}
 
-\item{L}{\link[=lua_open]{Lua state} in which to run the code. \code{NULL} (default) to
-use the default Lua state for \pkg{luajr}.}
+\item{L}{\link[=lua_open]{Lua state} in which to run the code. \code{NULL} (default)
+uses the default Lua state for \pkg{luajr}.}
 }
 \value{
 Lua value(s) returned by the code block converted to R object(s).
@@ -23,6 +23,6 @@ If multiple values are returned, these are packaged in a \code{list}.
 Runs the specified Lua code.
 }
 \examples{
-twelve = lua("return 3*4")
+twelve <- lua("return 3*4")
 print(twelve)
 }

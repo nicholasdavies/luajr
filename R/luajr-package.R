@@ -21,8 +21,9 @@ inlineCxxPlugin = function(...)
 #' @section The R API:
 #' * [lua()]
 #' * [lua_func()]
-#' * [lua_shell()]
 #' * [lua_open()]
+#' * [lua_reset()]
+#' * [lua_shell()]
 #'
 #' @section Other information:
 #' * [using luajr from C++]

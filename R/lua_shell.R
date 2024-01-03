@@ -3,6 +3,9 @@
 #' When in interactive mode, provides a basic read-eval-print loop with LuaJIT.
 #'
 #' @inheritParams lua
+#'
+#' @return Nothing.
+#'
 #' @export
 lua_shell = function(L = NULL)
 {

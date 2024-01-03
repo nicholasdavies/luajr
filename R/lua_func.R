@@ -36,18 +36,17 @@
 #' Attributes are ignored other than 'names' and 'class', so e.g. matrices will
 #' end up as a numeric vector.
 #'
-#' @param code Lua expression evaluating to a function.
+#' @inheritParams lua
+#' @param func Lua expression evaluating to a function.
 #' @param args How to wrap R arguments for the Lua function.
-#' @param L [Lua state][lua_open] in which to run the code. `NULL` (default)
-#' to use the default Lua state for \pkg{luajr}.
-#' @return An R function.
+#' @return An R function which can be called to invoke the Lua function.
 #' @examples
-#' squared = lua_func("function(x) return x^2 end")
+#' squared <- lua_func("function(x) return x^2 end")
 #' print(squared(7))
 #' @export
-lua_func = function(code, args = "s", L = NULL)
+lua_func = function(func, args = "s", L = NULL)
 {
-    fx = luajr_func_create(code, L);
+    fx = luajr_func_create(func, L);
     func = function(...) {
         # robj_ret can be used by the Lua function to return R objects.
         robj_ret = vector("list", 4);
@@ -55,12 +54,7 @@ lua_func = function(code, args = "s", L = NULL)
         # Call the function.
         ret = luajr_func_call(fx, list(...), args, L);
 
-        # # If robj_ret has been set, return that.
-        # if (length(robj_ret) > 0) {
-        #     return (robj_ret)
-        # }
-        # Otherwise, return the returned Lua value converted to an R object.
-        # If this is a NULL, return it invisibly.
+        # If ret is NULL, return it invisibly.
         if (is.null(ret)) {
             return (invisible())
         } else {

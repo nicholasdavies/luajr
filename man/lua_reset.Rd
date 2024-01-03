@@ -11,9 +11,9 @@ Clears out all variables from the default Lua state, freeing up the
 associated memory.
 }
 \details{
-To reset a Lua state returned by \code{\link[=lua_open]{lua_open()}}, just call \code{\link[=lua_open]{lua_open()}} again.
-The memory previously used will be cleaned up at the next garbage
-collection.
+This resets the default \link[=lua_open]{Lua state} only. To reset a non-default
+Lua state \code{L} returned by \code{\link[=lua_open]{lua_open()}}, just do \code{L <- lua_open()} again. The
+memory previously used will be cleaned up at the next garbage collection.
 }
 \examples{
 lua("a = 2")

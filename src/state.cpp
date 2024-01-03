@@ -73,9 +73,11 @@ void finalize_lua_state(SEXP xptr)
 //' no `lua_close` in \pkg{luajr} because when the R object returned by
 //' [lua_open()] is garbage collected, the Lua state is closed then.
 //'
-//' @return External pointer wrapping the Lua state.
+//' @usage L <- lua_open()
+//'
+//' @return External pointer wrapping the newly created Lua state.
 //' @examples
-//' L1 = lua_open()
+//' L1 <- lua_open()
 //' lua("a = 2")
 //' lua("a = 4", L = L1)
 //' lua("print(a)")
@@ -92,9 +94,9 @@ SEXP luajr_open()
 //' Clears out all variables from the default Lua state, freeing up the
 //' associated memory.
 //'
-//' To reset a Lua state returned by [lua_open()], just call [lua_open()] again.
-//' The memory previously used will be cleaned up at the next garbage
-//' collection.
+//' This resets the default [Lua state][lua_open] only. To reset a non-default
+//' Lua state `L` returned by [lua_open()], just do `L <- lua_open()` again. The
+//' memory previously used will be cleaned up at the next garbage collection.
 //'
 //' @examples
 //' lua("a = 2")

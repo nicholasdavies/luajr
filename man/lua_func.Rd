@@ -4,18 +4,18 @@
 \alias{lua_func}
 \title{Create a Lua function callable from R}
 \usage{
-lua_func(code, args = "s", L = NULL)
+lua_func(func, args = "s", L = NULL)
 }
 \arguments{
-\item{code}{Lua expression evaluating to a function.}
+\item{func}{Lua expression evaluating to a function.}
 
 \item{args}{How to wrap R arguments for the Lua function.}
 
 \item{L}{\link[=lua_open]{Lua state} in which to run the code. \code{NULL} (default)
-to use the default Lua state for \pkg{luajr}.}
+uses the default Lua state for \pkg{luajr}.}
 }
 \value{
-An R function.
+An R function which can be called to invoke the Lua function.
 }
 \description{
 Takes any Lua expression that evaluates to a function and provides an R
@@ -56,6 +56,6 @@ Attributes are ignored other than 'names' and 'class', so e.g. matrices will
 end up as a numeric vector.
 }
 \examples{
-squared = lua_func("function(x) return x^2 end")
+squared <- lua_func("function(x) return x^2 end")
 print(squared(7))
 }

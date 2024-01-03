@@ -4,10 +4,10 @@
 \alias{lua_open}
 \title{Create a new Lua state}
 \usage{
-lua_open()
+L <- lua_open()
 }
 \value{
-External pointer wrapping the Lua state.
+External pointer wrapping the newly created Lua state.
 }
 \description{
 Creates a new, empty Lua state and returns an external pointer wrapping that
@@ -33,7 +33,7 @@ no \code{lua_close} in \pkg{luajr} because when the R object returned by
 \code{\link[=lua_open]{lua_open()}} is garbage collected, the Lua state is closed then.
 }
 \examples{
-L1 = lua_open()
+L1 <- lua_open()
 lua("a = 2")
 lua("a = 4", L = L1)
 lua("print(a)")
