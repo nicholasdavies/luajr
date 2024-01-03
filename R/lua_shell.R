@@ -2,11 +2,14 @@
 #'
 #' When in interactive mode, provides a basic read-eval-print loop with LuaJIT.
 #'
-#' @param L [Lua state][lua_open] in which to run the code. `NULL` (default) to
-#' use the default Lua state for \pkg{luajr}.
+#' @inheritParams lua
 #' @export
 lua_shell = function(L = NULL)
 {
+    # Short-circuit if not in interactive mode
+    if (!interactive())
+        return (invisible())
+
     # See if crayon package is available
     crayon_available = requireNamespace("crayon", quietly = TRUE);
 
