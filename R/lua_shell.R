@@ -38,23 +38,34 @@ lua_shell = function(L = NULL)
             }
         }
 
+        # If line starts with =, replace = with return
+        if (substr(line, 1, 1) == "=") {
+            xline = paste("return", substr(line, 2, nchar(line)))
+        } else {
+            xline = line
+        }
+
         # Try to execute the line, capturing any error
-        err = tryCatch(lua(line, L = L), error = function(e) e)
+        res = tryCatch(lua(xline, L = L), error = function(e) e)
 
         # If there is an error:
-        if (!is.null(err)) {
-            if (grepl("'<eof>'$", err$message)) {
+        if (is(res, "error")) {
+            if (grepl("'<eof>'$", res$message)) {
                 # Unexpected end of input: try to gather more input
                 prev_line = line
                 next
             } else if (crayon_available) {
                 # Other error: show error message in red if possible
-                cat(crayon::red(err$message), "\n")
+                cat(crayon::red(res$message), "\n")
             } else {
                 # Or just in normal colour if not possible
-                cat(err$message, "\n")
+                cat(res$message, "\n")
             }
+        } else if (!is.null(res)) {
+            # If line has returned a value, print it
+            print(res)
         }
+
         prev_line = ""
     }
 }
