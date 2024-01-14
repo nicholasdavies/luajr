@@ -1,6 +1,42 @@
 library(luajr)
 
-# TODO allow pass by reference into Lua (see devnotes)
+# test list
+lua("write = function(x) X = x end")
+write = lua_func("write", "v")
+write(list(a = 1, b = 2, c = c(1,2,3), 4))
+lua("ffi = require('ffi')")
+
+lua("x = luajr.numeric(10, 1)")
+lua("return ffi.cast('void*', x.p)")
+lua("return x:debug_str()")
+
+lua("return ffi.string(x[1])")
+lua("return x")
+
+# Testing speed of r versus v
+
+lua("sum = function(x) local s = 0 for i=1,#x do s = s + x[i] end return s end")
+sum_r = lua_func("sum", "r")
+sum_v = lua_func("sum", "v")
+x = rnorm(100000, 10)
+
+sum_r(x)
+sum_v(x)
+
+bench::mark(
+    sum_r(x),
+    sum_v(x),
+    min_time = 5
+)
+
+# TODO the table implementation of list isn't quite aligned with the vectors,
+# because there's no working analogy to 'newindex' (i.e. passing a list x into
+# a function with mode 'r' and then doing x[1] = "foo" doesn't change the underlying
+# list, although doing x[1][1] = "foo" would.) Document this.
+# TODO attributes
+# TODO make sure it all works with altreps
+# TODO document luajr.lua
+# TODO get NAs working
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
 # TODO C api: Check it is actually usable from C, or just call it a C++ api
@@ -13,11 +49,87 @@ library(luajr)
 # TODO once there is something to cite, usethis::use_citation()?
 # TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7) [needed for = delete]
 # TODO link against the specific luajit lib that is built (???)
+# TODO remove Rcpp if not needed
+# TODO can't have just one version of the bytecode
+
+# checking args passing 'r'
+lua("ffi = require('ffi')")
+lua(
+"testfunc = function(x)
+    print(x)
+    print(#x)
+    print(x[2.999])
+    x[1] = 0
+    x[3.8] = 5
+    print(x[1])
+    print(x[2])
+    print(x[3])
+end")
+testfunc = lua_func("testfunc", "r")
+testfunc(c(1,2,3))
+
+
+# checking args passing 'b'
+lua("ffi = require('ffi')")
+lua(
+"testfunc = function(x)
+    print(#x)
+    print(x)
+    print(x[1])
+    x[1] = x[1] + 1
+end")
+
+lua(
+"testlist = function(x)
+    print(#x)
+    print(x)
+    print(x[1][1])
+    x[1][1] = x[1][1] + 1
+    x[2] = 'bling'
+end")
+
+# NOTE 23 Dec 2023
+# I call this by reference, but it doesn't have (and I think maybe can't have)
+# the features I would want by-reference to have, such as being able to grow or
+# shrink the vector, add columns to the datafile, etc. Maybe just call this 'b'
+# for bare or 'u' for unchecked, and make that a part of it.
+testfunc = lua_func("testfunc", "b")
+testfuncr = lua_func("testfunc", "r")
+testlist = lua_func("testlist", "b")
+
+rvec = c(0.5, 1.5, 2.5)
+testfunc(rvec)
+rvec
+
+rvec = numeric(0)
+testfuncr(rvec)
+rvec
+
+ivec = c(10L, 100L, 1000L, 10000L)
+testfunc(ivec)
+ivec
+
+myvec = c(FALSE, FALSE, FALSE, FALSE)
+testfunc(myvec)
+myvec
+
+myvec = letters
+testfunc(myvec)
+myvec
+
+some_list = list(a = 1, 2, c = 3, 4, e = 5)
+testlist(some_list)
+some_list
+
+
+lua("print(luajr.NA_real_)")
 
 bench::mark(
-    L <- lua_open()
-) # 157 mis
-# 123 mis
+    s1 <- lua("return luajr.sum1()"),
+    s2 <- lua("return luajr.sum2()"),
+    s3 <- lua("return luajr.sum3()"),
+    min_time = 5
+)
 
 # parameter detection -- note with current version of LuaJIT, can only do this from Lua.
 lua("f1 = function() end")

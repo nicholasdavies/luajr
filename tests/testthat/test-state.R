@@ -5,7 +5,7 @@ test_that("states can be opened", {
 
     # Verify variables can be set within a state.
     lua("a = 2", L = L2)
-    expect_equal(lua("return a", L = L2), 2)
+    expect_identical(lua("return a", L = L2), 2)
 })
 
 test_that("states are independent", {
@@ -15,8 +15,8 @@ test_that("states are independent", {
     lua("a = 2")
     lua("a = 3", L = L2)
 
-    expect_equal(lua("return a"), 2)
-    expect_equal(lua("return a", L = L2), 3)
+    expect_identical(lua("return a"), 2)
+    expect_identical(lua("return a", L = L2), 3)
 })
 
 test_that("state pointers can be shallow copied", {
@@ -30,18 +30,18 @@ test_that("state pointers can be shallow copied", {
     # Verify set in L3, even after attempt to erase L2
     rm(L2)
     gc()
-    expect_equal(lua("return animal", L = L3), "dog")
+    expect_identical(lua("return animal", L = L3), "dog")
 })
 
 test_that("states can be reset", {
     # Reset the default state
     lua("animal = 'fish'")
     lua_reset()
-    expect_equal(lua("return animal"), NULL)
+    expect_null(lua("return animal"))
 
     # 'Reset' a created state
     L2 = lua_open()
     lua("animal = 'cat'", L = L2)
     L2 = lua_open()
-    expect_equal(lua("return animal"), NULL)
+    expect_null(lua("return animal"))
 })

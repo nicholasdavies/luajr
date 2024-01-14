@@ -47,7 +47,7 @@ SEXP luajr_run(const char* code, int mode, SEXP Lx)
     int top1 = lua_gettop(L);
 
     // Return results
-    return Lua_return_to_R(L, top1 - top0);
+    return luajr_return(L, top1 - top0);
 }
 
 // [[Rcpp::export]]
@@ -80,14 +80,14 @@ SEXP luajr_func_create(const char* code, SEXP Lx)
     re->Register();
 
     // Send back external pointer to the registry entry
-    return MakePointer(re, LUAJR_REGFUNC_CODE, finalize_registry_entry);
+    return luajr_makepointer(re, LUAJR_REGFUNC_CODE, finalize_registry_entry);
 }
 
 // [[Rcpp::export]]
 SEXP luajr_func_call(SEXP fx, SEXP alist, const char* acode, SEXP Lx)
 {
     // Get registry entry
-    RegistryEntry* re = reinterpret_cast<RegistryEntry*>(GetPointer(fx, LUAJR_REGFUNC_CODE));
+    RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(fx, LUAJR_REGFUNC_CODE));
 
     // Check args
     if (!re)
@@ -101,17 +101,12 @@ SEXP luajr_func_call(SEXP fx, SEXP alist, const char* acode, SEXP Lx)
     // Assemble function call
     int top0 = lua_gettop(L);
     re->Get();
-    R_pass_to_Lua(L, alist, acode);
+    luajr_pass(L, alist, acode);
 
     // Call function
-    if (lua_pcall(L, Rf_length(alist), LUA_MULTRET, 0))
-    {
-        std::string err = lua_tostring(L, -1);
-        lua_pop(L, 1);
-        Rf_error(err.c_str());
-    }
+    luajr_pcall(L, Rf_length(alist), LUA_MULTRET, "(user function from luajr_func_call())");
     int top1 = lua_gettop(L);
 
     // Return results
-    return Lua_return_to_R(L, top1 - top0);
+    return luajr_return(L, top1 - top0);
 }

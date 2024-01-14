@@ -13,8 +13,9 @@
 
 // luajr API functions
 // TODO this is easy to break if these do not match API funcs defined elsewhere.
-extern void (*R_pass_to_Lua)(lua_State* L, SEXP args, const char* acode);
-extern SEXP (*Lua_return_to_R)(lua_State* L, int nret);
+// TODO update here, and in luajr_api.h, all the funcs we want to expose to users; make all these funcs extern "C"; make the rest static.
+extern void (*luajr_pass)(lua_State* L, SEXP args, const char* acode);
+extern SEXP (*luajr_return)(lua_State* L, int nret);
 extern void (*luajr_pushsexp)(lua_State* L, SEXP x, char as);
 extern SEXP (*luajr_tosexp)(lua_State* L, int index);
 extern SEXP (*luajr_open)();
