@@ -26,10 +26,7 @@ inlineCxxPlugin = function(...)
 #' * [lua_shell()]
 #'
 #' @section Other information:
-#' * [using luajr from C++]
-#' * [using luajr from Lua]
-#'
-#' For Introduction, see `vignette("intro", package = "luajr")`
+#' See `vignette("intro", package = "luajr")`
 #'
 #' @docType package
 #' @name luajr

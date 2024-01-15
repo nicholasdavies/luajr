@@ -2,7 +2,7 @@
 title: "Introduction to luajr"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{intro}
+  %\VignetteIndexEntry{Introduction to luajr}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,3 +17,5 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(luajr)
 ```
+
+This is where there will be an introduction to luajr.

@@ -22,11 +22,6 @@ a just-in-time compiler for the Lua scripting language
 
 \section{Other information}{
 
-\itemize{
-\item \link{using luajr from C++}
-\item \link{using luajr from Lua}
-}
-
-For Introduction, see \code{vignette("intro", package = "luajr")}
+See \code{vignette("intro", package = "luajr")}
 }
 
