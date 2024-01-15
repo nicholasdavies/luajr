@@ -1,6 +1,3 @@
-local ffi = require('ffi')
-local luajr = require('luajr')
-
 local beta = 0.05
 local gamma = 0.025
 
@@ -48,21 +45,23 @@ end
 
 function run()
     -- Set up initial state
-    x = { S = 0.999, I = 0.001, R = 0 }
-    t = 0.0
+    local x = { S = 0.999, I = 0.001, R = 0 }
 
     -- Set up temporary storage
-    k1 = { S = 0, I = 0, R = 0 }
-    k2 = { S = 0, I = 0, R = 0 }
-    k3 = { S = 0, I = 0, R = 0 }
-    k4 = { S = 0, I = 0, R = 0 }
-    q = { S = 0, I = 0, R = 0 }
+    local k1 = { S = 0, I = 0, R = 0 }
+    local k2 = { S = 0, I = 0, R = 0 }
+    local k3 = { S = 0, I = 0, R = 0 }
+    local k4 = { S = 0, I = 0, R = 0 }
+    local q = { S = 0, I = 0, R = 0 }
 
     -- Solution storage
-    --df = luajr.Matrix(1000, 4, {"t", "S", "I", "R"})
-    df = luajr.DataFrame(1000, 4, {"t", "S", "I", "R"})
+    local df = luajr.dataframe(1000)
+    df.t = luajr.numeric_r(1000, 0)
+    df.S = luajr.numeric_r(1000, 0)
+    df.I = luajr.numeric_r(1000, 0)
+    df.R = luajr.numeric_r(1000, 0)
 
-    for t = 0,999 do
+    for t = 1,1000 do
         df.t[t] = t
         df.S[t] = x.S
         df.I[t] = x.I

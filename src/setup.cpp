@@ -12,17 +12,12 @@ extern "C" {
 
 // Global definitions
 lua_State* L0 = 0;
-SEXP RObjRetSymbol = NULL;
 
 // Initializes the luajr package
 // [[Rcpp::init]]
 void luajr_init(DllInfo *dll)
 {
     (void) dll;
-
-    // Cache lookup for symbol robj_ret
-    if (RObjRetSymbol == NULL)
-        RObjRetSymbol = Rf_install("robj_ret");
 
     // Register API functions, so that they can be called from user C/C++ code
 #define API_FUNCTION(return_type, func_name, ...) \

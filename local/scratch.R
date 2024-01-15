@@ -33,7 +33,8 @@ bench::mark(
 # because there's no working analogy to 'newindex' (i.e. passing a list x into
 # a function with mode 'r' and then doing x[1] = "foo" doesn't change the underlying
 # list, although doing x[1][1] = "foo" would.) Document this.
-# TODO attributes
+# TODO attribute set -- done for reference types only, but value types can be copied to reference types
+# TODO attribute get -- done -- need to test, as well as testing extended types
 # TODO make sure it all works with altreps
 # TODO document luajr.lua
 # TODO get NAs working
@@ -51,6 +52,7 @@ bench::mark(
 # TODO link against the specific luajit lib that is built (???)
 # TODO remove Rcpp if not needed
 # TODO can't have just one version of the bytecode
+# TODO mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1 (?)
 
 # checking args passing 'r'
 lua("ffi = require('ffi')")

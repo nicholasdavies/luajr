@@ -1,22 +1,41 @@
 -- luajr module
 
--- TODO refactor this code and rename functions and put in a sensible order
--- TODO mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1
+-- CONTENTS --
+-- 0. PRELIMINARIES --
+-- 1. INTERNAL API --
+-- 2. LUAJR API BASICS --
+-- 3. REFERENCE TYPES --
+-- 4. VECTOR TYPES --
+-- 5. LIST TYPE --
+-- 6. PASS TO LUA --
+-- 7. RETURN TO R --
+-- 8. EXTRA TYPES --
+
+
+----------------------
+-- 0. PRELIMINARIES --
+----------------------
+
+-- Load ffi module
+local ffi = require("ffi")
+
+-- Load additional convenience functions for tables (provided by LuaJIT)
+table.new = require("table.new")
+table.clear = require("table.clear")
 
 -- Script receives the path to the luajr R package dylib
 local luajr_dylib_path = ({...})[1]
 
-table.new = require("table.new")
-table.clear = require("table.clear")
+-- Null pointer object
+local nullptr = ffi.cast("void*", 0)
+
+
+---------------------
+-- 1. INTERNAL API --
+---------------------
 
 -- Load 'internal' API for interfacing with R (see ./src/lua_ffi.cpp)
-local ffi = require("ffi")
 ffi.cdef[[
-int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
-int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs);
-
-// R definitions
-
 // Forward declarations
 struct SEXPREC;
 typedef struct SEXPREC* SEXP;
@@ -26,7 +45,7 @@ enum
 {
     LOGICAL_R = 0, INTEGER_R = 1, NUMERIC_R = 2, CHARACTER_R = 3,
     LOGICAL_V = 4, INTEGER_V = 5, NUMERIC_V = 6, CHARACTER_V = 7,
-    LIST_T = 8
+    LIST_T = 8, NULL_T = 16
 };
 
 // Reference types
@@ -53,6 +72,7 @@ void SetIntegerRef(integer_rt* x, SEXP s);
 void SetNumericRef(numeric_rt* x, SEXP s);
 void SetCharacterRef(character_rt* x, SEXP s);
 
+// Functions to allocate reference types
 void AllocLogical(logical_rt* x, size_t size);
 void AllocInteger(integer_rt* x, size_t size);
 void AllocNumeric(numeric_rt* x, size_t size);
@@ -66,18 +86,35 @@ void SetIntegerVec(integer_vt* x, SEXP s);
 void SetNumericVec(numeric_vt* x, SEXP s);
 // character handled separately
 
+// Functions to get attributes
+int GetAttrType(SEXP s, const char* k);
+SEXP GetAttrSEXP(SEXP s, const char* k);
+
+// Functions to set attributes
+void SetAttrLogicalRef(SEXP s, const char* k, logical_rt* v);
+void SetAttrIntegerRef(SEXP s, const char* k, integer_rt* v);
+void SetAttrNumericRef(SEXP s, const char* k, numeric_rt* v);
+void SetAttrCharacterRef(SEXP s, const char* k, character_rt* v);
+void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v);
+
 const char* GetCharacterElt(SEXP s, ptrdiff_t k);
 void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v);
 void SetPtr(void** ptr, void* val);
 
 int SEXP_length(SEXP s);
+SEXP CompactRowNames(size_t nrow);
 
 void* malloc(size_t size);
 void free(void* ptr);
 ]]
 local internal = ffi.load(luajr_dylib_path)
 
--- Definition of luajr module
+
+-------------------------
+-- 2. LUAJR API BASICS --
+-------------------------
+
+-- Create luajr module table
 local luajr = {}
 
 -- Make luajr module available for 'require'
@@ -85,25 +122,38 @@ function package.preload.luajr()
     return luajr
 end
 
+-- NA definitions
 -- TODO logical semantics probably don't make a huge amount of sense due to true/false/NA
 luajr.NA_logical_   = internal.NA_logical;
 luajr.NA_integer_   = internal.NA_integer;
 luajr.NA_real_      = internal.NA_real;
 luajr.NA_character_ = internal.NA_character;
 
-local nullptr = ffi.cast("void*", 0)
+-- Forward declarations of attribute set/getters
+local sexp_get_attr
+local sexp_set_attr
+
+
+------------------------
+-- 3. REFERENCE TYPES --
+------------------------
 
 -- Metatables for reference types
 local mt_basic_r = function(allocator)
     local mt = {
         __new = function(ctype, init1, init2)
             local self = ffi.new(ctype)
-            if type(init1) == "number" then
+            if init1 == nullptr then
+                -- do nothing
+            elseif type(init1) == "number" then
                 allocator(self, init1)
                 if init2 ~= nil then
                     for i = 1,#self do self._p[i] = init2 end
                 end
-            elseif init1 ~= nullptr then
+            elseif #init1 ~= nil then
+                allocator(self, #init1)
+                for i = 1,#self do self._p[i] = init1[i] end
+            else
                 error("Reference type must be initialised.")
             end -- TODO copy from existing vector
             return self
@@ -129,6 +179,14 @@ local mt_basic_r = function(allocator)
             x._p[k] = v
         end,
 
+        __call = function(x, k, v)
+            if v == nil then
+                return sexp_get_attr(x._s, k)
+            else
+                sexp_set_attr(x._s, k, v)
+            end
+        end,
+
         __pairs = function(x)
             return function(t, k)
                 k = k + 1
@@ -144,13 +202,18 @@ end
 local mt_character_r = {
     __new = function(ctype, init1, init2)
         local self = ffi.new(ctype)
-        if type(init1) == "number" then
+        if init1 == nullptr then
+            -- do nothing
+        elseif type(init1) == "number" then
             if init2 == nil then
                 internal.AllocCharacter(self, init1)
             else
                 internal.AllocCharacterTo(self, init1, init2)
             end
-        elseif init1 ~= nullptr then
+        elseif #init1 ~= nil then
+            allocator(self, #init1)
+            for i = 1,#self do self[i] = init1[i] end
+        else
             error("Reference type must be initialised.")
         end -- TODO copy from existing vector
         return self
@@ -172,6 +235,14 @@ local mt_character_r = {
         internal.SetCharacterElt(x._s, k - 1, v)
     end,
 
+    __call = function(x, k, v)
+        if v == nil then
+            return sexp_get_attr(x._s, k)
+        else
+            sexp_set_attr(x._s, k, v)
+        end
+    end,
+
     __pairs = function(x)
         return function(t, k)
             k = k + 1
@@ -182,13 +253,23 @@ local mt_character_r = {
 }
 mt_character_r.__ipairs = mt_character_r.__pairs
 
--- Bare references
+-- Reference type definitions
 luajr.logical_r   = ffi.metatype("logical_rt", mt_basic_r(internal.AllocLogical))
 luajr.integer_r   = ffi.metatype("integer_rt", mt_basic_r(internal.AllocInteger))
 luajr.numeric_r   = ffi.metatype("numeric_rt", mt_basic_r(internal.AllocNumeric))
 luajr.character_r = ffi.metatype("character_rt", mt_character_r)
 
--- Vector type
+
+---------------------
+-- 4. VECTOR TYPES --
+---------------------
+
+-- Helper function to reallocate memory
+-- p is the pointer to the memory;
+-- vtype is the variable-length array type (e.g. 'double[?]')
+-- ptype is the corresponding pointer type (e.g. 'double*')
+-- nelem is the new number of elements
+-- init1, init2 control initialization of the new memory
 local vec_realloc = function(p, vtype, ptype, nelem, init1, init2)
     -- check on nelem
     if nelem < 1 then
@@ -205,7 +286,7 @@ local vec_realloc = function(p, vtype, ptype, nelem, init1, init2)
     end
 
     -- initialize according to init1 and init2
-    if type(init1) == "number" and init2 == nil then
+    if (type(init1) == "number" or type(init1) == "boolean") and init2 == nil then
         -- number, nil: fill with number
         for i = 1,nelem do new_p[i] = init1 end
     elseif type(init1) == "table" then
@@ -246,7 +327,7 @@ local mt_basic_v = function(ct)
         assign = function(self, a, b)
             if a == nil and b == nil then
                 self.n = 0
-            elseif type(a) == "number" and type(b) == "number" then
+            elseif type(a) == "number" and (type(b) == "number" or type(b) == "boolean") then
                 -- a copies of b
                 if a <= self.c then
                     for i = 1,a do self.p[i] = b end
@@ -434,7 +515,7 @@ local mt_basic_v = function(ct)
                 self.p = nullptr
                 self.n = 0
                 self.c = 0
-            elseif type(a) == "number" and type(b) == "number" then
+            elseif type(a) == "number" and (type(b) == "number" or type(b) == "boolean") then
                 -- a copies of b
                 self.p = vec_realloc(nullptr, vtype, ptype, a, b)
                 self.n = a
@@ -561,6 +642,7 @@ mt_character_v = {
     end
 }
 
+-- Constructor for character_v
 local new_character_v = function(a, b)
     if a == nil and b == nil then
         t = {}
@@ -572,10 +654,10 @@ local new_character_v = function(a, b)
         -- from table initializer
         t = table.new(#a, 0)
         for i=1,#a do t[i] = a[i] end
-    elseif ffi.istype(ctype, a) and b == nil then
+    elseif getmetatable(a) == mt_character_v and b == nil then
         -- from vector to copy
         t = table.new(#a, 0)
-        for i=1,#a do t[i] = tostring(a[i]) end
+        for i=1,#a do t[i] = a[i] end
     else
         error("cannot construct character vector with argument types " ..
             type(a) .. ", " .. type(b) .. ".", 2)
@@ -584,16 +666,18 @@ local new_character_v = function(a, b)
     return t
 end
 
--- Vector types
+-- Vector type definitions
 luajr.logical = ffi.metatype("logical_vt", mt_basic_v("int"))
 luajr.integer = ffi.metatype("integer_vt", mt_basic_v("int"))
 luajr.numeric = ffi.metatype("numeric_vt", mt_basic_v("double"))
 luajr.character = new_character_v
 
--- List type
-local mt_list
-local new_list
 
+------------------
+-- 5. LIST TYPE --
+------------------
+
+-- Metatable for list
 mt_list = {
     __len = function(self)
         return #self[0]
@@ -678,15 +762,22 @@ mt_list = {
     end
 }
 
+-- Constructor for list
 new_list = function()
     local list = { [0] = { names = {} } }
     setmetatable(list, mt_list)
     return list
 end
 
+-- List definition
 luajr.list = new_list
 
--- Helps pass R types to Lua
+
+--------------------
+-- 6. PASS TO LUA --
+--------------------
+
+-- Identifies reference types from type codes
 local ref_type = {
     [internal.LOGICAL_R]   = luajr.logical_r,
     [internal.INTEGER_R]   = luajr.integer_r,
@@ -694,6 +785,7 @@ local ref_type = {
     [internal.CHARACTER_R] = luajr.character_r
 }
 
+-- Helpers to set reference objects to existing R objects when passing in
 local ref_set = {
     [internal.LOGICAL_R]   = internal.SetLogicalRef,
     [internal.INTEGER_R]   = internal.SetIntegerRef,
@@ -701,6 +793,7 @@ local ref_set = {
     [internal.CHARACTER_R] = internal.SetCharacterRef
 }
 
+-- Identifies vector types from type codes
 local vec_type = {
     [internal.LOGICAL_V]   = luajr.logical,
     [internal.INTEGER_V]   = luajr.integer,
@@ -708,6 +801,7 @@ local vec_type = {
     -- CHARACTER_V handled separately
 }
 
+-- Helpers to copy existing R objects to vector objects when passing in
 local vec_set = {
     [internal.LOGICAL_V]   = internal.SetLogicalVec,
     [internal.INTEGER_V]   = internal.SetIntegerVec,
@@ -715,12 +809,18 @@ local vec_set = {
     -- CHARACTER_V handled separately
 }
 
+-- Construct a reference type. Called with:
+--   ud = SEXP to be referenced
+--   typecode = e.g. internal.LOGICAL_R, etc
 luajr.construct_ref = function(ud, typecode)
     local x = ref_type[typecode](nullptr)
     ref_set[typecode](x, ud)
     return x
 end
 
+-- Construct a vector type. Called with:
+--   ud = SEXP to be copied
+--   typecode = e.g. internal.LOGICAL_V, etc
 luajr.construct_vec = function(ud, typecode)
     if typecode == internal.CHARACTER_V then
         local x = luajr.character(internal.SEXP_length(ud), "")
@@ -735,6 +835,9 @@ luajr.construct_vec = function(ud, typecode)
     end
 end
 
+-- Construct a list. Called with:
+--   elements = table (integer keys, 1 to n) with elements to hold
+--   names = table, e.g. { foo = 1, bar = 3 } if 1st and 3rd elements are named
 luajr.construct_list = function(elements, names)
     local list = { [0] = elements }
     list[0].names = names
@@ -742,8 +845,18 @@ luajr.construct_list = function(elements, names)
     return list
 end
 
+
+--------------------
+-- 7. RETURN TO R --
+--------------------
+
 -- Helps return luajr objects to R
-function luajr.R_get_alloc(obj)
+-- When passed a luajr object, returns two values:
+--    1, an integer type code from the internal api
+--    2, a pointer to the object's internal SEXP, if the object is a reference;
+--       or the number of elements in that object, if the object is a vector/list.
+-- If the object is not a luajr type (e.g. a plain Lua type) returns nil, nil.
+function luajr.return_info(obj)
     if ffi.istype(luajr.logical_r, obj)        then return internal.LOGICAL_R, ffi.cast("void*", obj._s)
     elseif ffi.istype(luajr.integer_r, obj)    then return internal.INTEGER_R, ffi.cast("void*", obj._s)
     elseif ffi.istype(luajr.numeric_r, obj)    then return internal.NUMERIC_R, ffi.cast("void*", obj._s)
@@ -754,12 +867,18 @@ function luajr.R_get_alloc(obj)
     elseif ffi.istype(luajr.numeric, obj)      then return internal.NUMERIC_V, #obj
     elseif getmetatable(obj) == mt_character_v then return internal.CHARACTER_V, #obj
     elseif getmetatable(obj) == mt_list        then return internal.LIST_T, #obj
+    elseif obj == nullptr                      then return internal.NULL_T, 0
     end
 
     return nil, nil
 end
 
-function luajr.R_copy(obj, ptr)
+-- Copies a luajr object to allocated memory so that it can be taken in by R.
+--   obj is the luajr object;
+--   ptr is a SEXP* (_pointer_ to SEXP) if obj is a reference type;
+--     or the start of some contiguous memory if obj is a basic vector type;
+--     or a SEXP if obj is a character vector.
+function luajr.return_copy(obj, ptr)
     if ffi.istype(luajr.logical_r, obj) or ffi.istype(luajr.integer_r, obj) or
        ffi.istype(luajr.numeric_r, obj) or ffi.istype(luajr.character_r, obj) then
         internal.SetPtr(ptr, obj._s)
@@ -771,31 +890,74 @@ function luajr.R_copy(obj, ptr)
         ffi.copy(ffi.cast("double*", ptr), obj.p + 1, ffi.sizeof("double[?]", obj.n))
     elseif getmetatable(obj) == mt_character_v then
         for k,v in ipairs(obj) do internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, v) end
-    elseif getmetatable(obj) == mt_list then
-        error("not implemented yet")
+    else
+        error("luajr.return_copy should not be called with an object of this type.")
     end
 end
 
--- TODO document...
-function luajr.DataMatrix(nrow, ncol, names)
-    local data = ffi.new("double*[?]", ncol)
-    local cnames = ffi.new("const char*[?]", ncol, names)
-    local id = internal.AllocRDataMatrix(nrow, ncol, cnames, data)
-    local m = { __robj_ret_i = id }
-    for i = 1, #names do
-        m[names[i]] = data[i-1]
+
+--------------------
+-- 8. EXTRA TYPES --
+--------------------
+
+-- Attribute set/getters
+sexp_get_attr = function(s, k)
+    local typecode = internal.GetAttrType(s, k)
+    if typecode == internal.NULL_T then return nil end
+    local x = ref_type[typecode](nullptr)
+    ref_set[typecode](x, internal.GetAttrSEXP(s, k))
+    return x
+end
+
+sexp_set_attr = function(s, k, v)
+    if k == "/matrix/colnames" and ffi.istype(luajr.character_r, v) then
+        internal.SetMatrixColnamesCharacterRef(s, v)
+    elseif ffi.istype(luajr.logical_r, v) then
+        internal.SetAttrLogicalRef(s, k, v)
+    elseif ffi.istype(luajr.integer_r, v) then
+        internal.SetAttrIntegerRef(s, k, v)
+    elseif ffi.istype(luajr.numeric_r, v) then
+        internal.SetAttrNumericRef(s, k, v)
+    elseif ffi.istype(luajr.character_r, v) then
+        internal.SetAttrCharacterRef(s, k, v)
+    else
+        error("No attribute setter for type " .. type(v) .. ".")
     end
+end
+
+function luajr.dataframe(nrow)
+    local df = luajr.list()
+    df[0].class = "data.frame"
+
+    -- Make rownames
+    local rownames = luajr.integer_r(nullptr)
+    rownames._p = nullptr
+    rownames._s = internal.CompactRowNames(nrow)
+    df[0]["row.names"] = rownames
+
+    return df
+end
+
+function luajr.matrix(nrow, ncol)
+    local m = luajr.numeric_r(nrow * ncol, 0.0)
+
+    -- Make dimensions
+    local dim = luajr.integer_r(2)
+    dim[1] = nrow
+    dim[2] = ncol
+    m("dim", dim)
+
     return m
 end
 
--- TODO document...
-function luajr.DataFrame(nrow, ncol, names)
-    local data = ffi.new("double*[?]", ncol)
-    local cnames = ffi.new("const char*[?]", ncol, names)
-    local id = internal.AllocRDataFrame(nrow, ncol, cnames, data)
-    local df = { __robj_ret_i = id }
-    for i = 1, #names do
-        df[names[i]] = data[i-1]
-    end
-    return df
+function luajr.datamatrix(nrow, ncol, names)
+    local m = luajr.matrix(nrow, ncol)
+
+    -- Make column names
+    if #names > ncol then error("Supplied more names than columns to luajr.datamatrix.") end
+    local colnames = luajr.character_r(ncol)
+    for i = 1,#names do colnames[i] = names[i] end
+    m("/matrix/colnames", colnames)
+
+    return m
 end

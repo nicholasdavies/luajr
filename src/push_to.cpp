@@ -1,18 +1,5 @@
 // push_to.cpp: Move values between R and Lua
 
-// TODO delete -- kept for reference, from tosexp
-//             SEXP retval;
-//
-//             // Check if this is an R object table (i.e. has field __robj_ret_i)
-//             lua_getfield(L, index, "__robj_ret_i");
-//             if (!lua_isnil(L, -1))
-//             {
-//                 // Value is R object table
-//                 retval = VECTOR_ELT(Rf_findVar(RObjRetSymbol, R_GetCurrentEnv()), lua_tointeger(L, -1));
-//                 lua_pop(L, 1); // from lua_getfield
-//             }
-
-
 #include "shared.h"
 #include <vector>
 #include <string>
@@ -26,13 +13,6 @@ extern "C" {
 // Additional types specific to LuaJIT. From lj_obj.h.
 #define LUA_TPROTO	(LUA_TTHREAD+1)
 #define LUA_TCDATA	(LUA_TTHREAD+2)
-
-// Type codes, for use with the Lua FFI
-enum
-{
-    LOGICAL_T = 0, INTEGER_T = 1, NUMERIC_T = 2, CHARACTER_T = 3,
-    REFERENCE_T = 0, VECTOR_T = 4, LIST_T = 8
-};
 
 // Helper function to push a vector to the Lua stack.
 template <typename Push>
@@ -262,13 +242,13 @@ SEXP luajr_tosexp(lua_State* L, int index)
         case LUA_TTABLE:
         {
             // TODO optimize this
-            // Get luajr.R_get_alloc() on the stack
+            // Get luajr.return_info() on the stack
             lua_getglobal(L, "luajr");
-            lua_getfield(L, -1, "R_get_alloc");
+            lua_getfield(L, -1, "return_info");
 
             // Call it with table arg
             lua_pushvalue(L, index);
-            luajr_pcall(L, 1, 2, "luajr.R_get_alloc() from luajr_tosexp() [1]");
+            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [1]");
 
             // If not a known table type, return normal table
             if (lua_isnil(L, -2))
@@ -385,7 +365,6 @@ SEXP luajr_tosexp(lua_State* L, int index)
                 lua_pop(L, 1); // pop list[0]
                 UNPROTECT(nprotect);
                 return retval;
-
             }
 
             // Other known table type
@@ -396,12 +375,12 @@ SEXP luajr_tosexp(lua_State* L, int index)
                 Rf_error("Unknown type");
 
             SEXP ret = PROTECT(Rf_allocVector3(rtype, size, NULL));
-            // Now get luajr.R_copy() on the stack
-            lua_getfield(L, -1, "R_copy");
+            // Now get luajr.return_copy() on the stack
+            lua_getfield(L, -1, "return_copy");
             // Call it with cdata arg and pointer
             lua_pushvalue(L, index);
             lua_pushlightuserdata(L, ret);
-            luajr_pcall(L, 2, 0, "luajr.R_copy() from luajr_tosexp() [1]");
+            luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [1]");
             // Pop luajr from stack
             lua_pop(L, 1);
             // Return SEXP
@@ -417,12 +396,12 @@ SEXP luajr_tosexp(lua_State* L, int index)
         case LUA_TCDATA:
         {
             // TODO optimize this
-            // Get luajr.R_get_alloc() on the stack
+            // Get luajr.return_info() on the stack
             lua_getglobal(L, "luajr");
-            lua_getfield(L, -1, "R_get_alloc");
+            lua_getfield(L, -1, "return_info");
             // Call it with cdata arg
             lua_pushvalue(L, index);
-            luajr_pcall(L, 1, 2, "luajr.R_get_alloc() from luajr_tosexp() [2]");
+            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [2]");
 
             // If not a known cdata type, return external pointer
             if (lua_isnil(L, -2))
@@ -436,12 +415,12 @@ SEXP luajr_tosexp(lua_State* L, int index)
                 lua_pop(L, 2);
 
                 SEXP ret = R_NilValue;
-                // Get luajr.R_copy() on the stack
-                lua_getfield(L, -1, "R_copy");
+                // Get luajr.return_copy() on the stack
+                lua_getfield(L, -1, "return_copy");
                 // Call it with cdata arg and sexp
                 lua_pushvalue(L, index);
                 lua_pushlightuserdata(L, &ret);
-                luajr_pcall(L, 2, 0, "luajr.R_copy() from luajr_tosexp() [2]");
+                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [2]");
                 // Pop luajr from stack
                 lua_pop(L, 1);
                 // Return SEXP
@@ -460,12 +439,12 @@ SEXP luajr_tosexp(lua_State* L, int index)
                 else Rf_error("Unknown type");
 
                 SEXP ret = PROTECT(Rf_allocVector3(rtype, size, NULL));
-                // Now get luajr.R_copy() on the stack
-                lua_getfield(L, -1, "R_copy");
+                // Now get luajr.return_copy() on the stack
+                lua_getfield(L, -1, "return_copy");
                 // Call it with cdata arg and pointer
                 lua_pushvalue(L, index);
                 lua_pushlightuserdata(L, DATAPTR(ret));
-                luajr_pcall(L, 2, 0, "luajr.R_copy() from luajr_tosexp() [3]");
+                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [3]");
                 // Pop luajr from stack
                 lua_pop(L, 1);
                 // Return SEXP

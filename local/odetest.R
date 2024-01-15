@@ -34,7 +34,7 @@ gradient = function(t, x, pars)
 }
 
 yini = c(S = 0.999, I = 0.001, R = 0.000)
-times = seq(0, 1000, by = 1)
+times = seq(1, 1000, by = 1)
 
 bench::mark(
     out <- ode(yini, times, gradient, c(), method = "rk4")
@@ -60,7 +60,7 @@ cppFunction(
     }')
 
 yini = c(S = 0.999, I = 0.001, R = 0.000)
-times = seq(0, 1000, by = 1)
+times = seq(1, 1000, by = 1)
 
 bench::mark(
     out <- ode(yini, times, gradient2, c(), method = "rk4")

@@ -71,7 +71,6 @@ test_that("vector resize works", {
     lua_reset()
 })
 
-
 test_that("vector resize works", {
     lua("luajr = require 'luajr'")
 

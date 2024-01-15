@@ -48,9 +48,6 @@ lua_func = function(func, args = "s", L = NULL)
 {
     fx = luajr_func_create(func, L);
     func = function(...) {
-        # robj_ret can be used by the Lua function to return R objects.
-        robj_ret = vector("list", 4);
-
         # Call the function.
         ret = luajr_func_call(fx, list(...), args, L);
 

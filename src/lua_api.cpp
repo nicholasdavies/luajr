@@ -43,6 +43,170 @@ extern "C" SEXP R_compact_intrange(R_xlen_t n1, R_xlen_t n2);
 // as these update reference counts to elements; I use VECTOR_ELT/STRING_ELT for
 // access, though from R sources this is less critical.
 
+// TODO need to verify type of SEXP throughout, unless it's already guaranteed
+extern "C" void SetLogicalRef(logical_rt* x, SEXP s)
+{
+    x->_p = LOGICAL(s) - 1;
+    x->_s = s;
+}
+
+extern "C" void SetIntegerRef(integer_rt* x, SEXP s)
+{
+    x->_p = INTEGER(s) - 1;
+    x->_s = s;
+}
+
+extern "C" void SetNumericRef(numeric_rt* x, SEXP s)
+{
+    x->_p = REAL(s) - 1;
+    x->_s = s;
+}
+
+extern "C" void SetCharacterRef(character_rt* x, SEXP s)
+{
+    x->_s = s;
+}
+
+extern "C" void AllocLogical(logical_rt* x, size_t size)
+{
+    x->_s = Rf_allocVector3(LGLSXP, size, 0);
+    R_PreserveObject(x->_s);
+    x->_p = LOGICAL(x->_s) - 1;
+}
+
+extern "C" void AllocInteger(integer_rt* x, size_t size)
+{
+    x->_s = Rf_allocVector3(INTSXP, size, 0);
+    R_PreserveObject(x->_s);
+    x->_p = INTEGER(x->_s) - 1;
+}
+
+extern "C" void AllocNumeric(numeric_rt* x, size_t size)
+{
+    x->_s = Rf_allocVector3(REALSXP, size, 0);
+    R_PreserveObject(x->_s);
+    x->_p = REAL(x->_s) - 1;
+}
+
+extern "C" void AllocCharacter(character_rt* x, size_t size)
+{
+    x->_s = Rf_allocVector3(STRSXP, size, 0);
+    R_PreserveObject(x->_s);
+}
+
+extern "C" void AllocCharacterTo(character_rt* x, size_t size, const char* v)
+{
+    x->_s = Rf_allocVector3(STRSXP, size, 0);
+    R_PreserveObject(x->_s);
+    SEXP sv = Rf_mkChar(v);
+    for (size_t i = 0; i < size; ++i)
+        SET_STRING_ELT(x->_s, i, sv);
+}
+
+extern "C" void Release(SEXP s)
+{
+    R_ReleaseObject(s);
+}
+
+extern "C" void SetLogicalVec(logical_vt* x, SEXP s)
+{
+    std::memcpy(x->p + 1, LOGICAL(s), sizeof(int) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
+}
+
+extern "C" void SetIntegerVec(integer_vt* x, SEXP s)
+{
+    std::memcpy(x->p + 1, INTEGER(s), sizeof(int) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
+}
+
+extern "C" void SetNumericVec(numeric_vt* x, SEXP s)
+{
+    std::memcpy(x->p + 1, REAL(s), sizeof(double) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
+}
+
+extern "C" int GetAttrType(SEXP s, const char* k)
+{
+    SEXP a = Rf_getAttrib(s, Rf_install(k));
+    switch (TYPEOF(a))
+    {
+        case NILSXP:
+            return NULL_T;
+        case LGLSXP:
+            return LOGICAL_T | REFERENCE_T;
+        case INTSXP:
+            return INTEGER_T | REFERENCE_T;
+        case REALSXP:
+            return NUMERIC_T | REFERENCE_T;
+        case STRSXP:
+            return CHARACTER_T | REFERENCE_T;
+        default:
+            Rf_error("Cannot get attribute of type %s.", Rf_type2char(TYPEOF(a)));
+    }
+}
+
+extern "C" SEXP GetAttrSEXP(SEXP s, const char* k)
+{
+    return Rf_getAttrib(s, Rf_install(k));
+}
+
+extern "C" void SetAttrLogicalRef(SEXP s, const char* k, logical_rt* v)
+{
+    Rf_setAttrib(s, Rf_install(k), v->_s);
+}
+
+extern "C" void SetAttrIntegerRef(SEXP s, const char* k, integer_rt* v)
+{
+    Rf_setAttrib(s, Rf_install(k), v->_s);
+}
+
+extern "C" void SetAttrNumericRef(SEXP s, const char* k, numeric_rt* v)
+{
+    Rf_setAttrib(s, Rf_install(k), v->_s);
+}
+
+extern "C" void SetAttrCharacterRef(SEXP s, const char* k, character_rt* v)
+{
+    Rf_setAttrib(s, Rf_install(k), v->_s);
+}
+
+extern "C" void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v)
+{
+    SEXP dimnames = PROTECT(Rf_allocVector3(VECSXP, 2, NULL));
+    SET_VECTOR_ELT(dimnames, 0, R_NilValue);
+    SET_VECTOR_ELT(dimnames, 1, v->_s);
+    Rf_dimnamesgets(s, dimnames);
+    UNPROTECT(1);
+}
+
+extern "C" const char* GetCharacterElt(SEXP s, ptrdiff_t k)
+{
+    return CHAR(STRING_ELT(s, k));
+}
+
+extern "C" void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v)
+{
+    SET_STRING_ELT(s, k, Rf_mkChar(v));
+}
+
+extern "C" void SetPtr(void** ptr, void* val)
+{
+    *ptr = val;
+}
+
+extern "C" int SEXP_length(SEXP s)
+{
+    return Rf_length(s); // TODO XLENGTH_EX(s) ?
+}
+
+extern "C" SEXP CompactRowNames(size_t nrow)
+{
+    if (nrow > 0)
+        return R_compact_intrange(1, nrow);
+    return R_NilValue;
+}
+
+/* Older code, kept for reference
+
+
 // Allocate an R numeric matrix, outputting addresses of each column into ptrs.
 // The matrix is returned to R via the robj_ret mechanism.
 extern "C" int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
@@ -141,102 +305,4 @@ extern "C" int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char*
     return robj_ret_len;
 }
 
-// TODO need to verify type of SEXP throughout, unless it's already guaranteed
-extern "C" void SetLogicalRef(logical_rt* x, SEXP s)
-{
-    x->_p = LOGICAL(s) - 1;
-    x->_s = s;
-}
-
-extern "C" void SetIntegerRef(integer_rt* x, SEXP s)
-{
-    x->_p = INTEGER(s) - 1;
-    x->_s = s;
-}
-
-extern "C" void SetNumericRef(numeric_rt* x, SEXP s)
-{
-    x->_p = REAL(s) - 1;
-    x->_s = s;
-}
-
-extern "C" void SetCharacterRef(character_rt* x, SEXP s)
-{
-    x->_s = s;
-}
-
-extern "C" void AllocLogical(logical_rt* x, size_t size)
-{
-    x->_s = Rf_allocVector3(LGLSXP, size, 0);
-    R_PreserveObject(x->_s);
-    x->_p = LOGICAL(x->_s) - 1;
-}
-
-extern "C" void AllocInteger(integer_rt* x, size_t size)
-{
-    x->_s = Rf_allocVector3(INTSXP, size, 0);
-    R_PreserveObject(x->_s);
-    x->_p = INTEGER(x->_s) - 1;
-}
-
-extern "C" void AllocNumeric(numeric_rt* x, size_t size)
-{
-    x->_s = Rf_allocVector3(REALSXP, size, 0);
-    R_PreserveObject(x->_s);
-    x->_p = REAL(x->_s) - 1;
-}
-
-extern "C" void AllocCharacter(character_rt* x, size_t size)
-{
-    x->_s = Rf_allocVector3(STRSXP, size, 0);
-    R_PreserveObject(x->_s);
-}
-
-extern "C" void AllocCharacterTo(character_rt* x, size_t size, const char* v)
-{
-    x->_s = Rf_allocVector3(STRSXP, size, 0);
-    R_PreserveObject(x->_s);
-    SEXP sv = Rf_mkChar(v);
-    for (size_t i = 0; i < size; ++i)
-        SET_STRING_ELT(x->_s, i, sv);
-}
-
-extern "C" void Release(SEXP s)
-{
-    R_ReleaseObject(s);
-}
-
-extern "C" void SetLogicalVec(logical_vt* x, SEXP s)
-{
-    std::memcpy(x->p + 1, LOGICAL(s), sizeof(int) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
-}
-
-extern "C" void SetIntegerVec(integer_vt* x, SEXP s)
-{
-    std::memcpy(x->p + 1, INTEGER(s), sizeof(int) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
-}
-
-extern "C" void SetNumericVec(numeric_vt* x, SEXP s)
-{
-    std::memcpy(x->p + 1, REAL(s), sizeof(double) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
-}
-
-extern "C" const char* GetCharacterElt(SEXP s, ptrdiff_t k)
-{
-    return CHAR(STRING_ELT(s, k));
-}
-
-extern "C" void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v)
-{
-    SET_STRING_ELT(s, k, Rf_mkChar(v));
-}
-
-extern "C" void SetPtr(void** ptr, void* val)
-{
-    *ptr = val;
-}
-
-extern "C" int SEXP_length(SEXP s)
-{
-    return Rf_length(s); // TODO XLENGTH_EX(s) ?
-}
+*/
