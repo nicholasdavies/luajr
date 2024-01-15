@@ -179,12 +179,18 @@ extern "C" void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v)
 
 extern "C" const char* GetCharacterElt(SEXP s, ptrdiff_t k)
 {
-    return CHAR(STRING_ELT(s, k));
+    SEXP x = STRING_ELT(s, k);
+    if (x == NA_STRING)
+        return 0;
+    return CHAR(x);
 }
 
 extern "C" void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v)
 {
-    SET_STRING_ELT(s, k, Rf_mkChar(v));
+    if (v == 0)
+        SET_STRING_ELT(s, k, NA_STRING);
+    else
+        SET_STRING_ELT(s, k, Rf_mkChar(v));
 }
 
 extern "C" void SetPtr(void** ptr, void* val)

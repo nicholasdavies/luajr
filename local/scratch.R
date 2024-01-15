@@ -33,11 +33,9 @@ bench::mark(
 # because there's no working analogy to 'newindex' (i.e. passing a list x into
 # a function with mode 'r' and then doing x[1] = "foo" doesn't change the underlying
 # list, although doing x[1][1] = "foo" would.) Document this.
-# TODO attribute set -- done for reference types only, but value types can be copied to reference types
-# TODO attribute get -- done -- need to test, as well as testing extended types
 # TODO make sure it all works with altreps
 # TODO document luajr.lua
-# TODO get NAs working
+# TODO test list and character in similar fashion to numeric in test-vector.R
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
 # TODO C api: Check it is actually usable from C, or just call it a C++ api

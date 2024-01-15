@@ -77,15 +77,17 @@ test_that("pass by simplify works", {
     expect_identical(lua_func("function(x) return x[1] end", "a")(1.5), 1.5)
     expect_identical(lua_func("function(x) return x end", "a")(1.5), list(1.5))
     expect_error(lua_func("function(x) return x[1] end", "s")(1.5), "attempt to index local 'x' \\(a number value\\)")
-
-    # Check NA
-    # TODO none of these work! need to implement special behaviour for the 's'
-    # types.
-    # lua_func("function(x) return x end", "s")(NA) # note: plain NA is class logical
-    # lua_func("function(x) return x end", "s")(NA_real_)
-    # lua_func("function(x) return x end", "s")(NA_integer_) # note: under 's',
-    # both integer and real get turned into lua_Number, so I think need to go
-    # through and manually convert any NA_integer_ in an integer to an NA_real_
-    # lua_func("function(x) return x end", "s")(NA_character_)
-
 })
+
+test_that("passing NA works", {
+    expect_identical(lua_func("function(x) return x end", "v")(NA), NA) # note: plain NA is class logical
+    expect_identical(lua_func("function(x) return x end", "v")(NA_real_), NA_real_)
+    expect_identical(lua_func("function(x) return x end", "v")(NA_integer_), NA_integer_)
+    expect_identical(lua_func("function(x) return x end", "v")(NA_character_), NA_character_)
+
+    expect_identical(lua_func("function(x) return x end", "r")(NA), NA)
+    expect_identical(lua_func("function(x) return x end", "r")(NA_real_), NA_real_)
+    expect_identical(lua_func("function(x) return x end", "r")(NA_integer_), NA_integer_)
+    expect_identical(lua_func("function(x) return x end", "r")(NA_character_), NA_character_)
+})
+

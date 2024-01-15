@@ -23,7 +23,7 @@ local ffi = require("ffi")
 table.new = require("table.new")
 table.clear = require("table.clear")
 
--- Script receives the path to the luajr R package dylib
+-- Script receives the path to the luajr R package dylib as argument
 local luajr_dylib_path = ({...})[1]
 
 -- Null pointer object
@@ -180,6 +180,9 @@ local mt_basic_r = function(allocator)
         end,
 
         __call = function(x, k, v)
+            if type(k) ~= "string" then
+                error("Can only set string-keyed attributes.")
+            end
             if v == nil then
                 return sexp_get_attr(x._s, k)
             else
@@ -236,6 +239,9 @@ local mt_character_r = {
     end,
 
     __call = function(x, k, v)
+        if type(k) ~= "string" then
+            error("Can only set string-keyed attributes.")
+        end
         if v == nil then
             return sexp_get_attr(x._s, k)
         else
@@ -646,7 +652,7 @@ mt_character_v = {
 local new_character_v = function(a, b)
     if a == nil and b == nil then
         t = {}
-    elseif type(a) == "number" and type(b) == "string" then
+    elseif type(a) == "number" and type(b) == "string" or b == luajr.NA_character_ then
         -- a copies of b
         t = table.new(a, 0)
         for i=1,a do t[i] = b end
@@ -724,6 +730,17 @@ mt_list = {
             end
         else
             error("Invalid key type " .. type(k) .. " in mt_list.__newindex().")
+        end
+    end,
+
+    __call = function(self, k, v)
+        if type(k) ~= "string" then
+            error("Can only set string-keyed attributes.")
+        end
+        if v == nil then
+            return self[0][k]
+        else
+            self[0][k] = v
         end
     end,
 
@@ -825,7 +842,12 @@ luajr.construct_vec = function(ud, typecode)
     if typecode == internal.CHARACTER_V then
         local x = luajr.character(internal.SEXP_length(ud), "")
         for i = 1,#x do
-            x[i] = ffi.string(internal.GetCharacterElt(ud, i - 1))
+            local c = internal.GetCharacterElt(ud, i - 1)
+            if c == nullptr then
+                x[i] = luajr.NA_character_
+            else
+                x[i] = ffi.string(c)
+            end
         end
         return x
     else
@@ -889,7 +911,13 @@ function luajr.return_copy(obj, ptr)
     elseif ffi.istype(luajr.numeric, obj) then
         ffi.copy(ffi.cast("double*", ptr), obj.p + 1, ffi.sizeof("double[?]", obj.n))
     elseif getmetatable(obj) == mt_character_v then
-        for k,v in ipairs(obj) do internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, v) end
+        for k,v in ipairs(obj) do
+            if v == luajr.NA_character_ then
+                internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, nullptr)
+            else
+                internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, v)
+            end
+        end
     else
         error("luajr.return_copy should not be called with an object of this type.")
     end
