@@ -29,8 +29,8 @@ default one. The default Lua state can be specified explicitly with
 
 Note that there is currently no way (provided by \pkg{luajr}) of saving a
 Lua state to disk so that the state can be restarted later. Also, there is
-no \code{lua_close} in \pkg{luajr} because when the R object returned by
-\code{\link[=lua_open]{lua_open()}} is garbage collected, the Lua state is closed then.
+no \code{lua_close} in \pkg{luajr} because Lua states are closed automatically
+when they are garbage collected in R.
 }
 \examples{
 L1 <- lua_open()

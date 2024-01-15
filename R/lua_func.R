@@ -6,8 +6,9 @@
 #' The R types that can be passed to Lua are: `NULL`, logical vector,
 #' integer vector, numeric vector, string vector, list, and external pointer.
 #'
-#' The parameter `args` is a string with one character for each
-#' argument passed to the Lua function, recycled as needed.
+#' The parameter `args` is a string with one character for each argument of the
+#' the Lua function, recycled as needed (e.g. so that a single character would
+#' apply to all arguments regardless of how many there are).
 #'
 #' For `NULL` or any argument with length 0, the result in Lua is **nil**
 #' regardless of the corresponding `args` code.
@@ -15,26 +16,32 @@
 #' For logical, integer, double, and character vectors, if the corresponding
 #' `args` code is `'s'` (simplify), then if the R vector has length one, it is
 #' supplied as a Lua primitive (boolean, number, number, or string,
-#' respectively), and if length > 1, as a table. If the code is `'a'`, the
-#' vector is supplied as an array (table with integer indices) for any
-#' length >= 1, discarding names. If `'t'`, the vector is supplied as a table
-#' for any length >= 1, with or without names depending on the R object.
+#' respectively), and if length > 1, as an array, i.e. a table with integer
+#' indices starting at 1. If the code is `'a'`, the vector is always supplied as
+#' an array, even if it only has length 1. If the code is the digit `'1'`
+#' through `'9'`, this is the same as `'s'`, but the vector is required to have
+#' that specific length, otherwise an error message is emitted.
 #'
-#' For lists, the Lua object will always be either **nil** (if length 0) or a
-#' table (i.e. it is not simplified to a scalar if there is only one entry in
-#' the list), but the `args` code can be `'s'`, `'a'`, or `'t'`, which is
-#' applied to all elements contained in the list (including other lists).
+#' Still focusing on vectors, if the `args` code is `'r'`, then the vector is
+#' passed *by reference* to Lua, adopting the type `luajr.logical_r`,
+#' `luajr.integer_r`, `luajr.numeric_r`, or `luajr.character_r` as appropriate.
+#' If the `args` code is `'v'`, the vector is passed *by value* to Lua,
+#' adopting the type `luajr.logical`, `luajr.integer`, `luajr.numeric`, or
+#' `luajr.character` as appropriate.
 #'
-#' Note that Lua does not preserve the order of entries in lists. This means
-#' that an R vector with names will often go out of order when passed into Lua.
-#' A warning is therefore emitted when a named list or vector gets passed in to
-#' Lua.
+#' For lists, if the args code is `'s'` (simplify), the list is passed as a Lua
+#' table. Any entries of the list with non-blank names are named in the table,
+#' while unnamed entries have the associated integer key in the table. Note that
+#' Lua does not preserve the order of entries in tables. This means that an R
+#' list with names will often go "out of order" when passed into Lua with `'s'`
+#' and then returned back to R. This is avoided with args codes `'r'` and `'v'`.
+#'
+#' If a list is passed in with the `args` code `'r'` or `'v'`, the list is
+#' passed to Lua as type `luajr.list`, and all vector elements of the list are
+#' passed by reference or by value, respectively.
 #'
 #' For external pointers, the `args` code is ignored and the external pointer is
-#' passed to Lua as type *userdata*.
-#'
-#' Attributes are ignored other than 'names' and 'class', so e.g. matrices will
-#' end up as a numeric vector.
+#' passed to Lua as type **userdata**.
 #'
 #' @inheritParams lua
 #' @param func Lua expression evaluating to a function.
