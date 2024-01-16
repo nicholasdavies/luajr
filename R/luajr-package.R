@@ -8,7 +8,7 @@ NULL
 inlineCxxPlugin = function(...)
 {
     Rcpp::Rcpp.plugin.maker(
-        include.after = "#include <luajr_api.h>\n#include <luajr_funcdef.hpp>",
+        include.after = "#include <luajr_api.h>\n#include <luajr_funcdef.h>",
         package = "luajr")(...)
 }
 
