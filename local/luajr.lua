@@ -130,8 +130,8 @@ luajr.NA_real_      = internal.NA_real;
 luajr.NA_character_ = internal.NA_character;
 
 -- Forward declarations of attribute set/getters
-local sexp_get_attr
-local sexp_set_attr
+--local sexp_get_attr
+--local sexp_set_attr
 
 
 ------------------------
@@ -580,18 +580,47 @@ local mt_basic_v = function(ct)
     return mt
 end
 
+-- For keeping strings in luajr.character
+local tostring2 = function(v)
+    if v == luajr.NA_character_ then
+        return luajr.NA_character_
+    else
+        return tostring(v)
+    end
+end
+
 -- Character vector metatable
 local mt_character_v
 local new_character_v
 mt_character_v = {
     __index = function(self, k)
-        return mt_character_v[k]
+        if type(k) == "number" then
+            return rawget(self, 0)[k]
+        else
+            return mt_character_v[k]
+        end
+    end,
+
+    __newindex = function(self, k, v)
+        rawget(self, 0)[k] = tostring2(v)
+    end,
+
+    __len = function(self)
+        return #(rawget(self, 0))
+    end,
+
+    __pairs = function(self)
+        return pairs(rawget(self, 0))
+    end,
+
+    __ipairs = function(self)
+        return ipairs(rawget(self, 0))
     end,
 
     assign = function(self, a, b)
         nt = new_character_v(a, b)
         self:resize(#nt)
-        for i = 1,#self do self[i] = nt[i] end
+        for i = 1,#self do rawget(self, 0)[i] = rawget(nt, 0)[i] end
     end,
 
     print = function(self)
@@ -601,7 +630,14 @@ mt_character_v = {
     end,
 
     concat = function(self, sep)
-        return table.concat(self, sep)
+        sep = sep or ","
+        local str = ""
+        for i = 1,#self do
+            v = rawget(self, 0)[i]
+            if v == luajr.NA_character_ then str = str .. "NA" else str = str .. v end
+            if i < #self then str = str .. sep end
+        end
+        return str
     end,
 
     debug_str = function(self)
@@ -615,51 +651,52 @@ mt_character_v = {
 
     -- Modify
     clear = function(self)
-        table.clear(self)
+        table.clear(rawget(self, 0))
     end,
 
     resize = function(self, n, val)
         if n < #self then
-            for i = 1, #self - n do table.remove(self) end
+            for i = 1, #self - n do table.remove(rawget(self, 0)) end
         else
-            for i = 1, n - #self do table.insert(self, val) end
+            for i = 1, n - #self do table.insert(rawget(self, 0), tostring2(val)) end
         end
     end,
 
     push_back = function(self, val)
-        table.insert(self, val)
+        table.insert(rawget(self, 0), tostring2(val))
     end,
 
     pop_back = function(self)
-        table.remove(self)
+        table.remove(rawget(self, 0))
     end,
 
     insert = function(self, i, a, b)
         nt = new_character_v(a, b)
-        for j = #self,i,-1 do self[j + #nt] = self[j] end
-        for j = 1,#nt do self.p[j + i - 1] = nt[j] end
+        for j = #self,i,-1 do rawget(self, 0)[j + #nt] = rawget(self, 0)[j] end
+        for j = 1,#nt do rawget(self, 0)[j + i - 1] = nt[j] end
     end,
 
     erase = function(self, first, last)
         if last == nil then last = first end
         local ndel = last - first + 1
-        for i = first, #self - ndel do self[i] = self[i + ndel] end
-        for i = 1, ndel do table.remove(self) end
+        for i = first, #self - ndel do rawget(self, 0)[i] = rawget(self, 0)[i + ndel] end
+        for i = 1, ndel do table.remove(rawget(self, 0)) end
     end
 }
 
 -- Constructor for character_v
-local new_character_v = function(a, b)
+new_character_v = function(a, b)
+    local t
     if a == nil and b == nil then
         t = {}
-    elseif type(a) == "number" and type(b) == "string" or b == luajr.NA_character_ then
+    elseif type(a) == "number" then
         -- a copies of b
         t = table.new(a, 0)
-        for i=1,a do t[i] = b end
+        for i=1,a do t[i] = tostring2(b) end
     elseif type(a) == "table" and b == nil then
         -- from table initializer
         t = table.new(#a, 0)
-        for i=1,#a do t[i] = a[i] end
+        for i=1,#a do t[i] = tostring2(a[i]) end
     elseif getmetatable(a) == mt_character_v and b == nil then
         -- from vector to copy
         t = table.new(#a, 0)
@@ -668,8 +705,9 @@ local new_character_v = function(a, b)
         error("cannot construct character vector with argument types " ..
             type(a) .. ", " .. type(b) .. ".", 2)
     end
-    setmetatable(t, mt_character_v)
-    return t
+    local vec = { [0] = t }
+    setmetatable(vec, mt_character_v)
+    return vec
 end
 
 -- Vector type definitions
@@ -684,11 +722,7 @@ luajr.character = new_character_v
 ------------------
 
 -- Metatable for list
-mt_list = {
-    __len = function(self)
-        return #self[0]
-    end,
-
+local mt_list = {
     __index = function(self, k)
         if type(k) == "number" then
             return self[0][k]
@@ -731,6 +765,10 @@ mt_list = {
         else
             error("Invalid key type " .. type(k) .. " in mt_list.__newindex().")
         end
+    end,
+
+    __len = function(self)
+        return #self[0]
     end,
 
     __call = function(self, k, v)
@@ -780,7 +818,7 @@ mt_list = {
 }
 
 -- Constructor for list
-new_list = function()
+local new_list = function()
     local list = { [0] = { names = {} } }
     setmetatable(list, mt_list)
     return list
