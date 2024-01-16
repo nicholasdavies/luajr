@@ -12,16 +12,16 @@ typedef struct SEXPREC* SEXP;
 
 // luajr API functions
 // TODO this is easy to break if these do not match API funcs defined elsewhere.
-SEXP (*luajr_open)();
-lua_State* (*luajr_newstate)();
-void (*luajr_reset)();
-lua_State* (*luajr_getstate)(SEXP Lx);
-void (*luajr_pass)(lua_State* L, SEXP args, const char* acode);
-SEXP (*luajr_return)(lua_State* L, int nret);
-void (*luajr_pushsexp)(lua_State* L, SEXP x, char as);
-SEXP (*luajr_tosexp)(lua_State* L, int index);
-SEXP (*luajr_makepointer)(void* ptr, int tag_code, void (*finalize)(SEXP));
-void* (*luajr_getpointer)(SEXP x, int tag_code);
-void (*luajr_pcall)(lua_State* L, int nargs, int nresults, const char* funcdesc);
+extern SEXP (*luajr_open)();
+extern lua_State* (*luajr_newstate)();
+extern void (*luajr_reset)();
+extern lua_State* (*luajr_getstate)(SEXP Lx);
+extern void (*luajr_pass)(lua_State* L, SEXP args, const char* acode);
+extern SEXP (*luajr_return)(lua_State* L, int nret);
+extern void (*luajr_pushsexp)(lua_State* L, SEXP x, char as);
+extern SEXP (*luajr_tosexp)(lua_State* L, int index);
+extern SEXP (*luajr_makepointer)(void* ptr, int tag_code, void (*finalize)(SEXP));
+extern void* (*luajr_getpointer)(SEXP x, int tag_code);
+extern void (*luajr_pcall)(lua_State* L, int nargs, int nresults, const char* funcdesc);
 
 #endif // LUAJR_API_H

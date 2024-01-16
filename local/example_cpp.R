@@ -13,8 +13,8 @@ Rcpp::cppFunction('void exampleF() {
     lua_pop(L, 1);
 }', depends = "luajr");
 
-exampleF() == "Ciao, world with stack size 1!"
+exampleF() # "Ciao, world with stack size 1!"
 
 # Test whether we can use the Lua API from C++, using sourceCpp
 Rcpp::sourceCpp("./local/example.cpp")
-exampleS() == "Goodbye, world with stack size 1!"
+exampleS() # "Goodbye, world with stack size 1!"
