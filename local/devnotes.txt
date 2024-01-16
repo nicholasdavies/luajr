@@ -7,6 +7,11 @@ Feature plan
 "handled" by the reference types? at very least, it should be acknowledged as
 a shortcoming in documentation; or there should be an error if we try to
 allocate a larger vector type?
+- Remove dependency on Rcpp
+- Mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1? Or
+a preprocessor with specified types? (meaning, can declare a lua func as
+function(x:integer, y:numeric_r) etc)
+- Once there is something to cite, usethis::use_citation()
 
 
 luajit as subfolder in src/luajit

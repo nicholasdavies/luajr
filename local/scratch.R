@@ -32,13 +32,9 @@ bench::mark(
 # TODO document, including vignettes
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
 # TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
-# TODO once there is something to cite, usethis::use_citation()?
 # TODO link against the specific luajit lib that is built (???)
-# TODO remove Rcpp if not needed
 # TODO can't have just one version of the bytecode
-# TODO mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1 (?)
 # TODO do typedefs for underlying R logical, integer, numeric types???
-
 
 # checking args passing 'r'
 lua("ffi = require('ffi')")

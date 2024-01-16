@@ -14,6 +14,7 @@ extern "C" {
 #include <R.h>
 #include <Rinternals.h>
 
+// For luajr_func_create and luajr_func_call's use of external pointers
 static const int LUAJR_REGFUNC_CODE = 0x7CA12E6F;
 
 // Destroy a registry entry pointed to by an R external pointer when it is no
