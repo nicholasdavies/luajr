@@ -11,6 +11,14 @@ extern "C" {
 #include <Rinternals.h>
 #include "luajr_module.h"
 
+// luajr Lua module API registry keys
+int luajr_construct_ref = 0;
+int luajr_construct_vec = 0;
+int luajr_construct_list = 0;
+int luajr_return_info = 0;
+int luajr_return_copy = 0;
+
+// Path to luajr dylib
 static std::string luajr_dylib_path;
 
 // Provide luajr dylib path from R to luajr
@@ -20,6 +28,7 @@ void luajr_locate_dylib(const char* path)
     luajr_dylib_path = path;
 }
 
+// For luajr_open and luajr_getstate's use of external pointers
 static const int LUAJR_STATE_CODE = 0x7CA57A7E;
 
 // Helper function to create a fresh Lua state with the required libraries
@@ -39,9 +48,34 @@ extern "C" lua_State* luajr_newstate()
     lua_pushstring(l, luajr_dylib_path.c_str());
     luajr_pcall(l, 1, 0, "(luajr Lua module from luajr_newstate())");
 
-    // Open luajr module
+    // Get luajr module
     luaL_loadstring(l, "luajr = require 'luajr'");
     luajr_pcall(l, 0, 0, "(require luajr module)");
+
+    // Save a few key luajr functions to the registry
+    lua_getglobal(l, "luajr");
+
+    lua_pushlightuserdata(l, (void*)&luajr_construct_ref);
+    lua_getfield(l, -2, "construct_ref");
+    lua_rawset(l, LUA_REGISTRYINDEX);
+
+    lua_pushlightuserdata(l, (void*)&luajr_construct_vec);
+    lua_getfield(l, -2, "construct_vec");
+    lua_rawset(l, LUA_REGISTRYINDEX);
+
+    lua_pushlightuserdata(l, (void*)&luajr_construct_list);
+    lua_getfield(l, -2, "construct_list");
+    lua_rawset(l, LUA_REGISTRYINDEX);
+
+    lua_pushlightuserdata(l, (void*)&luajr_return_info);
+    lua_getfield(l, -2, "return_info");
+    lua_rawset(l, LUA_REGISTRYINDEX);
+
+    lua_pushlightuserdata(l, (void*)&luajr_return_copy);
+    lua_getfield(l, -2, "return_copy");
+    lua_rawset(l, LUA_REGISTRYINDEX);
+
+    lua_pop(l, 1); // luajr
 
     return l;
 }

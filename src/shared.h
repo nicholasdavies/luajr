@@ -8,6 +8,13 @@ typedef SEXPREC* SEXP;
 // The shared global Lua state
 extern lua_State* L0;
 
+// luajr Lua module API registry keys
+extern int luajr_construct_ref;
+extern int luajr_construct_vec;
+extern int luajr_construct_list;
+extern int luajr_return_info;
+extern int luajr_return_copy;
+
 // We declare all functions to have C linkage to avoid name mangling and allow
 // the use of the package functions from C code. This file (shared.h) is only
 // included when building the R package, i.e. from C++, so no #ifdef __cplusplus
