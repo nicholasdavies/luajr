@@ -12,6 +12,7 @@ allocate a larger vector type?
 a preprocessor with specified types? (meaning, can declare a lua func as
 function(x:integer, y:numeric_r) etc)
 - Once there is something to cite, usethis::use_citation()
+- Do typedefs for underlying R logical, integer, numeric types?
 
 
 luajit as subfolder in src/luajit
