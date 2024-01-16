@@ -98,7 +98,7 @@ end
 local function dump_trace(what, tr, func, pc, otr, oex)
   if what == "start" then
     startloc = fmtfunc(func, pc)
-    startex = otr and "("..otr.."/"..(oex == -1 and "stitch" or oex)..") " or ""
+    startex = otr and "("..otr.."/"..oex..") " or ""
   else
     if what == "abort" then
       local loc = fmtfunc(func, pc)
@@ -115,9 +115,6 @@ local function dump_trace(what, tr, func, pc, otr, oex)
       if ltype == "interpreter" then
 	out:write(format("[TRACE %3s %s%s -- fallback to interpreter]\n",
 	  tr, startex, startloc))
-      elseif ltype == "stitch" then
-	out:write(format("[TRACE %3s %s%s %s %s]\n",
-	  tr, startex, startloc, ltype, fmtfunc(func, pc)))
       elseif link == tr or link == 0 then
 	out:write(format("[TRACE %3s %s%s %s]\n",
 	  tr, startex, startloc, ltype))
@@ -161,9 +158,9 @@ local function dumpon(outfile)
 end
 
 -- Public module functions.
-return {
-  on = dumpon,
-  off = dumpoff,
-  start = dumpon -- For -j command line option.
-}
+module(...)
+
+on = dumpon
+off = dumpoff
+start = dumpon -- For -j command line option.
 

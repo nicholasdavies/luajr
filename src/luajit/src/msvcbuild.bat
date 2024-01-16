@@ -5,7 +5,6 @@
 @rem Then cd to this directory and run this script. Use the following
 @rem options (in order), if needed. The default is a dynamic release build.
 @rem
-@rem   nogc64   disable LJ_GC64 mode for x64
 @rem   debug    emit debug symbols
 @rem   amalg    amalgamated build
 @rem   static   static linkage
@@ -22,58 +21,37 @@
 @set LJLIB=lib /nologo /nodefaultlib
 @set DASMDIR=..\dynasm
 @set DASM=%DASMDIR%\dynasm.lua
-@set DASC=vm_x64.dasc
 @set LJDLLNAME=lua51.dll
 @set LJLIBNAME=lua51.lib
 @set BUILDTYPE=release
-@set ALL_LIB=lib_base.c lib_math.c lib_bit.c lib_string.c lib_table.c lib_io.c lib_os.c lib_package.c lib_debug.c lib_jit.c lib_ffi.c lib_buffer.c
+@set ALL_LIB=lib_base.c lib_math.c lib_bit.c lib_string.c lib_table.c lib_io.c lib_os.c lib_package.c lib_debug.c lib_jit.c lib_ffi.c
 
-@setlocal
-@call :SETHOSTVARS
 %LJCOMPILE% host\minilua.c
 @if errorlevel 1 goto :BAD
 %LJLINK% /out:minilua.exe minilua.obj
 @if errorlevel 1 goto :BAD
 if exist minilua.exe.manifest^
   %LJMT% -manifest minilua.exe.manifest -outputresource:minilua.exe
-@endlocal
 
-@set DASMFLAGS=-D WIN -D JIT -D FFI -D ENDIAN_LE -D FPU -D P64
+@set DASMFLAGS=-D WIN -D JIT -D FFI -D P64
 @set LJARCH=x64
 @minilua
-@if errorlevel 8 goto :NO32
-@set DASC=vm_x86.dasc
-@set DASMFLAGS=-D WIN -D JIT -D FFI -D ENDIAN_LE -D FPU
+@if errorlevel 8 goto :X64
+@set DASMFLAGS=-D WIN -D JIT -D FFI
 @set LJARCH=x86
-@set LJCOMPILE=%LJCOMPILE% /arch:SSE2
-@goto :DA
-:NO32
-@if "%VSCMD_ARG_TGT_ARCH%" neq "arm64" goto :X64
-@set DASC=vm_arm64.dasc
-@set DASMTARGET=-D LUAJIT_TARGET=LUAJIT_ARCH_ARM64
-@set LJARCH=arm64
-@goto :DA
 :X64
-@if "%1" neq "nogc64" goto :DA
-@shift
-@set DASC=vm_x86.dasc
-@set LJCOMPILE=%LJCOMPILE% /DLUAJIT_DISABLE_GC64
-:DA
-minilua %DASM% -LN %DASMFLAGS% -o host\buildvm_arch.h %DASC%
+minilua %DASM% -LN %DASMFLAGS% -o host\buildvm_arch.h vm_x86.dasc
 @if errorlevel 1 goto :BAD
 
 if exist ..\.git ( git show -s --format=%%ct >luajit_relver.txt ) else ( type ..\.relver >luajit_relver.txt )
 minilua host\genversion.lua
 
-@setlocal
-@call :SETHOSTVARS
-%LJCOMPILE% /I "." /I %DASMDIR% %DASMTARGET% host\buildvm*.c
+%LJCOMPILE% /I "." /I %DASMDIR% host\buildvm*.c
 @if errorlevel 1 goto :BAD
 %LJLINK% /out:buildvm.exe buildvm*.obj
 @if errorlevel 1 goto :BAD
 if exist buildvm.exe.manifest^
   %LJMT% -manifest buildvm.exe.manifest -outputresource:buildvm.exe
-@endlocal
 
 buildvm -m peobj -o lj_vm.obj
 @if errorlevel 1 goto :BAD
@@ -95,7 +73,6 @@ buildvm -m folddef -o lj_folddef.h lj_opt_fold.c
 @set BUILDTYPE=debug
 @set LJCOMPILE=%LJCOMPILE% /Zi %DEBUGCFLAGS%
 @set LJDYNBUILD=/MDd /DLUA_BUILD_AS_DLL
-@set LJLINK=%LJLINK% /opt:ref /opt:icf /incremental:no
 :NODEBUG
 @set LJLINK=%LJLINK% /%BUILDTYPE%
 @if "%1"=="amalg" goto :AMALGDLL
@@ -133,12 +110,6 @@ if exist luajit.exe.manifest^
 @echo.
 @echo === Successfully built LuaJIT for Windows/%LJARCH% ===
 
-@goto :END
-:SETHOSTVARS
-@if "%VSCMD_ARG_HOST_ARCH%_%VSCMD_ARG_TGT_ARCH%" equ "x64_arm64" (
-  call "%VSINSTALLDIR%Common7\Tools\VsDevCmd.bat" -arch=%VSCMD_ARG_HOST_ARCH% -no_logo
-  echo on
-)
 @goto :END
 :BAD
 @echo.
