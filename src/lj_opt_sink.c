@@ -86,7 +86,8 @@ static void sink_mark_ins(jit_State *J)
     switch (ir->o) {
     case IR_BASE:
       return;  /* Finished. */
-    case IR_ALOAD: case IR_HLOAD: case IR_XLOAD: case IR_TBAR: case IR_ALEN:
+    case IR_CALLL:  /* IRCALL_lj_tab_len */
+    case IR_ALOAD: case IR_HLOAD: case IR_XLOAD: case IR_TBAR:
       irt_setmark(IR(ir->op1)->t);  /* Mark ref for remaining loads. */
       break;
     case IR_FLOAD:
@@ -172,8 +173,8 @@ static void sink_remark_phi(jit_State *J)
 /* Sweep instructions and tag sunken allocations and stores. */
 static void sink_sweep_ins(jit_State *J)
 {
-  IRIns *ir, *irbase = IR(REF_BASE);
-  for (ir = IR(J->cur.nins-1) ; ir >= irbase; ir--) {
+  IRIns *ir, *irfirst = IR(J->cur.nk);
+  for (ir = IR(J->cur.nins-1) ; ir >= irfirst; ir--) {
     switch (ir->o) {
     case IR_ASTORE: case IR_HSTORE: case IR_FSTORE: case IR_XSTORE: {
       IRIns *ira = sink_checkalloc(J, ir);
@@ -222,13 +223,6 @@ static void sink_sweep_ins(jit_State *J)
       ir->prev = REGSP_INIT;
       break;
     }
-  }
-  for (ir = IR(J->cur.nk); ir < irbase; ir++) {
-    irt_clearmark(ir->t);
-    ir->prev = REGSP_INIT;
-    /* The false-positive of irt_is64() for ASMREF_L (REF_NIL) is OK here. */
-    if (irt_is64(ir->t) && ir->o != IR_KNULL)
-      ir++;
   }
 }
 

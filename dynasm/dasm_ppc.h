@@ -1,5 +1,5 @@
 /*
-** DynASM PPC/PPC64 encoding engine.
+** DynASM PPC encoding engine.
 ** Copyright (C) 2005-2023 Mike Pall. All rights reserved.
 ** Released under the MIT license. See dynasm.lua for full copyright notice.
 */
@@ -21,7 +21,7 @@ enum {
   /* The following actions need a buffer position. */
   DASM_ALIGN, DASM_REL_LG, DASM_LABEL_LG,
   /* The following actions also have an argument. */
-  DASM_REL_PC, DASM_LABEL_PC, DASM_IMM, DASM_IMMSH,
+  DASM_REL_PC, DASM_LABEL_PC, DASM_IMM,
   DASM__MAX
 };
 
@@ -69,7 +69,7 @@ struct dasm_State {
   size_t lgsize;
   int *pclabels;		/* PC label chains/pos ptrs. */
   size_t pcsize;
-  void **globals;		/* Array of globals. */
+  void **globals;		/* Array of globals (bias -10). */
   dasm_Section *section;	/* Pointer to active section. */
   size_t codesize;		/* Total size of all code sections. */
   int maxsection;		/* 0 <= sectionidx < maxsection. */
@@ -86,6 +86,7 @@ void dasm_init(Dst_DECL, int maxsection)
 {
   dasm_State *D;
   size_t psz = 0;
+  int i;
   Dst_REF = NULL;
   DASM_M_GROW(Dst, struct dasm_State, Dst_REF, psz, DASM_PSZ(maxsection));
   D = Dst_REF;
@@ -96,7 +97,12 @@ void dasm_init(Dst_DECL, int maxsection)
   D->pcsize = 0;
   D->globals = NULL;
   D->maxsection = maxsection;
-  memset((void *)D->sections, 0, maxsection * sizeof(dasm_Section));
+  for (i = 0; i < maxsection; i++) {
+    D->sections[i].buf = NULL;  /* Need this for pass3. */
+    D->sections[i].rbuf = D->sections[i].buf - DASM_SEC2POS(i);
+    D->sections[i].bsize = 0;
+    D->sections[i].epos = 0;  /* Wrong, but is recalculated after resize. */
+  }
 }
 
 /* Free DynASM state. */
@@ -116,7 +122,7 @@ void dasm_free(Dst_DECL)
 void dasm_setupglobal(Dst_DECL, void **gl, unsigned int maxgl)
 {
   dasm_State *D = Dst_REF;
-  D->globals = gl;
+  D->globals = gl - 10;  /* Negative bias to compensate for locals. */
   DASM_M_GROW(Dst, int, D->lglabels, D->lgsize, (10+maxgl)*sizeof(int));
 }
 
@@ -141,7 +147,6 @@ void dasm_setup(Dst_DECL, const void *actionlist)
   if (D->pclabels) memset((void *)D->pclabels, 0, D->pcsize);
   for (i = 0; i < D->maxsection; i++) {
     D->sections[i].pos = DASM_SEC2POS(i);
-    D->sections[i].rbuf = D->sections[i].buf - D->sections[i].pos;
     D->sections[i].ofs = 0;
   }
 }
@@ -239,10 +244,6 @@ void dasm_put(Dst_DECL, int start, ...)
 #endif
 	b[pos++] = n;
 	break;
-      case DASM_IMMSH:
-	CK((n >> 6) == 0, RANGE_I);
-	b[pos++] = n;
-	break;
       }
     }
   }
@@ -272,7 +273,7 @@ int dasm_link(Dst_DECL, size_t *szp)
 
   { /* Handle globals not defined in this translation unit. */
     int idx;
-    for (idx = 10; idx*sizeof(int) < D->lgsize; idx++) {
+    for (idx = 20; idx*sizeof(int) < D->lgsize; idx++) {
       int n = D->lglabels[idx];
       /* Undefined label: Collapse rel chain and replace with marker (< 0). */
       while (n > 0) { int *pb = DASM_POS2PTR(D, n); n = *pb; *pb = -idx; }
@@ -298,7 +299,7 @@ int dasm_link(Dst_DECL, size_t *szp)
 	case DASM_ALIGN: ofs -= (b[pos++] + ofs) & (ins & 255); break;
 	case DASM_REL_LG: case DASM_REL_PC: pos++; break;
 	case DASM_LABEL_LG: case DASM_LABEL_PC: b[pos++] += ofs; break;
-	case DASM_IMM: case DASM_IMMSH: pos++; break;
+	case DASM_IMM: pos++; break;
 	}
       }
       stop: (void)0;
@@ -348,10 +349,7 @@ int dasm_encode(Dst_DECL, void *buffer)
 	  ins &= 255; while ((((char *)cp - base) & ins)) *cp++ = 0x60000000;
 	  break;
 	case DASM_REL_LG:
-	  if (n < 0) {
-	    n = (int)((ptrdiff_t)D->globals[-n-10] - (ptrdiff_t)cp);
-	    goto patchrel;
-	  }
+	  CK(n >= 0, UNDEF_LG);
 	  /* fallthrough */
 	case DASM_REL_PC:
 	  CK(n >= 0, UNDEF_PC);
@@ -363,14 +361,11 @@ int dasm_encode(Dst_DECL, void *buffer)
 	  cp[-1] |= ((n+4) & ((ins & 2048) ? 0x0000fffc: 0x03fffffc));
 	  break;
 	case DASM_LABEL_LG:
-	  ins &= 2047; if (ins >= 20) D->globals[ins-20] = (void *)(base + n);
+	  ins &= 2047; if (ins >= 20) D->globals[ins-10] = (void *)(base + n);
 	  break;
 	case DASM_LABEL_PC: break;
 	case DASM_IMM:
 	  cp[-1] |= (n & ((1<<((ins>>5)&31))-1)) << (ins&31);
-	  break;
-	case DASM_IMMSH:
-	  cp[-1] |= (ins & 1) ? ((n&31)<<11)|((n&32)>>4) : ((n&31)<<6)|(n&32);
 	  break;
 	default: *cp++ = ins; break;
 	}
