@@ -1,5 +1,4 @@
 typedef struct lua_State lua_State;
-#include "../../src/registry_entry.h"
 
 // This is needed because Rcpp doesn't handle extern "C" void x() well --
 // other extern "C" signatures, and non-extern "C" void x(), are fine.
