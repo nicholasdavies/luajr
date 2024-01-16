@@ -9,7 +9,7 @@ Authors@R: c(
 Description: 'luajr' provides an interface to Mike Pall's 'LuaJIT'
     (<https://luajit.org>), a just-in-time compiler for the Lua scripting 
     language (<https://www.lua.org>). It allows users to run Lua code from 'R'.
-URL: https://github.com/nicholasdavies/luajr
+URL: https://github.com/nicholasdavies/luajr, https://nicholasdavies.github.io/luajr/
 BugReports: https://github.com/nicholasdavies/luajr/issues
 License: MIT + file LICENSE
 Encoding: UTF-8

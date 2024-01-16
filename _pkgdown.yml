@@ -1,19 +1,16 @@
-url: ~
+url: https://nicholasdavies.github.io/luajr/
 template:
   bootstrap: 5
-
 reference:
 - title: Package overview
-  contents:
-  - luajr
-
+  contents: luajr
 - title: luajr basics
   contents:
   - lua
   - lua_func
   - lua_shell
-
 - title: Lua states
   contents:
   - lua_open
   - lua_reset
+
