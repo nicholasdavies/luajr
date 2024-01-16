@@ -66,39 +66,39 @@ extern "C" void SetCharacterRef(character_rt* x, SEXP s)
     x->_s = s;
 }
 
-extern "C" void AllocLogical(logical_rt* x, size_t size)
+extern "C" void AllocLogical(logical_rt* x, ptrdiff_t size)
 {
     x->_s = Rf_allocVector3(LGLSXP, size, 0);
     R_PreserveObject(x->_s);
     x->_p = LOGICAL(x->_s) - 1;
 }
 
-extern "C" void AllocInteger(integer_rt* x, size_t size)
+extern "C" void AllocInteger(integer_rt* x, ptrdiff_t size)
 {
     x->_s = Rf_allocVector3(INTSXP, size, 0);
     R_PreserveObject(x->_s);
     x->_p = INTEGER(x->_s) - 1;
 }
 
-extern "C" void AllocNumeric(numeric_rt* x, size_t size)
+extern "C" void AllocNumeric(numeric_rt* x, ptrdiff_t size)
 {
     x->_s = Rf_allocVector3(REALSXP, size, 0);
     R_PreserveObject(x->_s);
     x->_p = REAL(x->_s) - 1;
 }
 
-extern "C" void AllocCharacter(character_rt* x, size_t size)
+extern "C" void AllocCharacter(character_rt* x, ptrdiff_t size)
 {
     x->_s = Rf_allocVector3(STRSXP, size, 0);
     R_PreserveObject(x->_s);
 }
 
-extern "C" void AllocCharacterTo(character_rt* x, size_t size, const char* v)
+extern "C" void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v)
 {
     x->_s = Rf_allocVector3(STRSXP, size, 0);
     R_PreserveObject(x->_s);
     SEXP sv = Rf_mkChar(v);
-    for (size_t i = 0; i < size; ++i)
+    for (ptrdiff_t i = 0; i < size; ++i)
         SET_STRING_ELT(x->_s, i, sv);
 }
 
@@ -109,17 +109,17 @@ extern "C" void Release(SEXP s)
 
 extern "C" void SetLogicalVec(logical_vt* x, SEXP s)
 {
-    std::memcpy(x->p + 1, LOGICAL(s), sizeof(int) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
+    std::memcpy(x->p + 1, LOGICAL(s), sizeof(int) * Rf_xlength(s));
 }
 
 extern "C" void SetIntegerVec(integer_vt* x, SEXP s)
 {
-    std::memcpy(x->p + 1, INTEGER(s), sizeof(int) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
+    std::memcpy(x->p + 1, INTEGER(s), sizeof(int) * Rf_xlength(s));
 }
 
 extern "C" void SetNumericVec(numeric_vt* x, SEXP s)
 {
-    std::memcpy(x->p + 1, REAL(s), sizeof(double) * Rf_length(s)); // TODO XLENGTH_EX(s) ?
+    std::memcpy(x->p + 1, REAL(s), sizeof(double) * Rf_xlength(s));
 }
 
 extern "C" int GetAttrType(SEXP s, const char* k)
@@ -199,10 +199,10 @@ extern "C" void SetPtr(void** ptr, void* val)
 
 extern "C" double SEXP_length(SEXP s)
 {
-    return Rf_length(s); // TODO XLENGTH_EX(s) ?
+    return Rf_xlength(s);
 }
 
-extern "C" SEXP CompactRowNames(size_t nrow)
+extern "C" SEXP CompactRowNames(ptrdiff_t nrow)
 {
     if (nrow > 0)
         return R_compact_intrange(1, nrow);

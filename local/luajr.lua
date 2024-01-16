@@ -76,11 +76,11 @@ void SetCharacterRef(character_rt* x, SEXP s);
 // Functions to allocate reference types
 // The Alloc* functions call R_PreserveObject() on the underlying SEXP, so we
 // call Release in garbage collection for the corresponding R_ReleaseObject().
-void AllocLogical(logical_rt* x, size_t size);
-void AllocInteger(integer_rt* x, size_t size);
-void AllocNumeric(numeric_rt* x, size_t size);
-void AllocCharacter(character_rt* x, size_t size);
-void AllocCharacterTo(character_rt* x, size_t size, const char* v);
+void AllocLogical(logical_rt* x, ptrdiff_t size);
+void AllocInteger(integer_rt* x, ptrdiff_t size);
+void AllocNumeric(numeric_rt* x, ptrdiff_t size);
+void AllocCharacter(character_rt* x, ptrdiff_t size);
+void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v);
 void Release(SEXP s);
 
 // Functions to populate vector types
@@ -112,7 +112,7 @@ void SetPtr(void** ptr, void* val);
 double SEXP_length(SEXP s);
 
 // Returns 1:nrow as an altrep
-SEXP CompactRowNames(size_t nrow);
+SEXP CompactRowNames(ptrdiff_t nrow);
 
 // For vector types' manual memory management
 void* malloc(size_t size);
@@ -167,7 +167,7 @@ local mt_basic_r = function(allocator)
                 for i = 1,#self do self._p[i] = init1[i] end
             else
                 error("Reference type must be initialised.")
-            end -- TODO copy from existing vector
+            end
             return self
         end,
 
@@ -231,7 +231,7 @@ local mt_character_r = {
             for i = 1,#self do self[i] = init1[i] end
         else
             error("Reference type must be initialised.")
-        end -- TODO copy from existing vector
+        end
         return self
     end,
 
