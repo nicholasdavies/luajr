@@ -29,17 +29,10 @@ bench::mark(
     min_time = 5
 )
 
-# TODO the table implementation of list isn't quite aligned with the vectors,
-# because there's no working analogy to 'newindex' (i.e. passing a list x into
-# a function with mode 'r' and then doing x[1] = "foo" doesn't change the underlying
-# list, although doing x[1][1] = "foo" would.) Document this.
-# TODO document luajr.lua
-# TODO lock (threadwise) on R operations from within Lua
 # TODO document, including vignettes
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
 # TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
 # TODO once there is something to cite, usethis::use_citation()?
-# TODO check if cpp11 is really needed; if not remove; if yes add to SystemRequirements (see R Packages 2e chpt 9.7) [needed for = delete]
 # TODO link against the specific luajit lib that is built (???)
 # TODO remove Rcpp if not needed
 # TODO can't have just one version of the bytecode
