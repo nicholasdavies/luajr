@@ -5,8 +5,20 @@ struct lua_State;
 struct SEXPREC;
 typedef SEXPREC* SEXP;
 
-// Globals
-extern lua_State* L0;       // The shared global Lua state
+// The shared global Lua state
+extern lua_State* L0;
+
+// We declare all functions to have C linkage to avoid name mangling and allow
+// the use of the package functions from C code. This file (shared.h) is only
+// included when building the R package, i.e. from C++, so no #ifdef __cplusplus
+// wrapper is needed here.
+extern "C" {
+
+// Lua state related functions (state.cpp)
+SEXP luajr_open();
+lua_State* luajr_newstate();
+void luajr_reset();
+lua_State* luajr_getstate(SEXP Lx);
 
 // Move values between R and Lua (push_to.cpp)
 void luajr_pushsexp(lua_State* L, SEXP x, char as);
@@ -14,16 +26,12 @@ SEXP luajr_tosexp(lua_State* L, int index);
 void luajr_pass(lua_State* L, SEXP args, const char* acode);
 SEXP luajr_return(lua_State* L, int nret);
 
-// R API functions and related functions
-SEXP luajr_open();
-lua_State* luajr_newstate();
-void luajr_reset();
-lua_State* luajr_getstate(SEXP Lx);
-
-// Helper functions
-SEXP luajr_makepointer(void* x, int tag_code, void (*finalize)(SEXP));
-void* luajr_getpointer(SEXP handle, int tag_code);
+// Miscellaneous functions (setup.cpp)
+SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));
+void* luajr_getpointer(SEXP x, int tag_code);
 void luajr_pcall(lua_State* L, int nargs, int nresults, const char* funcdesc);
+
+} // end of extern "C"
 
 // Type codes, for use with the Lua FFI
 enum

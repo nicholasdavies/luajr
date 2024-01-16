@@ -1,4 +1,6 @@
 // Exported workhorse functions for lua_run() and lua_func()
+// Functions here are not part of the C API, because they are relatively
+// inseparable from the R package and its functions.
 
 #include "shared.h"
 #include "registry_entry.h"
@@ -12,11 +14,11 @@ extern "C" {
 #include <R.h>
 #include <Rinternals.h>
 
-const int LUAJR_REGFUNC_CODE = 0x7CA12E6F;
+static const int LUAJR_REGFUNC_CODE = 0x7CA12E6F;
 
 // Destroy a registry entry pointed to by an R external pointer when it is no
 // longer needed (i.e. at program exit or garbage collection of the R pointer).
-void finalize_registry_entry(SEXP xptr)
+static void finalize_registry_entry(SEXP xptr)
 {
     delete reinterpret_cast<RegistryEntry*>(R_ExternalPtrAddr(xptr));
     R_ClearExternalPtr(xptr);

@@ -6,10 +6,10 @@ extern "C" {
 #include "lauxlib.h"
 #include "luajit_rolling.h"
 }
-#include "luajr_module.h"
 #define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
+#include "luajr_module.h"
 
 static std::string luajr_dylib_path;
 
@@ -20,11 +20,11 @@ void luajr_locate_dylib(const char* path)
     luajr_dylib_path = path;
 }
 
-const int LUAJR_STATE_CODE = 0x7CA57A7E;
+static const int LUAJR_STATE_CODE = 0x7CA57A7E;
 
 // Helper function to create a fresh Lua state with the required libraries
 // and with the JIT compiler loaded.
-lua_State* luajr_newstate()
+extern "C" lua_State* luajr_newstate()
 {
     // Create new state and open standard libraries; also enables JIT compiler
     lua_State* l = luaL_newstate();
@@ -48,7 +48,7 @@ lua_State* luajr_newstate()
 
 // Destroy a Lua state pointed to by an R external pointer when it is no longer
 // needed (i.e. at program exit or garbage collection of the R pointer).
-void finalize_lua_state(SEXP xptr)
+static void finalize_lua_state(SEXP xptr)
 {
     lua_close(reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr)));
     R_ClearExternalPtr(xptr);
@@ -88,7 +88,7 @@ void finalize_lua_state(SEXP xptr)
 //' lua("print(a)", L = L1)
 //' @export lua_open
 // [[Rcpp::export(lua_open)]]
-SEXP luajr_open()
+extern "C" SEXP luajr_open()
 {
     return luajr_makepointer(luajr_newstate(), LUAJR_STATE_CODE, finalize_lua_state);
 }
@@ -108,7 +108,7 @@ SEXP luajr_open()
 //' lua("print(a)") # nil
 //' @export lua_reset
 // [[Rcpp::export(lua_reset)]]
-void luajr_reset()
+void luajr_reset() // I only omit the extern "C" from here to get around an Rcpp bug -- this is still extern "C".
 {
     if (L0)
     {
@@ -120,7 +120,7 @@ void luajr_reset()
 // Helper function to interpret the Lua state handle Lx as either a reference
 // to the default luajr state (Lx == NULL) or to a Lua state opened with
 // luajr::lua_open, and to return the corresponding lua_State*.
-lua_State* luajr_getstate(SEXP Lx)
+extern "C" lua_State* luajr_getstate(SEXP Lx)
 {
     if (Lx == R_NilValue)
     {

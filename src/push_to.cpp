@@ -16,7 +16,7 @@ extern "C" {
 
 // Helper function to push a vector to the Lua stack.
 template <typename Push>
-void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
+static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
 {
     // Get length of vector
     unsigned int len = Rf_length(x);
@@ -81,7 +81,7 @@ void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
 }
 
 // Helper function to push a list to the Lua stack.
-void push_R_list(lua_State* L, SEXP x, char as)
+static void push_R_list(lua_State* L, SEXP x, char as)
 {
     // Get length of vector
     unsigned int len = Rf_length(x);
@@ -181,7 +181,7 @@ void push_R_list(lua_State* L, SEXP x, char as)
 // Not supported: SYMSXP, LISTSXP, CLOSXP, ENVSXP, PROMSXP, LANGSXP, SPECIALSXP,
 // BUILTINSXP, CHARSXP, CPLXSXP, DOTSXP, ANYSXP, EXPRSXP, BCODESXP, WEAKREFSXP,
 // RAWSXP, S4SXP.
-void luajr_pushsexp(lua_State* L, SEXP x, char as)
+extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
 {
     switch (TYPEOF(x))
     {
@@ -222,7 +222,7 @@ void luajr_pushsexp(lua_State* L, SEXP x, char as)
 // Analogous to Lua's lua_toXXX(lua_State* L, int index) functions, this gets
 // the value at [index] on the stack as a SEXP that can be handed to R. Note
 // that SEXPs returned from this function need to be protected in calling code.
-SEXP luajr_tosexp(lua_State* L, int index)
+extern "C" SEXP luajr_tosexp(lua_State* L, int index)
 {
     // Convert index to absolute index
     index = (index > 0 || index <= LUA_REGISTRYINDEX) ? index : lua_gettop(L) + index + 1;
@@ -338,15 +338,18 @@ SEXP luajr_tosexp(lua_State* L, int index)
                         const char* attr_name = lua_tostring(L, -2);
                         if (std::strcmp(attr_name, "names") == 0) // Special behaviour for names attribute
                         {
-                            SEXP names = PROTECT(Rf_allocVector3(STRSXP, size, NULL));
-                            ++nprotect;
-                            SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
-                            for (unsigned int i = 0; i < Rf_length(val); ++i) {
-                                int index = REAL(VECTOR_ELT(val, i))[0] - 1;
-                                SEXP name = STRING_ELT(setnames, i);
-                                SET_STRING_ELT(names, index, name);
+                            if (size > 0)
+                            {
+                                SEXP names = PROTECT(Rf_allocVector3(STRSXP, size, NULL));
+                                ++nprotect;
+                                SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
+                                for (unsigned int i = 0; i < Rf_length(val); ++i) {
+                                    int index = REAL(VECTOR_ELT(val, i))[0] - 1;
+                                    SEXP name = STRING_ELT(setnames, i);
+                                    SET_STRING_ELT(names, index, name);
+                                }
+                                Rf_setAttrib(retval, R_NamesSymbol, names);
                             }
-                            Rf_setAttrib(retval, R_NamesSymbol, names);
                         }
                         else
                         {
@@ -458,7 +461,9 @@ SEXP luajr_tosexp(lua_State* L, int index)
 }
 
 // Take a list of values passed from R and pass them to Lua
-void luajr_pass(lua_State* L, SEXP args, const char* acode)
+// Specifically, push each of the elements of the list args onto the stack of
+// L, using the args code in acode.
+extern "C" void luajr_pass(lua_State* L, SEXP args, const char* acode)
 {
     unsigned int acode_length = std::strlen(acode);
     if (acode_length == 0)
@@ -468,7 +473,10 @@ void luajr_pass(lua_State* L, SEXP args, const char* acode)
 }
 
 // Take values returned from Lua and return them to R
-SEXP luajr_return(lua_State* L, int nret)
+// Specifically, take nret values off the stack of L and wrap them in the
+// returned SEXP (either NULL when nret = 0, a single value when nret = 1, or a
+// list when nret > 1).
+extern "C" SEXP luajr_return(lua_State* L, int nret)
 {
     // No return value: return NULL
     if (nret == 0)

@@ -10,8 +10,6 @@ extern "C" {
 #include <R.h>
 #include <Rinternals.h>
 
-// TODO do typedefs for underlying logical, integer, numeric types???
-
 // Reference types
 typedef struct { int* _p;    SEXP _s; } logical_rt;
 typedef struct { int* _p;    SEXP _s; } integer_rt;
@@ -22,6 +20,7 @@ typedef struct { SEXP _s; } character_rt;
 typedef struct { int* p;    uint32_t n; uint32_t c; } logical_vt;
 typedef struct { int* p;    uint32_t n; uint32_t c; } integer_vt;
 typedef struct { double* p; uint32_t n; uint32_t c; } numeric_vt;
+// Character vector is defined in luajr.lua as a table
 
 // NA definitions
 int NA_logical = NA_LOGICAL;
@@ -29,7 +28,7 @@ int NA_integer = NA_INTEGER;
 double NA_real = NA_REAL;
 SEXP NA_character = NA_STRING;
 
-// Create compact integer range (for rownames of data.frame)
+// Create compact integer range (for rownames of dataframe) -- in R's altclasses.c
 extern "C" SEXP R_compact_intrange(R_xlen_t n1, R_xlen_t n2);
 
 // ---------------
@@ -209,106 +208,3 @@ extern "C" SEXP CompactRowNames(size_t nrow)
         return R_compact_intrange(1, nrow);
     return R_NilValue;
 }
-
-/* Older code, kept for reference
-
-
-// Allocate an R numeric matrix, outputting addresses of each column into ptrs.
-// The matrix is returned to R via the robj_ret mechanism.
-extern "C" int AllocRDataMatrix(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
-{
-    // Create matrix
-    SEXP m = PROTECT(Rf_allocMatrix(REALSXP, nrow, ncol));
-    SEXP colnames = PROTECT(Rf_allocVector3(STRSXP, ncol, NULL));
-
-    // Set column names and retrieve pointers
-    for (unsigned int c = 0; c < ncol; ++c)
-    {
-        ptrs[c] = REAL(m) + nrow * c;
-        SET_STRING_ELT(colnames, c, Rf_mkChar(names[c]));
-    }
-    SEXP dimnames = PROTECT(Rf_allocVector3(VECSXP, 2, NULL));
-    SET_VECTOR_ELT(dimnames, 0, R_NilValue);
-    SET_VECTOR_ELT(dimnames, 1, colnames);
-    Rf_dimnamesgets(m, dimnames);
-
-    // Assign matrix within robj_ret in calling R environment
-    SEXP current_env = R_GetCurrentEnv();
-    SEXP robj_ret = Rf_findVar(RObjRetSymbol, current_env);
-    int robj_ret_len = Rf_length(robj_ret);
-    for (int i = 0; i < robj_ret_len; ++i)
-    {
-        if (VECTOR_ELT(robj_ret, i) == R_NilValue)
-        {
-            SET_VECTOR_ELT(robj_ret, i, m);
-            UNPROTECT(3);
-            return i;
-        }
-    }
-
-    // No free spaces in robj_ret: grow list
-    SEXP new_robj_ret = PROTECT(Rf_allocVector3(VECSXP, robj_ret_len * 2, NULL));
-    for (int i = 0; i < robj_ret_len; ++i)
-        SET_VECTOR_ELT(new_robj_ret, i, VECTOR_ELT(robj_ret, i));
-    SET_VECTOR_ELT(new_robj_ret, robj_ret_len, m);
-    Rf_defineVar(RObjRetSymbol, new_robj_ret, current_env);
-
-    UNPROTECT(4);
-    return robj_ret_len;
-}
-
-// Allocate an R data frame, outputting addresses of each column into ptrs.
-// The matrix is returned to R via the robj_ret mechanism.
-extern "C" int AllocRDataFrame(unsigned int nrow, unsigned int ncol, const char* names[], double** ptrs)
-{
-    // Create data.frame directly
-    SEXP df = PROTECT(Rf_allocVector3(VECSXP, ncol, NULL));
-    SEXP colnames = PROTECT(Rf_allocVector3(STRSXP, ncol, NULL));
-
-    // Allocate each column
-    for (unsigned int c = 0; c < ncol; ++c)
-    {
-        SEXP column = Rf_allocVector3(REALSXP, nrow, NULL);
-        SET_VECTOR_ELT(df, c, column);
-        ptrs[c] = REAL(column);
-        SET_STRING_ELT(colnames, c, Rf_mkChar(names[c]));
-    }
-
-    // Set names
-    Rf_setAttrib(df, R_NamesSymbol, colnames);
-
-    // Set class
-    SEXP attr_class = PROTECT(Rf_allocVector3(STRSXP, 1, NULL));
-    SET_STRING_ELT(attr_class, 0, Rf_mkChar("data.frame"));
-    Rf_classgets(df, attr_class);
-
-    // Set row names
-    SEXP attr_rownames = R_compact_intrange(1, nrow); // Alternative: Rcpp::Function("seq_len")(nrow);
-    Rf_setAttrib(df, R_RowNamesSymbol, attr_rownames);
-
-    // Assign data.frame within robj_ret in calling R environment
-    SEXP current_env = R_GetCurrentEnv();
-    SEXP robj_ret = Rf_findVar(RObjRetSymbol, current_env);
-    int robj_ret_len = Rf_length(robj_ret);
-    for (int i = 0; i < robj_ret_len; ++i)
-    {
-        if (VECTOR_ELT(robj_ret, i) == R_NilValue)
-        {
-            SET_VECTOR_ELT(robj_ret, i, df);
-            UNPROTECT(3);
-            return i;
-        }
-    }
-
-    // No free spaces in robj_ret: grow list
-    SEXP new_robj_ret = PROTECT(Rf_allocVector3(VECSXP, robj_ret_len * 2, NULL));
-    for (int i = 0; i < robj_ret_len; ++i)
-        SET_VECTOR_ELT(new_robj_ret, i, VECTOR_ELT(robj_ret, i));
-    SET_VECTOR_ELT(new_robj_ret, robj_ret_len, df);
-    Rf_defineVar(RObjRetSymbol, new_robj_ret, current_env);
-
-    UNPROTECT(4);
-    return robj_ret_len;
-}
-
-*/
