@@ -3,7 +3,7 @@
 
 PKG_CPPFLAGS=@PKG_CPPFLAGS@ -Iluajit/src
 PKG_CXXFLAGS=@PKG_CXXFLAGS@
-PKG_LIBS=@PKG_LIBS@ -Lluajit/src -lluajit
+PKG_LIBS=@PKG_LIBS@ luajit/src/libluajit.a
 
 $(SHLIB): luajit/src/libluajit.a
 
