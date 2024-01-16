@@ -30,9 +30,7 @@ bench::mark(
 )
 
 # TODO document, including vignettes
-# TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
 # TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
-# TODO can't have just one version of the bytecode
 
 # checking args passing 'r'
 lua("ffi = require('ffi')")

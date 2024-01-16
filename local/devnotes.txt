@@ -13,6 +13,7 @@ a preprocessor with specified types? (meaning, can declare a lua func as
 function(x:integer, y:numeric_r) etc)
 - Once there is something to cite, usethis::use_citation()
 - Do typedefs for underlying R logical, integer, numeric types?
+- Is bytecode alignment (64bit) an issue?
 
 
 luajit as subfolder in src/luajit
@@ -33,12 +34,23 @@ In particular, I added git aliases sba and sbu to ~/.gitconfig:
 (note that I added a configurable branch as arg 3)
 
 then from the top-level luajr directory, added luajit as a subdirectory of src as follows:
-
+XXX DON'T USE
 git sba https://github.com/LuaJIT/LuaJIT.git src/luajit v2.1
+XXX DON'T USE
 
 to update the subdirectory (i.e. pull any updates to luajit), use:
-
+XXX DON'T USE
 git sbu https://github.com/LuaJIT/LuaJIT.git src/luajit v2.1
+XXX DON'T USE
+
+NOTE - Do not use this, it isn't working. Instead pull luajit to its own folder,
+and copy everything except .git to luajr/src.
+
+Use
+   git show -s --format=%ct
+in luaJIT directory to get timestamp of luajit, e.g. 1702296283
+
+This should be put directly into ./src/luajit/.relver
 
 
 Warnings when making luajit
