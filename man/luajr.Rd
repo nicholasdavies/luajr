@@ -12,16 +12,16 @@ a just-in-time compiler for the Lua scripting language
 \section{The R API}{
 
 \itemize{
-\item \code{\link[=lua]{lua()}}
-\item \code{\link[=lua_func]{lua_func()}}
-\item \code{\link[=lua_open]{lua_open()}}
-\item \code{\link[=lua_reset]{lua_reset()}}
-\item \code{\link[=lua_shell]{lua_shell()}}
+\item \code{\link[=lua]{lua()}}: run Lua code
+\item \code{\link[=lua_func]{lua_func()}}: make a Lua function callable from R
+\item \code{\link[=lua_shell]{lua_shell()}}: run an interactive Lua shell
+\item \code{\link[=lua_open]{lua_open()}}: create a new Lua state
+\item \code{\link[=lua_reset]{lua_reset()}}: reset the default Lua state
 }
 }
 
-\section{Other information}{
+\section{Further reading}{
 
-See \code{vignette("intro", package = "luajr")}
+For an introduction to 'luajr', see \code{vignette("luajr")}
 }
 

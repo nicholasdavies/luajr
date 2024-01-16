@@ -16,9 +16,11 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-'luajr' provides an interface to Mike Pall's 'LuaJIT' (<https://luajit.org>), a just-in-time compiler for the Lua scripting language (<https://www.lua.org>). It allows users to run Lua code from 'R'.
+<!-- reminder: update README.md with devtools::build_readme() -->
 
-One of the advantages of using 'luajr' is that 'LuaJIT' runs Lua code with very fast compilation times, fast execution times, and no need for an external toolchain, as the LuaJIT compiler is "built in" to the 'luajr' package. This contrasts with e.g. 'Rcpp', which results in compiled code with very fast execution times but slow compilation times and the need to invoke an external C++ compiler toolchain like 'gcc' or 'clang'.
+luajr provides an R interface to Mike Pall's [LuaJIT](<https://luajit.org>), a just-in-time compiler for the [Lua scripting language](<https://www.lua.org>). It allows users to run Lua code from R.
+
+One of the advantages of using luajr is that LuaJIT runs Lua code with very fast compilation times, fast execution times, and no need for an external toolchain, as the LuaJIT compiler is "built in" to the luajr package. This contrasts with e.g. [Rcpp](https://www.rcpp.org/), which results in compiled code with very fast execution times but slow compilation times and the need to invoke an external C++ compiler toolchain like `gcc` or `clang`.
 
 ## Installation
 
@@ -28,6 +30,10 @@ You can install the development version of luajr from [GitHub](https://github.co
 # install.packages("devtools")
 devtools::install_github("nicholasdavies/luajr")
 ```
+
+## Under development
+luajr is under **early development**. As such, it has not yet been tested to work on all platforms, and the interface and behaviour of the package is subject to change without notice.
+
 <!--
 ## Example
 

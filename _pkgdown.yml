@@ -1,0 +1,19 @@
+url: ~
+template:
+  bootstrap: 5
+
+reference:
+- title: Package overview
+  contents:
+  - luajr
+
+- title: luajr basics
+  contents:
+  - lua
+  - lua_func
+  - lua_shell
+
+- title: Lua states
+  contents:
+  - lua_open
+  - lua_reset

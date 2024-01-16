@@ -111,8 +111,6 @@ static void finalize_lua_state(SEXP xptr)
 //' no `lua_close` in \pkg{luajr} because Lua states are closed automatically
 //' when they are garbage collected in R.
 //'
-//' @usage L <- lua_open()
-//'
 //' @return External pointer wrapping the newly created Lua state.
 //' @examples
 //' L1 <- lua_open()

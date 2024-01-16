@@ -19,14 +19,14 @@ inlineCxxPlugin = function(...)
 #' (<https://www.lua.org>). It allows users to run Lua code from R.
 #'
 #' @section The R API:
-#' * [lua()]
-#' * [lua_func()]
-#' * [lua_open()]
-#' * [lua_reset()]
-#' * [lua_shell()]
+#' * [lua()]: run Lua code
+#' * [lua_func()]: make a Lua function callable from R
+#' * [lua_shell()]: run an interactive Lua shell
+#' * [lua_open()]: create a new Lua state
+#' * [lua_reset()]: reset the default Lua state
 #'
-#' @section Other information:
-#' See `vignette("intro", package = "luajr")`
+#' @section Further reading:
+#' For an introduction to 'luajr', see `vignette("luajr")`
 #'
 #' @docType package
 #' @name luajr

@@ -2,7 +2,7 @@
 % Please edit documentation in R/lua_shell.R
 \name{lua_shell}
 \alias{lua_shell}
-\title{Run an interactive LuaJIT shell}
+\title{Run an interactive Lua shell}
 \usage{
 lua_shell(L = NULL)
 }

@@ -5,3 +5,6 @@
 ^README\.Rmd$
 ^module.sh$
 
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

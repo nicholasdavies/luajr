@@ -1,4 +1,4 @@
-#' Run an interactive LuaJIT shell
+#' Run an interactive Lua shell
 #'
 #' When in interactive mode, provides a basic read-eval-print loop with LuaJIT.
 #'

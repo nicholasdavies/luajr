@@ -2,14 +2,14 @@
 % Please edit documentation in R/lua_func.R
 \name{lua_func}
 \alias{lua_func}
-\title{Create a Lua function callable from R}
+\title{Make a Lua function callable from R}
 \usage{
-lua_func(func, args = "s", L = NULL)
+lua_func(func, argcode = "s", L = NULL)
 }
 \arguments{
 \item{func}{Lua expression evaluating to a function.}
 
-\item{args}{How to wrap R arguments for the Lua function.}
+\item{argcode}{How to wrap R arguments for the Lua function.}
 
 \item{L}{\link[=lua_open]{Lua state} in which to run the code. \code{NULL} (default)
 uses the default Lua state for \pkg{luajr}.}
@@ -25,41 +25,44 @@ function that can be called to invoke the Lua function.
 The R types that can be passed to Lua are: \code{NULL}, logical vector,
 integer vector, numeric vector, string vector, list, and external pointer.
 
-The parameter \code{args} is a string with one character for each argument of the
+The parameter \code{argcode} is a string with one character for each argument of
 the Lua function, recycled as needed (e.g. so that a single character would
 apply to all arguments regardless of how many there are).
 
+In the following, the corresponding character of \code{acode} for a specific
+argument is referred to as its argcode.
+
 For \code{NULL} or any argument with length 0, the result in Lua is \strong{nil}
-regardless of the corresponding \code{args} code.
+regardless of the corresponding argcode.
 
 For logical, integer, double, and character vectors, if the corresponding
-\code{args} code is \code{'s'} (simplify), then if the R vector has length one, it is
+argcode is \code{'s'} (simplify), then if the R vector has length one, it is
 supplied as a Lua primitive (boolean, number, number, or string,
 respectively), and if length > 1, as an array, i.e. a table with integer
 indices starting at 1. If the code is \code{'a'}, the vector is always supplied as
-an array, even if it only has length 1. If the code is the digit \code{'1'}
+an array, even if it only has length 1. If the argcode is the digit \code{'1'}
 through \code{'9'}, this is the same as \code{'s'}, but the vector is required to have
 that specific length, otherwise an error message is emitted.
 
-Still focusing on vectors, if the \code{args} code is \code{'r'}, then the vector is
+Still focusing on vectors, if the argcode is \code{'r'}, then the vector is
 passed \emph{by reference} to Lua, adopting the type \code{luajr.logical_r},
 \code{luajr.integer_r}, \code{luajr.numeric_r}, or \code{luajr.character_r} as appropriate.
-If the \code{args} code is \code{'v'}, the vector is passed \emph{by value} to Lua,
+If the argcode is \code{'v'}, the vector is passed \emph{by value} to Lua,
 adopting the type \code{luajr.logical}, \code{luajr.integer}, \code{luajr.numeric}, or
 \code{luajr.character} as appropriate.
 
-For lists, if the args code is \code{'s'} (simplify), the list is passed as a Lua
+For lists, if the argcode is \code{'s'} (simplify), the list is passed as a Lua
 table. Any entries of the list with non-blank names are named in the table,
 while unnamed entries have the associated integer key in the table. Note that
 Lua does not preserve the order of entries in tables. This means that an R
 list with names will often go "out of order" when passed into Lua with \code{'s'}
-and then returned back to R. This is avoided with args codes \code{'r'} and \code{'v'}.
+and then returned back to R. This is avoided with argcode \code{'r'} or \code{'v'}.
 
-If a list is passed in with the \code{args} code \code{'r'} or \code{'v'}, the list is
+If a list is passed in with the argcode \code{'r'} or \code{'v'}, the list is
 passed to Lua as type \code{luajr.list}, and all vector elements of the list are
 passed by reference or by value, respectively.
 
-For external pointers, the \code{args} code is ignored and the external pointer is
+For external pointers, the argcode is ignored and the external pointer is
 passed to Lua as type \strong{userdata}.
 
 When the function is called and Lua values are returned from the function,

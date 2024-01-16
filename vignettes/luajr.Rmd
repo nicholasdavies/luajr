@@ -1,0 +1,211 @@
+---
+title: "Introduction to luajr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to luajr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+luajr allows you to run [Lua](https://www.lua.org) code from R.
+
+Lua is a lightweight, simple, and fast scripting language that is used in a 
+variety of settings. The standard Lua interpreter is already reasonably fast, 
+but there is also a just-in-time compiler for Lua called 
+[LuaJIT](https://www.luajit.org) that is even faster. luajr uses LuaJIT.
+
+This is **not** a guide to Lua or LuaJIT; it is a quick-start guide to luajr for
+people who already know how to program in Lua. See the 
+[Lua web site](https://www.lua.org) for resources related to coding in Lua.
+
+## Running Lua code: `lua()` and `lua_shell()`
+
+```{r setup}
+library(luajr)
+```
+
+To get a feel for luajr or to run "one-off" Lua code from your R project, use
+`lua()` and `lua_shell()`.
+
+When you pass a character string to `lua()`, it is run as Lua code:
+
+```{r}
+lua("return 'Hello ' .. 'world!'")
+```
+
+Assignments to global variables will persist between calls to `lua()`:
+
+```{r}
+lua("my_animal = 'walrus'")
+lua("return my_animal")
+```
+
+This is because luajr maintains a "default Lua state" which holds all global 
+variables. This default Lua state is opened the first time a package function
+is used. You can create your own, separate Lua states, or reset the default Lua
+state (see [Lua states](#states), below).
+
+Assignments to local variables will *not* persist between calls to `lua()`:
+
+```{r}
+lua("local my_animal = 'donkey'")
+lua("return my_animal")
+```
+
+In this case, the second line returns `"walrus"` because the local variable 
+`my_animal` goes out of scope after the first call to `lua()` ends, so the 
+second call to `lua()` is referring back to the global variable `my_animal` from
+before.
+
+You can include more than one statement in the code run by `lua()`:
+
+```{r}
+lua("local my_veg = 'potato'; local my_dish = my_veg .. ' pie'; return my_dish")
+```
+
+You can also use the `filename` argument to `lua()` to load and run a Lua 
+source file, instead of running the contents of a string.
+
+Call `lua_shell()` to open an interactive Lua shell at the R prompt. This can 
+can be helpful for debugging or for testing Lua statements.
+
+## Calling Lua functions from R: `lua_func()`
+
+The key piece of functionality for luajr is probably `lua_func()`. This allows 
+you to call Lua functions from R.
+
+The first argument to `lua_func()`, `func`, is a string that should evaluate to 
+a Lua function. `lua_func()` then returns an R function that can be used to call
+that Lua function from R. For example, you can use `lua_func()` to access an 
+existing Lua function from R:
+
+```{r}
+luatype = lua_func("type")
+luatype(TRUE)
+```
+
+Here, `"type"` is just referring to the built-in Lua function `type` which 
+returns a string describing the Lua type of the value passed to it. You can also
+use `lua_func()` to refer to a previously defined function in the default Lua 
+state:
+
+```{r}
+lua("function squared(x) return x^2 end")
+sq = lua_func("squared")
+sq(8)
+```
+
+Or you can use `lua_func()` to define an anonymous Lua function:
+
+```{r}
+timestwo = lua_func("function(x) return x*2 end")
+timestwo(123)
+```
+
+Under the hood, `lua_func()` just takes its first parameter (a string), adds 
+`"return "` to the front of it, executes it as Lua code, and registers the 
+result as the function.
+
+The second argument to `lua_func()`, `argcode`, is also very important. 
+`argcode` determines how the arguments passed to the function from R are 
+translated into Lua values for use inside the function. 
+
+The permissible args codes are:
+
+ * `'s'`: **s**implest Lua type
+ * `'a'`: **a**rray type
+ * `'1'`: same as `'s'`, but require that the argument has length 1
+ * ...
+ * `'9'`: same as `'s'`, but require that the argument has length 9
+ * `'v'`: pass by **v**alue
+ * `'r'`: pass by **r**eference
+ 
+The kinds of R values that can be passed to Lua functions, and their behaviour
+under different args codes, is summarized in the following table:
+
+|R type          |Example R value |**args code** 's'| 'a'             | '1'        |'2'              | 'v'                                         | 'r'                                           |
+|:--------------:|:--------------:|-----------------|-----------------|------------|-----------------|---------------------------------------------|-----------------------------------------------|
+|`NULL`          |`NULL`          |`nil`            |`nil`            |`nil`       |`nil`            |`nil`                                        |`nil`                                          |
+|`logical(1)`    |`TRUE`          |`true`           |`{true}`         |`true`      |**error**        |`luajr.logical({true})`                      |`luajr.logical_r({true})`                      |
+|`integer(1)`    |`1L`            |`1`              |`{1}`            |`1`         |**error**        |`luajr.integer({1})`                         |`luajr.integer_r({1})`                         |
+|`numeric(1)`    |`3.14159`       |`3.14159`        |`{3.14159}`      |`3.14149`   |**error**        |`luajr.numeric({3.14159})`                   |`luajr.numeric_r({3.14159})`                   |
+|`character(1)`  |`"howdy"`       |`"howdy"`        |`{"howdy"}`      |`"howdy"`   |**error**        |`luajr.character({"howdy"})`                 |`luajr.character_r({"howdy"})`                 |
+|`logical(nn)`   |`c(TRUE, FALSE)`|`{true, false}`  |`{true, false}`  |**error**   |`{true, false}`  |`luajr.logical({true, false})`               |`luajr.logical_r({true, false})`               |
+|`integer(nn)`   |`1:2`           |`{1, 2}`         |`{1.0, 2.0}`     |**error**   |`{1.0, 2.0}`     |`luajr.integer({1, 2})`                      |`luajr.integer_r({1, 2})`                      |
+|`numeric(nn)`   |`exp(0:1)`      |`{1, 2.71828...}`|`{1, 2.71828...}`|**error**   |`{1, 2.71828...}`|`luajr.numeric({1, 2.71828...})`             |`luajr.numeric_r({1, 2.71828...})`             |
+|`character(nn)` |`letters[1:2]`  |`{"a", "b"}`     |`{"a", "b"}`     |**error**   |`{"a", "b"}`     |`luajr.character({"a", "b"})`                |`luajr.character_r({"a", "b"})`                |
+|`list(...)`     |`list(1, b='b')`|`{[1]=1, b='b'}` |**error**        |**error**   |**error**        |`x = luajr.list(); x[1]=1; x.b='b'; return x`|`x = luajr.list(); x[1]=luajr.numeric_r({1}); x.b=luajr.character_r({'b'}); return x`|
+|external pointer|`lua_open()`    |`userdata:…`     |`userdata:…`     |`userdata:…`|`userdata:…`     |`userdata:…`                                 |`userdata:…`                                   |
+
+Above, `nn` stands for an integer that is greater than 1; in the examples, it
+stands specifically for 2.
+
+There should be one character in `argcode` for every argument of the function, 
+but the string is "recycled" when there are more arguments passed than 
+characters in the `argcode` string. So, for example, just passing `"s"` as 
+`argcode` means all parameters will be passed as the **s**implest Lua type,
+while if `argcode` is `"sr"`, then the first argument has argcode `"s"`, the
+second argument has argcode `"r"`, the third argument has argcode `"s"`, etc.
+
+## Working with Lua States: `lua_open()`, `lua_reset()`
+<a name="states"></a>
+
+All the functions mentioned above (`lua()`, `lua_shell()`, and `lua_func()`)
+can also take an argument `L` that specifies a particular Lua state that the
+function operates in.
+
+When `L = NULL` (the default) the functions operate on the default Lua state.
+
+But you can also open alternative Lua states using `lua_open()`, and then by
+passing the result as the parameter `L`, specify that the function operates in
+that specific state. For example:
+
+```{r}
+L1 = lua_open()
+lua("a = 2")
+lua("a = 4", L = L1)
+lua("return a")
+lua("return a", L = L1)
+```
+
+There is no `lua_close` in luajr because Lua states are closed automatically 
+when they are garbage collected in R.
+
+`lua_reset()` resets the default Lua state:
+
+```{r}
+lua("a = 2")
+lua("return a")
+lua_reset()
+lua("return a")
+#> NULL
+```
+
+To reset a non-default Lua state `L` returned by `lua_open()`, just do 
+`L = lua_open()` again. The memory previously used by `L` will be cleaned up at 
+the next garbage collection.
+
+## Semi-incomprehensible notes
+
+Note that `luajr.list()` isn't quite aligned with the vector types 
+(e.g. `luajr.character()`), because there's no working analogy to '__newindex' 
+(i.e. passing a list `x` into a function with mode `'r'` and then doing 
+`x[1] = "foo"` doesn't change the underlying list, although doing 
+`x[1][1] = "foo"` would.)
+
+In general, arguments that can be expressed as lists aren't ever really passed 
+by reference; only their atomic vector elements are by reference or by value.
+
+Note that logical semantics don't make a huge amount of sense in Lua due to 
+true/false/NA, so it is better to explicitly check using the built-in values
+`luajr.TRUE`, `luajr.FALSE`, and `luajr.NA`.
+
+For integer, numeric, and character `NA` values, we can use `luajr.NA_integer_`,
+`luajr.NA_real_`, and `luajr.NA_character_`.

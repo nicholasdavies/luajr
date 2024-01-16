@@ -4,7 +4,7 @@
 \alias{lua_open}
 \title{Create a new Lua state}
 \usage{
-L <- lua_open()
+lua_open()
 }
 \value{
 External pointer wrapping the newly created Lua state.
