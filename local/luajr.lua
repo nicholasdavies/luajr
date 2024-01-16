@@ -55,12 +55,13 @@ typedef struct { double* _p; SEXP _s; } numeric_rt;
 typedef struct { SEXP _s; } character_rt;
 
 // Vector types
-// TODO make n and c size_t ... ? or is this "handled" by the reference types?
 typedef struct { int* p;    uint32_t n; uint32_t c; } logical_vt;
 typedef struct { int* p;    uint32_t n; uint32_t c; } integer_vt;
 typedef struct { double* p; uint32_t n; uint32_t c; } numeric_vt;
 
 // NA values
+extern int TRUE_logical;
+extern int FALSE_logical;
 extern int NA_logical;
 extern int NA_integer;
 extern double NA_real;
@@ -73,6 +74,8 @@ void SetNumericRef(numeric_rt* x, SEXP s);
 void SetCharacterRef(character_rt* x, SEXP s);
 
 // Functions to allocate reference types
+// The Alloc* functions call R_PreserveObject() on the underlying SEXP, so we
+// call Release in garbage collection for the corresponding R_ReleaseObject().
 void AllocLogical(logical_rt* x, size_t size);
 void AllocInteger(integer_rt* x, size_t size);
 void AllocNumeric(numeric_rt* x, size_t size);
@@ -97,13 +100,21 @@ void SetAttrNumericRef(SEXP s, const char* k, numeric_rt* v);
 void SetAttrCharacterRef(SEXP s, const char* k, character_rt* v);
 void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v);
 
+// To get/set string vectors
 const char* GetCharacterElt(SEXP s, ptrdiff_t k);
 void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v);
+
+// Set *ptr = val
 void SetPtr(void** ptr, void* val);
 
-int SEXP_length(SEXP s);
+// Returns length of object s; returns as a double to be larger than 32-bit,
+// but still compatible with Lua's single number type.
+double SEXP_length(SEXP s);
+
+// Returns 1:nrow as an altrep
 SEXP CompactRowNames(size_t nrow);
 
+// For vector types' manual memory management
 void* malloc(size_t size);
 void free(void* ptr);
 ]]
@@ -122,23 +133,24 @@ function package.preload.luajr()
     return luajr
 end
 
--- NA definitions
--- TODO logical semantics probably don't make a huge amount of sense due to true/false/NA
+-- TRUE, FALSE, NA definitions
+luajr.TRUE          = internal.TRUE_logical;
+luajr.FALSE         = internal.FALSE_logical;
 luajr.NA_logical_   = internal.NA_logical;
 luajr.NA_integer_   = internal.NA_integer;
 luajr.NA_real_      = internal.NA_real;
 luajr.NA_character_ = internal.NA_character;
 
 -- Forward declarations of attribute set/getters
---local sexp_get_attr
---local sexp_set_attr
+local sexp_get_attr
+local sexp_set_attr
 
 
 ------------------------
 -- 3. REFERENCE TYPES --
 ------------------------
 
--- Metatables for reference types
+-- Metatable for logical/integer/numeric reference types
 local mt_basic_r = function(allocator)
     local mt = {
         __new = function(ctype, init1, init2)
@@ -202,6 +214,7 @@ local mt_basic_r = function(allocator)
     return mt
 end
 
+-- Metatable for character reference type
 local mt_character_r = {
     __new = function(ctype, init1, init2)
         local self = ffi.new(ctype)
@@ -322,7 +335,7 @@ local vec_realloc = function(p, vtype, ptype, nelem, init1, init2)
     return new_p
 end
 
--- Metatable for basic vector
+-- Metatable for logical/integer/numeric vector
 local mt_basic_v = function(ct)
     local vtype = ffi.typeof(ct .. "[?]")
     local ptype = ffi.typeof(ct .. "*")
@@ -589,7 +602,7 @@ local tostring2 = function(v)
     end
 end
 
--- Character vector metatable
+-- Metatable for character vector
 local mt_character_v
 local new_character_v
 mt_character_v = {
@@ -991,6 +1004,7 @@ sexp_set_attr = function(s, k, v)
     end
 end
 
+-- dataframe type: specify number of rows
 function luajr.dataframe(nrow)
     local df = luajr.list()
     df[0].class = "data.frame"
@@ -1004,6 +1018,7 @@ function luajr.dataframe(nrow)
     return df
 end
 
+-- matrix type: specify nrow and ncol
 function luajr.matrix(nrow, ncol)
     local m = luajr.numeric_r(nrow * ncol, 0.0)
 
@@ -1016,6 +1031,7 @@ function luajr.matrix(nrow, ncol)
     return m
 end
 
+-- datamatrix type: specify nrow, ncol, and column names
 function luajr.datamatrix(nrow, ncol, names)
     local m = luajr.matrix(nrow, ncol)
 

@@ -19,3 +19,14 @@ library(luajr)
 ```
 
 This is where there will be an introduction to luajr.
+
+TODO the table implementation of list isn't quite aligned with the vectors,
+because there's no working analogy to 'newindex' (i.e. passing a list x into
+a function with mode `'r'` and then doing `x[1] = "foo"` doesn't change the underlying
+list, although doing `x[1][1] = "foo"` would.) Document this.
+
+In general, that can be expressed as lists aren't ever really by reference, 
+only their vector elements are by reference or by value.
+
+TODO note that logical semantics don't make a huge amount of sense due to 
+true/false/NA, so it is better to explicitly check.

@@ -197,7 +197,7 @@ extern "C" void SetPtr(void** ptr, void* val)
     *ptr = val;
 }
 
-extern "C" int SEXP_length(SEXP s)
+extern "C" double SEXP_length(SEXP s)
 {
     return Rf_length(s); // TODO XLENGTH_EX(s) ?
 }
