@@ -1,6 +1,6 @@
 # Package information for LuaJIT to be used by pkg-config.
 majver=2
-minver=0
+minver=1
 relver=ROLLING
 version=${majver}.${minver}.${relver}
 abiver=5.1

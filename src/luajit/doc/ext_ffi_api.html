@@ -1,8 +1,8 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE html>
 <html>
 <head>
 <title>ffi.* API Functions</title>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta charset="utf-8">
 <meta name="Copyright" content="Copyright (C) 2005-2023">
 <meta name="Language" content="en">
 <link rel="stylesheet" type="text/css" href="bluequad.css" media="screen">
@@ -42,9 +42,13 @@ td.abiparam { font-weight: bold; width: 6em; }
 <a href="ext_ffi_semantics.html">FFI Semantics</a>
 </li></ul>
 </li><li>
+<a href="ext_buffer.html">String Buffers</a>
+</li><li>
 <a href="ext_jit.html">jit.* Library</a>
 </li><li>
 <a href="ext_c_api.html">Lua/C API</a>
+</li><li>
+<a href="ext_profiler.html">Profiler</a>
 </li></ul>
 </li><li>
 <a href="https://luajit.org/status.html">Status <span class="ext">&raquo;</span></a>
@@ -458,6 +462,12 @@ otherwise. The following parameters are currently defined:
 <td class="abiparam">eabi</td><td class="abidesc">EABI variant of the standard ABI</td></tr>
 <tr class="odd">
 <td class="abiparam">win</td><td class="abidesc">Windows variant of the standard ABI</td></tr>
+<tr class="even">
+<td class="abiparam">pauth</td><td class="abidesc">Pointer authentication ABI</td></tr>
+<tr class="odd">
+<td class="abiparam">uwp</td><td class="abidesc">Universal Windows Platform</td></tr>
+<tr class="even">
+<td class="abiparam">gc64</td><td class="abidesc">64 bit GC references</td></tr>
 </table>
 
 <h3 id="ffi_os"><tt>ffi.os</tt></h3>
@@ -534,8 +544,8 @@ corresponding ctype.
 The parser for Lua source code treats numeric literals with the
 suffixes <tt>LL</tt> or <tt>ULL</tt> as signed or unsigned 64&nbsp;bit
 integers. Case doesn't matter, but uppercase is recommended for
-readability. It handles both decimal (<tt>42LL</tt>) and hexadecimal
-(<tt>0x2aLL</tt>) literals.
+readability. It handles decimal (<tt>42LL</tt>), hexadecimal
+(<tt>0x2aLL</tt>) and binary (<tt>0b101010LL</tt>) literals.
 </p>
 <p>
 The imaginary part of complex numbers can be specified by suffixing

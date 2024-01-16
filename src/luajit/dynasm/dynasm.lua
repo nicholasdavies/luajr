@@ -10,9 +10,9 @@
 local _info = {
   name =	"DynASM",
   description =	"A dynamic assembler for code generation engines",
-  version =	"1.3.0",
-  vernum =	 10300,
-  release =	"2011-05-05",
+  version =	"1.5.0",
+  vernum =	 10500,
+  release =	"2021-05-02",
   author =	"Mike Pall",
   url =		"https://luajit.org/dynasm.html",
   license =	"MIT",
@@ -630,6 +630,7 @@ end
 -- Load architecture-specific module.
 local function loadarch(arch)
   if not match(arch, "^[%w_]+$") then return "bad arch name" end
+  _G._map_def = map_def
   local ok, m_arch = pcall(require, "dasm_"..arch)
   if not ok then return "cannot load module: "..m_arch end
   g_arch = m_arch

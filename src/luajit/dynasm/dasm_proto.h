@@ -10,8 +10,8 @@
 #include <stddef.h>
 #include <stdarg.h>
 
-#define DASM_IDENT	"DynASM 1.3.0"
-#define DASM_VERSION	10300	/* 1.3.0 */
+#define DASM_IDENT	"DynASM 1.5.0"
+#define DASM_VERSION	10500	/* 1.5.0 */
 
 #ifndef Dst_DECL
 #define Dst_DECL	dasm_State **Dst

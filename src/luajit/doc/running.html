@@ -1,8 +1,8 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE html>
 <html>
 <head>
 <title>Running LuaJIT</title>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta charset="utf-8">
 <meta name="Copyright" content="Copyright (C) 2005-2023">
 <meta name="Language" content="en">
 <link rel="stylesheet" type="text/css" href="bluequad.css" media="screen">
@@ -59,9 +59,13 @@ td.param_default {
 <a href="ext_ffi_semantics.html">FFI Semantics</a>
 </li></ul>
 </li><li>
+<a href="ext_buffer.html">String Buffers</a>
+</li><li>
 <a href="ext_jit.html">jit.* Library</a>
 </li><li>
 <a href="ext_c_api.html">Lua/C API</a>
+</li><li>
+<a href="ext_profiler.html">Profiler</a>
 </li></ul>
 </li><li>
 <a href="https://luajit.org/status.html">Status <span class="ext">&raquo;</span></a>
@@ -106,6 +110,7 @@ are accepted:
 <li><tt>-t type</tt> &mdash; Set output file type (default: auto-detect from output name).</li>
 <li><tt>-a arch</tt> &mdash; Override architecture for object files (default: native).</li>
 <li><tt>-o os</tt> &mdash; Override OS for object files (default: native).</li>
+<li><tt>-F name</tt> &mdash; Override filename (default: input filename).</li>
 <li><tt>-e chunk</tt> &mdash; Use chunk string as input.</li>
 <li><tt>-</tt> (a single minus sign) &mdash; Use stdin as input and/or stdout as output.</li>
 </ul>
@@ -115,7 +120,8 @@ file name:
 </p>
 <ul>
 <li><tt>c</tt> &mdash; C source file, exported bytecode data.</li>
-<li><tt>h</tt> &mdash; C header file, static bytecode data.</li>
+<li><tt>cc</tt> &mdash; C++ source file, exported bytecode data.</li>
+<li><tt>h</tt> &mdash; C/C++ header file, static bytecode data.</li>
 <li><tt>obj</tt> or <tt>o</tt> &mdash; Object file, exported bytecode data
 (OS- and architecture-specific).</li>
 <li><tt>raw</tt> or any other extension &mdash; Raw bytecode file (portable).
@@ -171,6 +177,7 @@ Here are the available LuaJIT control commands:
 <li id="j_flush"><tt>-jflush</tt> &mdash; Flushes the whole cache of compiled code.</li>
 <li id="j_v"><tt>-jv</tt> &mdash; Shows verbose information about the progress of the JIT compiler.</li>
 <li id="j_dump"><tt>-jdump</tt> &mdash; Dumps the code and structures used in various compiler stages.</li>
+<li id="j_p"><tt>-jp</tt> &mdash; Start the <a href="ext_profiler.html">integrated profiler</a>.</li>
 </ul>
 <p>
 The <tt>-jv</tt> and <tt>-jdump</tt> commands are extension modules
@@ -215,6 +222,12 @@ mix the three forms, but note that setting an optimization level
 overrides all earlier flags.
 </p>
 <p>
+Note that <tt>-Ofma</tt> is not enabled by default at any level,
+because it affects floating-point result accuracy. Only enable this,
+if you fully understand the trade-offs of FMA for performance (higher),
+determinism (lower) and numerical accuracy (higher).
+</p>
+<p>
 Here are the available flags and at what optimization levels they
 are enabled:
 </p>
@@ -246,6 +259,8 @@ are enabled:
 <td class="flag_name">sink</td><td class="flag_level">&nbsp;</td><td class="flag_level">&nbsp;</td><td class="flag_level">&bull;</td><td class="flag_desc">Allocation/Store Sinking</td></tr>
 <tr class="even">
 <td class="flag_name">fuse</td><td class="flag_level">&nbsp;</td><td class="flag_level">&nbsp;</td><td class="flag_level">&bull;</td><td class="flag_desc">Fusion of operands into instructions</td></tr>
+<tr class="odd">
+<td class="flag_name">fma </td><td class="flag_level">&nbsp;</td><td class="flag_level">&nbsp;</td><td class="flag_level">&nbsp;</td><td class="flag_desc">Fused multiply-add</td></tr>
 </table>
 <p>
 Here are the parameters and their default settings:
