@@ -35,7 +35,6 @@ bench::mark(
 # list, although doing x[1][1] = "foo" would.) Document this.
 # TODO make sure it all works with altreps
 # TODO document luajr.lua
-# TODO test list and character in similar fashion to numeric in test-vector.R
 # TODO lock (threadwise) on R operations from within Lua
 # TODO make naming of luajr C api consistent (luajr_ prefix, etc)
 # TODO C api: Check it is actually usable from C, or just call it a C++ api
@@ -51,6 +50,8 @@ bench::mark(
 # TODO remove Rcpp if not needed
 # TODO can't have just one version of the bytecode
 # TODO mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1 (?)
+# TODO do typedefs for underlying R logical, integer, numeric types???
+
 
 # checking args passing 'r'
 lua("ffi = require('ffi')")

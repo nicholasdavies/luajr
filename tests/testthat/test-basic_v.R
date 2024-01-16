@@ -1,6 +1,5 @@
-test_that("vector metamethods work", {
+test_that("numeric vector metamethods work", {
     # constructor
-    lua("luajr = require 'luajr'")
     lua("x0 = luajr.numeric()")
     lua("x1 = luajr.numeric(3, 1)")
     lua("x2 = luajr.numeric({1,2,3})")
@@ -26,9 +25,7 @@ test_that("vector metamethods work", {
     lua_reset()
 })
 
-test_that("vector assign works", {
-    lua("luajr = require 'luajr'")
-
+test_that("numeric vector assign works", {
     # Testing the following:
     # assign: nil nil, number number, table nil, vector nil
     # new vector: smaller, bigger (than capacity)
@@ -43,9 +40,7 @@ test_that("vector assign works", {
     lua_reset()
 })
 
-test_that("vector capacity methods work", {
-    lua("luajr = require 'luajr'")
-
+test_that("numeric vector capacity methods work", {
     lua("x = luajr.numeric()")
     lua("x:reserve(5)")
     expect_equal(lua("return x:debug_str()"), "0|5|")
@@ -55,9 +50,7 @@ test_that("vector capacity methods work", {
     lua_reset()
 })
 
-test_that("vector resize works", {
-    lua("luajr = require 'luajr'")
-
+test_that("numeric vector resize works", {
     lua("x = luajr.numeric(2, 0)")
     lua("x:clear()")
     expect_equal(lua("return x:debug_str()"), "0|2|");
@@ -71,25 +64,7 @@ test_that("vector resize works", {
     lua_reset()
 })
 
-test_that("vector resize works", {
-    lua("luajr = require 'luajr'")
-
-    lua("x = luajr.numeric(2, 0)")
-    lua("x:clear()")
-    expect_equal(lua("return x:debug_str()"), "0|2|");
-    lua("x:resize(2, 1)")
-    expect_equal(lua("return x:debug_str()"), "2|2|1,1");
-    lua("x:resize(1, 3)")
-    expect_equal(lua("return x:debug_str()"), "1|2|1");
-    lua("x:resize(4, 3)")
-    expect_equal(lua("return x:debug_str()"), "4|4|1,3,3,3");
-
-    lua_reset()
-})
-
-test_that("push_back and pop_back work", {
-    lua("luajr = require 'luajr'")
-
+test_that("numeric push_back and pop_back work", {
     lua("x = luajr.numeric(2, 0)")
     lua("x:push_back(1)");
     expect_equal(lua("return x:debug_str()"), "3|4|0,0,1");
@@ -103,9 +78,7 @@ test_that("push_back and pop_back work", {
     lua_reset()
 })
 
-test_that("insert and erase work", {
-    lua("luajr = require 'luajr'")
-
+test_that("numeric insert and erase work", {
     # Testing the following:
     # insert: number number, table nil, vector nil
     # capacity allows, capacity must grow
