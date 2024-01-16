@@ -33,15 +33,9 @@ bench::mark(
 # because there's no working analogy to 'newindex' (i.e. passing a list x into
 # a function with mode 'r' and then doing x[1] = "foo" doesn't change the underlying
 # list, although doing x[1][1] = "foo" would.) Document this.
-# TODO make sure it all works with altreps
 # TODO document luajr.lua
 # TODO lock (threadwise) on R operations from within Lua
-# TODO make naming of luajr C api consistent (luajr_ prefix, etc)
-# TODO C api: Check it is actually usable from C, or just call it a C++ api
 # TODO document, including vignettes
-# TODO as part of documentation, be thorough about how Lua types are returned to
-# R. In particular note how all number keys of a table are ignored in particular
-# value, regardless of whether positive, negative, non-integer, etc
 # TODO fix no git available for .relver - see https://github.com/LuaJIT/LuaJIT/pull/1073
 # TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
 # TODO once there is something to cite, usethis::use_citation()?

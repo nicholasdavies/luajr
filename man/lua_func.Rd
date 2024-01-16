@@ -61,6 +61,26 @@ passed by reference or by value, respectively.
 
 For external pointers, the \code{args} code is ignored and the external pointer is
 passed to Lua as type \strong{userdata}.
+
+When the function is called and Lua values are returned from the function,
+the Lua return values are converted to R values as follows.
+
+If nothing is returned, the function returns invisible() (i.e. NULL).
+
+If multiple arguments are returned, a list with all arguments is returned.
+
+Reference types (e.g. \code{luajr.logical_r}) and vector types (e.g.
+\code{luajr.logical}) are returned to R as such. A \code{luajr.list} is returned as an
+R list. Reference and list types respect R attributes set within Lua code.
+
+A \strong{table} is returned as a list. In the list, any table entries with a
+number key come first (with indices 1 to n, i.e. the original number key's
+value is discarded), followed by any table entries with a string key
+(named accordingly). This may well scramble the order of keys, so beware.
+Note in particular that Lua does not guarantee that it will traverse a table
+in ascending order of keys. Entries with non-number, non-string keys are
+discarded. It is probably best to avoid returning a \strong{table} with anything
+other than string keys, or to use \code{luajr.list}.
 }
 \examples{
 squared <- lua_func("function(x) return x^2 end")
