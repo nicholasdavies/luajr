@@ -98,6 +98,8 @@ state:
 
 ```{r}
 lua("function squared(x) return x^2 end")
+lua("return squared(4)")
+
 sq = lua_func("squared")
 sq(8)
 ```
