@@ -29,6 +29,18 @@ bench::mark(
     min_time = 5
 )
 
+noopL = lua_func("function() end", "s")
+noopR = function() {}
+noopC = Rcpp::cppFunction("void nothing() { }")
+
+luajr:::_do_nothing
+bench::mark(
+    noopL(),
+    noopR(),
+    noopC(),
+    .Call(`_luajr_luajr_func_create`, code, Lx)
+)
+
 # TODO document, including vignettes
 # TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
 

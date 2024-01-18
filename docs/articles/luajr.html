@@ -8,8 +8,8 @@
 <meta name="description" content="luajr">
 <title>Introduction to luajr • luajr</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
+<link href="../deps/bootstrap-5.1.3/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.1.3/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Introduction to luajr">
 <meta property="og:description" content="luajr">
@@ -172,7 +172,7 @@ executes it as Lua code, and registers the result as the function.</p>
 is also very important. <code>argcode</code> determines how the
 arguments passed to the function from R are translated into Lua values
 for use inside the function.</p>
-<p>The permissible args codes are:</p>
+<p>The permissible arg codes are:</p>
 <ul>
 <li>
 <code>'s'</code>: <strong>s</strong>implest Lua type</li>
@@ -191,7 +191,7 @@ argument has length 9</li>
 <code>'r'</code>: pass by <strong>r</strong>eference</li>
 </ul>
 <p>The kinds of R values that can be passed to Lua functions, and their
-behaviour under different args codes, is summarized in the following
+behaviour under different arg codes, is summarized in the following
 table:</p>
 <table class="table">
 <colgroup>
@@ -208,7 +208,7 @@ table:</p>
 <th align="center">R type</th>
 <th align="center">Example R value</th>
 <th>
-<strong>args code</strong> ‘s’</th>
+<strong>arg code</strong> ‘s’</th>
 <th>‘a’</th>
 <th>‘1’</th>
 <th>‘2’</th>
@@ -313,8 +313,8 @@ table:</p>
 <td><strong>error</strong></td>
 <td><strong>error</strong></td>
 <td><strong>error</strong></td>
-<td><code>x = luajr.list(); x[1]=1; x.b='b'; return x</code></td>
-<td><code>x = luajr.list(); x[1]=luajr.numeric_r({1}); x.b=luajr.character_r({'b'}); return x</code></td>
+<td><code>x = luajr.list(); x[1]=luajr.numeric({1}); x.b=luajr.character({'b'}); return x</code></td>
+<td><code>x = luajr.list(); x[1]=luajr.numeric_r({1}); x.b=luajr.character_r({'b'}); return x</code></td>
 </tr>
 <tr class="odd">
 <td align="center">external pointer</td>
@@ -339,6 +339,218 @@ string. So, for example, just passing <code>"s"</code> as
 <code>"sr"</code>, then the first argument has argcode <code>"s"</code>,
 the second argument has argcode <code>"r"</code>, the third argument has
 argcode <code>"s"</code>, etc.</p>
+<p>When a vector (logical vector, integer vector, numeric vector, or
+character vector) is passed from R to lua by <strong>r</strong>eference,
+modifications made to the elements of that passed-in vector persist back
+in the R calling frame. For example:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">values</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span><span class="op">)</span></span>
+<span><span class="va">keep</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = 999 end"</span>, <span class="st">"v"</span><span class="op">)</span> <span class="co"># passed by value</span></span>
+<span><span class="fu">keep</span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1 2 3</span></span>
+<span></span>
+<span><span class="va">change</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = 999 end"</span>, <span class="st">"r"</span><span class="op">)</span> <span class="co"># passed by reference</span></span>
+<span><span class="fu">change</span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 999   2   3</span></span></code></pre></div>
+<p>Vectors can never be resized by reference; only their
+already-existing elements can be changed by reference.</p>
+<p>Lists are always passed by value, but their vector elements can be
+either passed by value or by reference depending on the arg code. In
+order to make changes to a list, it needs to be returned to the calling
+function. For example:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">f1</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x.a = 42; end"</span>, <span class="st">"v"</span><span class="op">)</span></span>
+<span><span class="fu">f1</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
+<span></span>
+<span><span class="va">f2</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x.a = 42; end"</span>, <span class="st">"r"</span><span class="op">)</span></span>
+<span><span class="fu">f2</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] 999</span></span></code></pre></div>
+<p>Note that in the examples above, we modify <code>x[1][1]</code>, not
+just <code>x[1]</code>. That is because, even when lists are passed by
+reference, we need to modify specific elements of their vector elements
+if we want to make changes by reference. Setting <code>x[1] = 999</code>
+would only reassign an element of the list <code>x</code>, and lists
+cannot be passed by reference itself, so this would have no effect on
+the R object passed in. By contrast, setting <code>x[1][1] = 999</code>
+modifies the passed-in vector <code>x[1]</code>, which can be passed in
+by reference, so this does change the R object that is passed in.</p>
+<p>To modify a list, we have to return its new value from the
+function:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">f3</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x.a = 42; return x; end"</span>, <span class="st">"v"</span><span class="op">)</span></span>
+<span><span class="va">x</span> <span class="op">=</span> <span class="fu">f3</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] 999</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $a</span></span>
+<span><span class="co">#&gt; [1] 42</span></span>
+<span></span>
+<span><span class="va">f4</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = luajr.numeric({888, 999}); return x; end"</span>, <span class="st">"v"</span><span class="op">)</span></span>
+<span><span class="va">x</span> <span class="op">=</span> <span class="fu">f4</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; [1] 888 999</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $a</span></span>
+<span><span class="co">#&gt; [1] 42</span></span></code></pre></div>
+<p>Here, because we are returning a modified value, we can add elements
+to the list (<code>f3</code>) and change whole entries of the list
+(<code>f4</code>).</p>
+<div class="section level3">
+<h3 id="performance-considerations">Performance considerations<a class="anchor" aria-label="anchor" href="#performance-considerations"></a>
+</h3>
+<p>For reasonably long vectors, passing by reference (<code>'r'</code>)
+is faster than passing by value (<code>'v'</code>), which is faster than
+passing by simplify (<code>'s'</code>, <code>'a'</code>, or
+<code>'1'</code>–<code>'9'</code>). But for relatively short vectors,
+passing by simplify can avoid some overhead, and for very simple
+operations on very short vectors, it might not be worth using Lua at
+all.</p>
+<div class="section level4">
+<h4 id="underwhelming-example-sum-of-squares">Underwhelming example: sum of squares<a class="anchor" aria-label="anchor" href="#underwhelming-example-sum-of-squares"></a>
+</h4>
+<p>To illustrate the above points, here is some code that takes a
+numeric vector and calculates the sum of squares, comparing a pure R
+function with three alternatives written in Lua, respectively passing
+the vector by reference, by value, and by simplify.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">v1</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1e1</span><span class="op">)</span></span>
+<span><span class="va">v4</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1e4</span><span class="op">)</span></span>
+<span><span class="va">v7</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1e7</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/lua.html">lua</a></span><span class="op">(</span><span class="st">"sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end"</span><span class="op">)</span></span>
+<span><span class="va">sum2</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">x</span><span class="op">*</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="va">sum2_r</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"r"</span><span class="op">)</span></span>
+<span><span class="va">sum2_v</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"v"</span><span class="op">)</span></span>
+<span><span class="va">sum2_s</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"s"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span></span>
+<span><span class="fu">bench</span><span class="fu">::</span><span class="fu"><a href="http://bench.r-lib.org/reference/mark.html" class="external-link">mark</a></span><span class="op">(</span></span>
+<span>    <span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
+<span><span class="co">#&gt;   expression      min   median `itr/sec` mem_alloc `gc/sec`</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v1)        1µs   1.16µs   <span style="text-decoration: underline;">820</span>742.   18.36KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v1)   4.19µs      6µs   <span style="text-decoration: underline;">133</span>187.    2.49KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v1)   5.51µs   6.63µs   <span style="text-decoration: underline;">121</span>567.    2.49KB     12.2</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v1)   3.62µs   4.29µs   <span style="text-decoration: underline;">202</span>996.    2.49KB     20.3</span></span>
+<span></span>
+<span><span class="fu">bench</span><span class="fu">::</span><span class="fu"><a href="http://bench.r-lib.org/reference/mark.html" class="external-link">mark</a></span><span class="op">(</span></span>
+<span>    <span class="fu">sum2</span><span class="op">(</span><span class="va">v4</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_r</span><span class="op">(</span><span class="va">v4</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_v</span><span class="op">(</span><span class="va">v4</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_s</span><span class="op">(</span><span class="va">v4</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
+<span><span class="co">#&gt;   expression      min   median `itr/sec` mem_alloc `gc/sec`</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v4)     30.5µs   60.3µs    <span style="text-decoration: underline;">15</span>984.   78.17KB    40.8 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v4)   33.2µs   35.5µs    <span style="text-decoration: underline;">26</span>029.    2.49KB     2.60</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v4)   68.4µs  101.1µs     <span style="text-decoration: underline;">9</span>687.    2.49KB     0   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v4)     90µs   97.2µs    <span style="text-decoration: underline;">10</span>025.    2.49KB     2.02</span></span>
+<span></span>
+<span><span class="fu">bench</span><span class="fu">::</span><span class="fu"><a href="http://bench.r-lib.org/reference/mark.html" class="external-link">mark</a></span><span class="op">(</span></span>
+<span>    <span class="fu">sum2</span><span class="op">(</span><span class="va">v7</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_r</span><span class="op">(</span><span class="va">v7</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_v</span><span class="op">(</span><span class="va">v7</span><span class="op">)</span>,</span>
+<span>    <span class="fu">sum2_s</span><span class="op">(</span><span class="va">v7</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Some expressions had a GC in every iteration; so filtering is</span></span>
+<span><span class="co">#&gt; disabled.</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
+<span><span class="co">#&gt;   expression      min   median `itr/sec` mem_alloc `gc/sec`</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v7)     45.3ms   45.7ms     21.7    76.29MB     21.7</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v7)   30.8ms   31.7ms     31.6     2.49KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v7)  101.2ms  103.8ms      9.47    2.49KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v7)  132.6ms  184.9ms      5.88    2.49KB      0</span></span></code></pre></div>
+<p>When the vector is 10 elements long, the R version wins handily.</p>
+<p>When the vector is 10,000 elements long, the pass-by-reference Lua
+version is fastest, but the other methods are all comparable.</p>
+<p>When the vector is 10,000,000 elements long, the story is similar.
+This is an example where luajr doesn’t add that much speed—the function
+is relatively short, and there is a certain amount of overhead in
+invoking it, while the R function doesn’t have the overhead of
+transferring control between languages.</p>
+</div>
+<div class="section level4">
+<h4 id="more-compelling-example-logistic-map">More compelling example: logistic map<a class="anchor" aria-label="anchor" href="#more-compelling-example-logistic-map"></a>
+</h4>
+<p>Consider the following:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">logistic_map_R</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x0</span>, <span class="va">burn</span>, <span class="va">iter</span>, <span class="va">A</span><span class="op">)</span></span>
+<span><span class="op">{</span></span>
+<span>    <span class="va">result</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">A</span>, each <span class="op">=</span> <span class="va">iter</span><span class="op">)</span>, x <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span>    </span>
+<span>    <span class="va">j</span> <span class="op">=</span> <span class="fl">1</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">a</span> <span class="kw">in</span> <span class="va">A</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="va">x</span> <span class="op">=</span> <span class="va">x0</span></span>
+<span>        <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">burn</span><span class="op">)</span> <span class="op">{</span> <span class="va">x</span> <span class="op">=</span> <span class="va">a</span> <span class="op">*</span> <span class="va">x</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">x</span><span class="op">)</span>; <span class="op">}</span></span>
+<span>        <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">iter</span><span class="op">)</span> <span class="op">{</span> <span class="va">result</span><span class="op">$</span><span class="va">x</span><span class="op">[</span><span class="va">j</span><span class="op">]</span> <span class="op">=</span> <span class="va">x</span>; <span class="va">x</span> <span class="op">=</span> <span class="va">a</span> <span class="op">*</span> <span class="va">x</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">x</span><span class="op">)</span>; <span class="va">j</span> <span class="op">=</span> <span class="va">j</span> <span class="op">+</span> <span class="fl">1</span> <span class="op">}</span></span>
+<span>    <span class="op">}</span></span>
+<span>    </span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">logistic_map_L</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span></span>
+<span><span class="st">"function(x0, burn, iter, A)</span></span>
+<span><span class="st">    local dflen = #A * iter</span></span>
+<span><span class="st">    local result = luajr.dataframe(dflen)</span></span>
+<span><span class="st">    result.a = luajr.numeric_r(dflen, 0)</span></span>
+<span><span class="st">    result.x = luajr.numeric_r(dflen, 0)</span></span>
+<span><span class="st">    </span></span>
+<span><span class="st">    local j = 1</span></span>
+<span><span class="st">    for k,a in pairs(A) do</span></span>
+<span><span class="st">        local x = x0</span></span>
+<span><span class="st">        for i=1,burn do  x = a * x * (1-x)  end</span></span>
+<span><span class="st">        for i=1,iter do  result.a[j] = a; result.x[j] = x; x = a * x * (1-x); j = j + 1  end</span></span>
+<span><span class="st">    end</span></span>
+<span><span class="st">    </span></span>
+<span><span class="st">    return result</span></span>
+<span><span class="st">end"</span>, <span class="st">"s"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">bench</span><span class="fu">::</span><span class="fu"><a href="http://bench.r-lib.org/reference/mark.html" class="external-link">mark</a></span><span class="op">(</span></span>
+<span>    <span class="va">data_R</span> <span class="op">&lt;-</span> <span class="fu">logistic_map_R</span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">500</span>, <span class="fl">500</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3.85</span>, <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="va">data_L</span> <span class="op">&lt;-</span> <span class="fu">logistic_map_L</span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">500</span>, <span class="fl">500</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3.85</span>, <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Some expressions had a GC in every iteration; so filtering is</span></span>
+<span><span class="co">#&gt; disabled.</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 6</span></span></span>
+<span><span class="co">#&gt;   expression                             min median `itr/sec` mem_alloc `gc/sec`</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span>                           <span style="color: #949494; font-style: italic;">&lt;bch&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> data_R &lt;- logistic_map_R(0.5, 500, … 915ms  915ms      1.09    1.35GB     12.0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> data_L &lt;- logistic_map_L(0.5, 500, … 345µs  386µs   <span style="text-decoration: underline;">2</span>261.    374.61KB     14.0</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">data_R</span><span class="op">$</span><span class="va">x</span> <span class="op">-</span> <span class="va">data_L</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="co"># If this is 0, results are exactly the same for both</span></span>
+<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
+<p>The version written in Lua is around 2,000 times faster than the
+version in R.</p>
+</div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="working-with-lua-states-lua_open-lua_reset">Working with Lua States: <code>lua_open()</code>,
@@ -355,7 +567,7 @@ default Lua state.</p>
 <code><a href="../reference/lua_open.html">lua_open()</a></code>, and then by passing the result as the parameter
 <code>L</code>, specify that the function operates in that specific
 state. For example:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">L1</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_open.html">lua_open</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/lua.html">lua</a></span><span class="op">(</span><span class="st">"a = 2"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/lua.html">lua</a></span><span class="op">(</span><span class="st">"a = 4"</span>, L <span class="op">=</span> <span class="va">L1</span><span class="op">)</span></span>
@@ -366,7 +578,7 @@ state. For example:</p>
 <p>There is no <code>lua_close</code> in luajr because Lua states are
 closed automatically when they are garbage collected in R.</p>
 <p><code><a href="../reference/lua_reset.html">lua_reset()</a></code> resets the default Lua state:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/lua.html">lua</a></span><span class="op">(</span><span class="st">"a = 2"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/lua.html">lua</a></span><span class="op">(</span><span class="st">"return a"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 2</span></span>

@@ -119,7 +119,7 @@ The second argument to `lua_func()`, `argcode`, is also very important.
 `argcode` determines how the arguments passed to the function from R are 
 translated into Lua values for use inside the function. 
 
-The permissible args codes are:
+The permissible arg codes are:
 
  * `'s'`: **s**implest Lua type
  * `'a'`: **a**rray type
@@ -130,9 +130,9 @@ The permissible args codes are:
  * `'r'`: pass by **r**eference
  
 The kinds of R values that can be passed to Lua functions, and their behaviour
-under different args codes, is summarized in the following table:
+under different arg codes, is summarized in the following table:
 
-|R type          |Example R value |**args code** 's'| 'a'             | '1'        |'2'              | 'v'                                         | 'r'                                           |
+|R type          |Example R value |**arg code** 's'| 'a'             | '1'        |'2'              | 'v'                                         | 'r'                                           |
 |:--------------:|:--------------:|-----------------|-----------------|------------|-----------------|---------------------------------------------|-----------------------------------------------|
 |`NULL`          |`NULL`          |`nil`            |`nil`            |`nil`       |`nil`            |`nil`                                        |`nil`                                          |
 |`logical(1)`    |`TRUE`          |`true`           |`{true}`         |`true`      |**error**        |`luajr.logical({true})`                      |`luajr.logical_r({true})`                      |
@@ -143,7 +143,7 @@ under different args codes, is summarized in the following table:
 |`integer(nn)`   |`1:2`           |`{1, 2}`         |`{1.0, 2.0}`     |**error**   |`{1.0, 2.0}`     |`luajr.integer({1, 2})`                      |`luajr.integer_r({1, 2})`                      |
 |`numeric(nn)`   |`exp(0:1)`      |`{1, 2.71828...}`|`{1, 2.71828...}`|**error**   |`{1, 2.71828...}`|`luajr.numeric({1, 2.71828...})`             |`luajr.numeric_r({1, 2.71828...})`             |
 |`character(nn)` |`letters[1:2]`  |`{"a", "b"}`     |`{"a", "b"}`     |**error**   |`{"a", "b"}`     |`luajr.character({"a", "b"})`                |`luajr.character_r({"a", "b"})`                |
-|`list(...)`     |`list(1, b='b')`|`{[1]=1, b='b'}` |**error**        |**error**   |**error**        |`x = luajr.list(); x[1]=1; x.b='b'; return x`|`x = luajr.list(); x[1]=luajr.numeric_r({1}); x.b=luajr.character_r({'b'}); return x`|
+|`list(...)`     |`list(1, b='b')`|`{[1]=1, b='b'}` |**error**        |**error**   |**error**        |`x = luajr.list(); x[1]=luajr.numeric({1}); x.b=luajr.character({'b'}); return x`|`x = luajr.list(); x[1]=luajr.numeric_r({1}); x.b=luajr.character_r({'b'}); return x`|
 |external pointer|`lua_open()`    |`userdata:…`     |`userdata:…`     |`userdata:…`|`userdata:…`     |`userdata:…`                                 |`userdata:…`                                   |
 
 Above, `nn` stands for an integer that is greater than 1; in the examples, it
@@ -155,6 +155,177 @@ characters in the `argcode` string. So, for example, just passing `"s"` as
 `argcode` means all parameters will be passed as the **s**implest Lua type,
 while if `argcode` is `"sr"`, then the first argument has argcode `"s"`, the
 second argument has argcode `"r"`, the third argument has argcode `"s"`, etc.
+
+When a vector (logical vector, integer vector, numeric vector, or character 
+vector) is passed from R to lua by **r**eference, modifications made to the
+elements of that passed-in vector persist back in the R calling frame. For
+example:
+
+```{r}
+values = c(1.0, 2.0, 3.0)
+keep = lua_func("function(x) x[1] = 999 end", "v") # passed by value
+keep(values)
+print(values)
+
+change = lua_func("function(x) x[1] = 999 end", "r") # passed by reference
+change(values)
+print(values)
+```
+
+Vectors can never be resized by reference; only their already-existing elements
+can be changed by reference.
+
+Lists are always passed by value, but their vector elements can be either passed
+by value or by reference depending on the arg code. In order to make changes to
+a list, it needs to be returned to the calling function. For example:
+
+```{r}
+x = list(1)
+
+f1 = lua_func("function(x) x[1][1] = 999; x.a = 42; end", "v")
+f1(x)
+print(x)
+
+f2 = lua_func("function(x) x[1][1] = 999; x.a = 42; end", "r")
+f2(x)
+print(x)
+```
+
+Note that in the examples above, we modify `x[1][1]`, not just `x[1]`. That is 
+because, even when lists are passed by reference, we need to modify specific 
+elements of their vector elements if we want to make changes by reference.
+Setting `x[1] = 999` would only reassign an element of the list `x`, and lists
+cannot be passed by reference itself, so this would have no effect on the R
+object passed in. By contrast, setting `x[1][1] = 999` modifies the passed-in 
+vector `x[1]`, which can be passed in by reference, so this does change the R
+object that is passed in.
+
+To modify a list, we have to return its new value from the function:
+
+```{r}
+x = list(1)
+
+f3 = lua_func("function(x) x[1][1] = 999; x.a = 42; return x; end", "v")
+x = f3(x)
+print(x)
+
+f4 = lua_func("function(x) x[1] = luajr.numeric({888, 999}); return x; end", "v")
+x = f4(x)
+print(x)
+```
+
+Here, because we are returning a modified value, we can add elements to the list
+(`f3`) and change whole entries of the list (`f4`).
+
+### Performance considerations
+
+For reasonably long vectors, passing by reference (`'r'`) is faster than passing 
+by value (`'v'`), which is faster than passing by simplify (`'s'`, `'a'`, or 
+`'1'`&ndash;`'9'`). But for relatively short vectors, passing by simplify can 
+avoid some overhead, and for very simple operations on very short vectors, it 
+might not be worth using Lua at all.
+
+#### Underwhelming example: sum of squares
+
+To illustrate the above points, here is some code that takes a numeric vector 
+and calculates the sum of squares, comparing a pure R function with three 
+alternatives written in Lua, respectively passing the vector by reference, by 
+value, and by simplify.
+
+```{r}
+v1 = rnorm(1e1)
+v4 = rnorm(1e4)
+v7 = rnorm(1e7)
+
+lua("sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end")
+sum2 = function(x) sum(x*x)
+sum2_r = lua_func("sum2", "r")
+sum2_v = lua_func("sum2", "v")
+sum2_s = lua_func("sum2", "s")
+
+sum2(v1)
+sum2_r(v1)
+sum2_v(v1)
+sum2_s(v1)
+
+bench::mark(
+    sum2(v1),
+    sum2_r(v1),
+    sum2_v(v1),
+    sum2_s(v1)
+)
+
+bench::mark(
+    sum2(v4),
+    sum2_r(v4),
+    sum2_v(v4),
+    sum2_s(v4)
+)
+
+bench::mark(
+    sum2(v7),
+    sum2_r(v7),
+    sum2_v(v7),
+    sum2_s(v7)
+)
+```
+
+When the vector is 10 elements long, the R version wins handily.
+
+When the vector is 10,000 elements long, the pass-by-reference Lua version is
+fastest, but the other methods are all comparable.
+
+When the vector is 10,000,000 elements long, the story is similar. This is an
+example where luajr doesn't add that much speed&mdash;the function is
+relatively short, and there is a certain amount of overhead in invoking it, 
+while the R function doesn't have the overhead of transferring control between 
+languages.
+
+#### More compelling example: logistic map
+
+Consider the following:
+
+```{r}
+logistic_map_R = function(x0, burn, iter, A)
+{
+    result = data.frame(a = rep(A, each = iter), x = 0)
+    
+    j = 1
+    for (a in A) {
+        x = x0
+        for (i in 1:burn) { x = a * x * (1 - x); }
+        for (i in 1:iter) { result$x[j] = x; x = a * x * (1 - x); j = j + 1 }
+    }
+    
+    return(result)
+}
+
+logistic_map_L = lua_func(
+"function(x0, burn, iter, A)
+    local dflen = #A * iter
+    local result = luajr.dataframe(dflen)
+    result.a = luajr.numeric_r(dflen, 0)
+    result.x = luajr.numeric_r(dflen, 0)
+    
+    local j = 1
+    for k,a in pairs(A) do
+        local x = x0
+        for i=1,burn do  x = a * x * (1-x)  end
+        for i=1,iter do  result.a[j] = a; result.x[j] = x; x = a * x * (1-x); j = j + 1  end
+    end
+    
+    return result
+end", "s")
+
+bench::mark(
+    data_R <- logistic_map_R(0.5, 500, 500, seq(2, 3.85, 0.05)),
+    data_L <- logistic_map_L(0.5, 500, 500, seq(2, 3.85, 0.05))
+)
+
+sum(abs(data_R$x - data_L$x)) # If this is 0, results are exactly the same for both
+```
+
+The version written in Lua is around 2,000 times faster than the version in R.
 
 ## Working with Lua States: `lua_open()`, `lua_reset()`
 <a name="states"></a>
