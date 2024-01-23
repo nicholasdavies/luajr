@@ -13,7 +13,6 @@ extern "C" {
 // Global definitions
 lua_State* L0 = 0;
 
-
 // Initializes the luajr package
 // [[Rcpp::init]]
 void luajr_init(DllInfo *dll)

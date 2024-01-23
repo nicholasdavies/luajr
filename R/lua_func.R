@@ -77,7 +77,7 @@
 lua_func = function(func, argcode = "s", L = NULL)
 {
     fx = luajr_func_create(func, L);
-    func = function(...) {
+    return (function(...) {
         # Call the function.
         ret = luajr_func_call(fx, list(...), argcode, L);
 
@@ -87,7 +87,6 @@ lua_func = function(func, argcode = "s", L = NULL)
         } else {
             return (ret)
         }
-    }
-    return (func)
+    })
 }
 
