@@ -7,6 +7,8 @@ inst/doc
 .httr-oauth
 .DS_Store
 .quarto
+/doc/
+/Meta/
 
 # Generated files
 src/Makevars

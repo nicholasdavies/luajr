@@ -14,20 +14,20 @@ struct lua_State;
 class RegistryEntry
 {
 public:
-    // Create a registry entry.
+    // Disarm all RegistryEntries within Lua state L.
+    static void DisarmAll(lua_State* L);
+
+    // Create a registry entry, registering and popping the value at the top of the stack.
     RegistryEntry(lua_State* L);
 
-    // No copy constructor
+    // No copy constructor.
     RegistryEntry(const RegistryEntry&) = delete;
 
-    // No assignment operator
+    // No assignment operator.
     RegistryEntry& operator=(const RegistryEntry&) = delete;
 
     // Delete the registry entry.
     ~RegistryEntry();
-
-    // Register the value at the top of the stack. Pops the value from the stack.
-    void Register();
 
     // Put the registered value at the top of the stack.
     void Get();

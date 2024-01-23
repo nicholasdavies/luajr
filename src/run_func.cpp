@@ -78,9 +78,8 @@ SEXP luajr_func_create(const char* code, SEXP Lx)
     if (lua_type(L, -1) != LUA_TFUNCTION)
         Rf_error("lua_func expects `code' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
 
-    // Create the registry entry
+    // Create the registry entry with the value on the top of the stack
     RegistryEntry* re = new RegistryEntry(L);
-    re->Register();
 
     // Send back external pointer to the registry entry
     return luajr_makepointer(re, LUAJR_REGFUNC_CODE, finalize_registry_entry);

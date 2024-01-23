@@ -1,4 +1,5 @@
 #include "shared.h"
+#include "registry_entry.h"
 #include <string>
 extern "C" {
 #include "lua.h"
@@ -105,6 +106,10 @@ extern "C" lua_State* luajr_newstate()
 
     lua_pop(l, 1); // luajr
 
+    // Create luajrx table in registry
+    lua_newtable(l);
+    lua_setfield(l, LUA_REGISTRYINDEX, "luajrx");
+
     return l;
 }
 
@@ -112,7 +117,9 @@ extern "C" lua_State* luajr_newstate()
 // needed (i.e. at program exit or garbage collection of the R pointer).
 static void finalize_lua_state(SEXP xptr)
 {
-    lua_close(reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr)));
+    lua_State* L = reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr));
+    RegistryEntry::DisarmAll(L);
+    lua_close(L);
     R_ClearExternalPtr(xptr);
 }
 
@@ -172,6 +179,7 @@ void luajr_reset() // I only omit the extern "C" from here to get around an Rcpp
 {
     if (L0)
     {
+        RegistryEntry::DisarmAll(L0);
         lua_close(L0);
         L0 = 0;
     }
