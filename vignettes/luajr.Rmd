@@ -230,11 +230,12 @@ code.
 
 In my experience, luajr code often presents a similar speedup, about the same as
 C/C++ code, or in the worst case, maybe half as fast. Sometimes luajr code can
-be faster than C/C++, though usually it isn't quite as good. Why use luajr then? 
-Rcpp and cpp11 require a C++ toolchain (e.g. gcc, clang, etc) and requires long 
-compilation times, whereas luajr doesn't. This means that luajr is usable when
-a C++ compiler isn't available and when compilation times are prohibitive or
-an annoyance.
+be faster than C/C++, though usually it isn't quite as good. 
+
+Why use luajr then? Rcpp and cpp11 require a C++ toolchain (e.g. gcc, clang, 
+etc.) and requires long compilation times, whereas luajr doesn't. This means 
+that luajr is usable when a C++ compiler isn't available, or when compilation 
+times are prohibitive or an annoyance.
 
 In the following section, we look at two aspects of benchmarking. In the first
 example, we compare different ways of passing vectors to Lua functions relative

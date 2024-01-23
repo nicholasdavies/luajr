@@ -175,7 +175,8 @@ for use inside the function.</p>
 <p>The permissible arg codes are:</p>
 <ul>
 <li>
-<code>'s'</code>: <strong>s</strong>implest Lua type</li>
+<code>'s'</code>: <strong>s</strong>implest Lua type (the
+default)</li>
 <li>
 <code>'a'</code>: <strong>a</strong>rray type</li>
 <li>
@@ -344,7 +345,7 @@ string. So, for example, just passing <code>"s"</code> as
 the second argument has argcode <code>"r"</code>, the third argument has
 argcode <code>"s"</code>, etc.</p>
 <p>When a vector (logical vector, integer vector, numeric vector, or
-character vector) is passed from R to lua by <strong>r</strong>eference,
+character vector) is passed from R to Lua by <strong>r</strong>eference,
 modifications made to the elements of that passed-in vector persist back
 in the R calling frame. For example:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -426,11 +427,11 @@ equivalent R code.</p>
 <p>In my experience, luajr code often presents a similar speedup, about
 the same as C/C++ code, or in the worst case, maybe half as fast.
 Sometimes luajr code can be faster than C/C++, though usually it isn’t
-quite as good. Why use luajr then? Rcpp and cpp11 require a C++
-toolchain (e.g. gcc, clang, etc) and requires long compilation times,
-whereas luajr doesn’t. This means that luajr is usable when a C++
-compiler isn’t available and when compilation times are prohibitive or
-an annoyance.</p>
+quite as good.</p>
+<p>Why use luajr then? Rcpp and cpp11 require a C++ toolchain (e.g. gcc,
+clang, etc.) and requires long compilation times, whereas luajr doesn’t.
+This means that luajr is usable when a C++ compiler isn’t available, or
+when compilation times are prohibitive or an annoyance.</p>
 <p>In the following section, we look at two aspects of benchmarking. In
 the first example, we compare different ways of passing vectors to Lua
 functions relative to R. In the second example, we compare more
@@ -463,13 +464,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 10.30213</span></span>
+<span><span class="co">#&gt; [1] 14.86151</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 10.30213</span></span>
+<span><span class="co">#&gt; [1] 14.86151</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 10.30213</span></span>
+<span><span class="co">#&gt; [1] 14.86151</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 10.30213</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 14.86151</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>
@@ -627,9 +628,9 @@ transferring control between languages.</p>
 <span><span class="st">    </span></span>
 <span><span class="st">    return result</span></span>
 <span><span class="st">end"</span>, <span class="st">"s"</span><span class="op">)</span></span></code></pre></div>
-<p>Here we are comparing two different methods of running a parameter
-sweep of the logistic map, a chaotic dynamical system popularized by Bob
-May in a <a href="https://sites.ifi.unicamp.br/aguiar/files/2014/10/May-Nature-1976.pdf" class="external-link">1976
+<p>Here we are comparing two different methods (R versus Lua) of running
+a parameter sweep of the logistic map, a chaotic dynamical system
+popularized by Bob May in a <a href="https://sites.ifi.unicamp.br/aguiar/files/2014/10/May-Nature-1976.pdf" class="external-link">1976
 Nature article</a>. The output looks like this:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">logistic_map</span> <span class="op">=</span> <span class="fu">logistic_map_L</span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">50</span>, <span class="fl">100</span>, <span class="fl">200</span><span class="op">:</span><span class="fl">385</span><span class="op">/</span><span class="fl">100</span><span class="op">)</span></span>
@@ -708,20 +709,20 @@ garbage collection.</p>
 <p>Note that <code>luajr.list()</code> isn’t quite aligned with the
 vector types (e.g. <code>luajr.character()</code>), because there’s no
 working analogy to ’__newindex’ (i.e. passing a list <code>x</code> into
-a function with mode <code>'r'</code> and then doing
+a function with args code <code>'r'</code> and then doing
 <code>x[1] = "foo"</code> doesn’t change the underlying list, although
-doing <code>x[1][1] = "foo"</code> would.)</p>
+doing <code>x[1][1] = "foo"</code> does.)</p>
 <p>In general, arguments that can be expressed as lists aren’t ever
 really passed by reference; only their atomic vector elements are by
 reference or by value.</p>
 <p>Note that logical semantics don’t make a huge amount of sense in Lua
-due to true/false/NA, so it is better to explicitly check using the
+due to true/false/NA, so it is better to explicitly check against the
 built-in values <code>luajr.TRUE_logical_</code>,
 <code>luajr.FALSE_logical_</code>, and
 <code>luajr.NA_logical_</code>.</p>
 <p>For integer, numeric, and character <code>NA</code> values, we can
-use <code>luajr.NA_integer_</code>, <code>luajr.NA_real_</code>, and
-<code>luajr.NA_character_</code>.</p>
+compare to <code>luajr.NA_integer_</code>, <code>luajr.NA_real_</code>,
+and <code>luajr.NA_character_</code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
