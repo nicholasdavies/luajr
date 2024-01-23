@@ -45,7 +45,6 @@ bench::mark(
 
 # TODO document, including vignettes
 # TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
-# TODO add luajr.is_numeric, luajr.is_numeric_r, luajr.is_list (etc)
 # TODO there could be a 'debug mode' which does bounds checking?
 
 # checking args passing 'r'

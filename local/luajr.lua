@@ -278,6 +278,12 @@ luajr.integer_r   = ffi.metatype("integer_rt", mt_basic_r(internal.AllocInteger)
 luajr.numeric_r   = ffi.metatype("numeric_rt", mt_basic_r(internal.AllocNumeric))
 luajr.character_r = ffi.metatype("character_rt", mt_character_r)
 
+-- Reference type checkers
+luajr.is_logical_r   = function(obj) return ffi.istype(luajr.logical_r, obj) end
+luajr.is_integer_r   = function(obj) return ffi.istype(luajr.integer_r, obj) end
+luajr.is_numeric_r   = function(obj) return ffi.istype(luajr.numeric_r, obj) end
+luajr.is_character_r = function(obj) return ffi.istype(luajr.character_r, obj) end
+
 
 ---------------------
 -- 4. VECTOR TYPES --
@@ -729,6 +735,12 @@ luajr.integer = ffi.metatype("integer_vt", mt_basic_v("int"))
 luajr.numeric = ffi.metatype("numeric_vt", mt_basic_v("double"))
 luajr.character = new_character_v
 
+-- Vector type checkers
+luajr.is_logical   = function(obj) return ffi.istype(luajr.logical, obj) end
+luajr.is_integer   = function(obj) return ffi.istype(luajr.integer, obj) end
+luajr.is_numeric   = function(obj) return ffi.istype(luajr.numeric, obj) end
+luajr.is_character = function(obj) return getmetatable(obj) == mt_character_v end
+
 
 ------------------
 -- 5. LIST TYPE --
@@ -840,6 +852,9 @@ end
 -- List definition
 luajr.list = new_list
 
+-- List checker
+luajr.is_list = function(obj) return getmetatable(obj) == mt_list end
+
 
 --------------------
 -- 6. PASS TO LUA --
@@ -930,17 +945,17 @@ end
 --       or the number of elements in that object, if the object is a vector/list.
 -- If the object is not a luajr type (e.g. a plain Lua type) returns nil, nil.
 function luajr.return_info(obj)
-    if ffi.istype(luajr.logical_r, obj)        then return internal.LOGICAL_R, ffi.cast("void*", obj._s)
-    elseif ffi.istype(luajr.integer_r, obj)    then return internal.INTEGER_R, ffi.cast("void*", obj._s)
-    elseif ffi.istype(luajr.numeric_r, obj)    then return internal.NUMERIC_R, ffi.cast("void*", obj._s)
-    elseif ffi.istype(luajr.character_r, obj)  then return internal.CHARACTER_R, ffi.cast("void*", obj._s)
+    if     luajr.is_logical_r(obj)      then return internal.LOGICAL_R, ffi.cast("void*", obj._s)
+    elseif luajr.is_integer_r(obj)      then return internal.INTEGER_R, ffi.cast("void*", obj._s)
+    elseif luajr.is_numeric_r(obj)      then return internal.NUMERIC_R, ffi.cast("void*", obj._s)
+    elseif luajr.is_character_r(obj)    then return internal.CHARACTER_R, ffi.cast("void*", obj._s)
 
-    elseif ffi.istype(luajr.logical, obj)      then return internal.LOGICAL_V, #obj
-    elseif ffi.istype(luajr.integer, obj)      then return internal.INTEGER_V, #obj
-    elseif ffi.istype(luajr.numeric, obj)      then return internal.NUMERIC_V, #obj
-    elseif getmetatable(obj) == mt_character_v then return internal.CHARACTER_V, #obj
-    elseif getmetatable(obj) == mt_list        then return internal.LIST_T, #obj
-    elseif obj == nullptr                      then return internal.NULL_T, 0
+    elseif luajr.is_logical(obj)        then return internal.LOGICAL_V, #obj
+    elseif luajr.is_integer(obj)        then return internal.INTEGER_V, #obj
+    elseif luajr.is_numeric(obj)        then return internal.NUMERIC_V, #obj
+    elseif luajr.is_character(obj)      then return internal.CHARACTER_V, #obj
+    elseif luajr.is_list(obj)           then return internal.LIST_T, #obj
+    elseif obj == nullptr               then return internal.NULL_T, 0
     end
 
     return nil, nil
@@ -952,16 +967,16 @@ end
 --     or the start of some contiguous memory if obj is a basic vector type;
 --     or a SEXP if obj is a character vector.
 function luajr.return_copy(obj, ptr)
-    if ffi.istype(luajr.logical_r, obj) or ffi.istype(luajr.integer_r, obj) or
-       ffi.istype(luajr.numeric_r, obj) or ffi.istype(luajr.character_r, obj) then
+    if luajr.is_logical_r(obj) or luajr.is_integer_r(obj) or
+       luajr.is_numeric_r(obj) or luajr.is_character_r(obj) then
         internal.SetPtr(ptr, obj._s)
-    elseif ffi.istype(luajr.logical, obj) then
+    elseif luajr.is_logical(obj) then
         ffi.copy(ffi.cast("int*", ptr), obj.p + 1, ffi.sizeof("int[?]", obj.n))
-    elseif ffi.istype(luajr.integer, obj) then
+    elseif luajr.is_integer(obj) then
         ffi.copy(ffi.cast("int*", ptr), obj.p + 1, ffi.sizeof("int[?]", obj.n))
-    elseif ffi.istype(luajr.numeric, obj) then
+    elseif luajr.is_numeric(obj) then
         ffi.copy(ffi.cast("double*", ptr), obj.p + 1, ffi.sizeof("double[?]", obj.n))
-    elseif getmetatable(obj) == mt_character_v then
+    elseif luajr.is_character(obj) then
         for k,v in ipairs(obj) do
             if v == luajr.NA_character_ then
                 internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, nullptr)
@@ -989,15 +1004,15 @@ sexp_get_attr = function(s, k)
 end
 
 sexp_set_attr = function(s, k, v)
-    if k == "/matrix/colnames" and ffi.istype(luajr.character_r, v) then
+    if k == "/matrix/colnames" and luajr.is_character_r(v) then
         internal.SetMatrixColnamesCharacterRef(s, v)
-    elseif ffi.istype(luajr.logical_r, v) then
+    elseif luajr.is_logical_r(v) then
         internal.SetAttrLogicalRef(s, k, v)
-    elseif ffi.istype(luajr.integer_r, v) then
+    elseif luajr.is_integer_r(v) then
         internal.SetAttrIntegerRef(s, k, v)
-    elseif ffi.istype(luajr.numeric_r, v) then
+    elseif luajr.is_numeric_r(v) then
         internal.SetAttrNumericRef(s, k, v)
-    elseif ffi.istype(luajr.character_r, v) then
+    elseif luajr.is_character_r(v) then
         internal.SetAttrCharacterRef(s, k, v)
     else
         error("No attribute setter for type " .. type(v) .. ".")

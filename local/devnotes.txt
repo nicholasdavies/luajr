@@ -3,47 +3,24 @@ Feature plan
 - For luajr.list:
     v("/list/order", ord) -- reorder elements (like data.table)
 - Make thread safe, perhaps by locking on any R operations from within Lua
-- In logical_vt, integer_vt, numeric_vt, make n and c size_t ... ? or is this
-"handled" by the reference types? at very least, it should be acknowledged as
-a shortcoming in documentation; or there should be an error if we try to
-allocate a larger vector type?
+- Is bytecode alignment (64bit) an issue?
 - Remove dependency on Rcpp
+
 - Mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1? Or
 a preprocessor with specified types? (meaning, can declare a lua func as
 function(x:integer, y:numeric_r) etc)
 - Once there is something to cite, usethis::use_citation()
 - Do typedefs for underlying R logical, integer, numeric types?
-- Is bytecode alignment (64bit) an issue?
 
 
 luajit as subfolder in src/luajit
 ---------------------------------
 
-I did this by using git subtree, explained here:
+I tried doing this with git subtree, explained here:
 
 https://blog.developer.atlassian.com/the-power-of-git-subtree/
 
-In particular, I added git aliases sba and sbu to ~/.gitconfig:
-
-[alias]
-    # the acronym stands for "subtree add"
-    sba = "!f() { git subtree add --prefix $2 $1 ${3-master} --squash; }; f"
-    # the acronym stands for "subtree update"
-    sbu = "!f() { git subtree pull --prefix $2 $1 ${3-master} --squash; }; f"
-
-(note that I added a configurable branch as arg 3)
-
-then from the top-level luajr directory, added luajit as a subdirectory of src as follows:
-XXX DON'T USE
-git sba https://github.com/LuaJIT/LuaJIT.git src/luajit v2.1
-XXX DON'T USE
-
-to update the subdirectory (i.e. pull any updates to luajit), use:
-XXX DON'T USE
-git sbu https://github.com/LuaJIT/LuaJIT.git src/luajit v2.1
-XXX DON'T USE
-
-NOTE - Do not use this, it isn't working. Instead pull luajit to its own folder,
+but ran into issues. Instead I now pull luajit to its own folder,
 and copy everything except .git to luajr/src.
 
 Use
