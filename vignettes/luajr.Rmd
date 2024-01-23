@@ -132,7 +132,7 @@ The permissible arg codes are:
 The kinds of R values that can be passed to Lua functions, and their behaviour
 under different arg codes, is summarized in the following table:
 
-|R type          |Example R value |**arg code** 's'| 'a'             | '1'        |'2'              | 'v'                                         | 'r'                                           |
+|R type          |Example R value |**arg code** 's' | 'a'             | '1'        |'2'              | 'v'                                         | 'r'                                           |
 |:--------------:|:--------------:|-----------------|-----------------|------------|-----------------|---------------------------------------------|-----------------------------------------------|
 |`NULL`          |`NULL`          |`nil`            |`nil`            |`nil`       |`nil`            |`nil`                                        |`nil`                                          |
 |`logical(1)`    |`TRUE`          |`true`           |`{true}`         |`true`      |**error**        |`luajr.logical({true})`                      |`luajr.logical_r({true})`                      |
@@ -243,41 +243,42 @@ sum2_r = lua_func("sum2", "r")
 sum2_v = lua_func("sum2", "v")
 sum2_s = lua_func("sum2", "s")
 
-sum2(v1)
-sum2_r(v1)
-sum2_v(v1)
-sum2_s(v1)
-
-bench::mark(
-    sum2(v1),
-    sum2_r(v1),
-    sum2_v(v1),
-    sum2_s(v1)
-)
-
-bench::mark(
-    sum2(v4),
-    sum2_r(v4),
-    sum2_v(v4),
-    sum2_s(v4)
-)
-
-bench::mark(
-    sum2(v7),
-    sum2_r(v7),
-    sum2_v(v7),
-    sum2_s(v7)
-)
+# Comparing the results of each function:
+sum2(v1)    # Pure R version
+sum2_r(v1)  # luajr pass-by-reference
+sum2_v(v1)  # luajr pass-by-value
+sum2_s(v1)  # luajr pass-by-simplify
 ```
+
+The time taken to sum `v1`, `v4` and `v7`, depending upon the function kind, on 
+a 2019-era MacBook Pro is summarised in this table:
+
+|Call            |Number of summands | Method                    | Median runtime |
+|:---------------|:-----------------:|:-------------------------:|---------------:|
+|`sum2(v1)`      | 10                | Pure R                    |       **1 µs** |
+|`sum2_r(v1)`    | 10                | `luajr` pass by reference |         6 µs   |
+|`sum2_v(v1)`    | 10                | `luajr` pass by value     |         7 µs   |
+|`sum2_s(v1)`    | 10                | `luajr` pass by simplify  |         4 µs   |
+|                |                   |                           |                |
+|`sum2(v4)`      | 10,000            | Pure R                    |        63 µs   |
+|`sum2_r(v4)`    | 10,000            | `luajr` pass by reference |      **18 µs** |
+|`sum2_v(v4)`    | 10,000            | `luajr` pass by value     |        93 µs   |
+|`sum2_s(v4)`    | 10,000            | `luajr` pass by simplify  |        78 µs   |
+|                |                   |                           |                |
+|`sum2(v7)`      | 10,000,000        | Pure R                    |    49,000 µs   |
+|`sum2_r(v7)`    | 10,000,000        | `luajr` pass by reference |  **13,000 µs** |
+|`sum2_v(v7)`    | 10,000,000        | `luajr` pass by value     |    96,000 µs   |
+|`sum2_s(v7)`    | 10,000,000        | `luajr` pass by simplify  |   124,000 µs   |
 
 When the vector is 10 elements long, the R version wins handily.
 
 When the vector is 10,000 elements long, the pass-by-reference Lua version is
 fastest, but the other methods are all comparable.
 
-When the vector is 10,000,000 elements long, the story is similar. This is an
-example where luajr doesn't add that much speed&mdash;the function is
-relatively short, and there is a certain amount of overhead in invoking it, 
+When the vector is 10,000,000 elements long, the story is similar. 
+
+This is an example where luajr doesn't add that much speed&mdash;the function 
+is relatively short, and there is a certain amount of overhead in invoking it, 
 while the R function doesn't have the overhead of transferring control between 
 languages.
 
@@ -316,14 +317,24 @@ logistic_map_L = lua_func(
     
     return result
 end", "s")
-
-bench::mark(
-    data_R <- logistic_map_R(0.5, 500, 500, seq(2, 3.85, 0.05)),
-    data_L <- logistic_map_L(0.5, 500, 500, seq(2, 3.85, 0.05))
-)
-
-sum(abs(data_R$x - data_L$x)) # If this is 0, results are exactly the same for both
 ```
+
+Here we are comparing two different methods of running a parameter sweep of the
+logistic map, a chaotic dynamical system popularized by Bob May in a 
+[1976 Nature article](https://sites.ifi.unicamp.br/aguiar/files/2014/10/May-Nature-1976.pdf).
+The output looks like this:
+
+```{r}
+logistic_map = logistic_map_L(0.5, 50, 100, 200:385/100)
+plot(logistic_map$a, logistic_map$x, pch = ".")
+```
+
+The times taken by each function are as follows:
+
+|Call                                         | Method            | Median runtime |
+|---------------------------------------------|-------------------|---------------:|
+|`logistic_map_R(0.5, 50, 100, 200:385/100))` | R function        | 1,100,000 µs   |
+|`logistic_map_L(0.5, 50, 100, 200:385/100))` | Lua function      |     **430 µs** |
 
 The version written in Lua is around 2,000 times faster than the version in R.
 
