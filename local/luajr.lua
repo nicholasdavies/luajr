@@ -55,9 +55,9 @@ typedef struct { double* _p; SEXP _s; } numeric_rt;
 typedef struct { SEXP _s; } character_rt;
 
 // Vector types
-typedef struct { int* p;    uint32_t n; uint32_t c; } logical_vt;
-typedef struct { int* p;    uint32_t n; uint32_t c; } integer_vt;
-typedef struct { double* p; uint32_t n; uint32_t c; } numeric_vt;
+typedef struct { int* p;    double n; double c; } logical_vt;
+typedef struct { int* p;    double n; double c; } integer_vt;
+typedef struct { double* p; double n; double c; } numeric_vt;
 
 // NA values
 extern int TRUE_logical;
