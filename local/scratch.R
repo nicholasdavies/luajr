@@ -6,7 +6,7 @@ write = lua_func("write", "v")
 write(list(a = 1, b = 2, c = c(1,2,3), 4))
 lua("ffi = require('ffi')")
 
-lua("x = luajr.numeric(10, 1)")
+lua("x = luajr.character(10, 1)")
 lua("return ffi.cast('void*', x.p)")
 lua("return x:debug_str()")
 

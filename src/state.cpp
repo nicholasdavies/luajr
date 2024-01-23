@@ -9,7 +9,6 @@ extern "C" {
 #define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-#include "luajr_module.h"
 
 // luajr Lua module API registry keys
 int luajr_construct_ref = 0;
@@ -21,11 +20,24 @@ int luajr_return_copy = 0;
 // Path to luajr dylib
 static std::string luajr_dylib_path;
 
-// Provide luajr dylib path from R to luajr
+// Path to luajr module source
+static std::string luajr_module_path;
+
+// Bytecode for luajr module
+static std::string luajr_bytecode;
+
+// Provide path to luajr dylib
 // [[Rcpp::export]]
 void luajr_locate_dylib(const char* path)
 {
     luajr_dylib_path = path;
+}
+
+// Provide path to luajr module source
+// [[Rcpp::export]]
+void luajr_locate_module(const char* path)
+{
+    luajr_module_path = path;
 }
 
 // For luajr_open and luajr_getstate's use of external pointers
@@ -39,16 +51,32 @@ extern "C" lua_State* luajr_newstate()
     lua_State* l = luaL_newstate();
     luaL_openlibs(l);
 
-    // Load precompiled luajr Lua module pre-loading code in src/luajr_module.h,
-    // which is in turn generated from local/luajr.lua
-    if (luaL_loadbuffer(l, reinterpret_cast<const char*>(luaJIT_BC_luajr), luaJIT_BC_luajr_SIZE, "luajr Lua module"))
+    // Get bytecode for luajr Lua module
+    if (luajr_bytecode.empty())
+    {
+        // Call string.dump(luajr_module_source, true)
+        lua_getglobal(l, "string");
+        lua_getfield(l, -1, "dump");
+        luaL_loadfile(l, luajr_module_path.c_str());
+        lua_pushboolean(l, true);
+        luajr_pcall(l, 2, 1, "(precompile luajr module)");
+
+        // Save results of string.dump
+        size_t bytecode_len;
+        const char* bytecode = lua_tolstring(l, -1, &bytecode_len);
+        luajr_bytecode.assign(bytecode, bytecode_len);
+        lua_pop(l, 2); // results of string.dump and "string"
+    }
+
+    // Load luajr bytecode
+    if (luaL_loadbuffer(l, luajr_bytecode.data(), luajr_bytecode.size(), "luajr Lua module"))
         Rf_error("Could not preload luajr Lua module.");
 
     // Run script: takes as argument the full path to the luajr dylib.
     lua_pushstring(l, luajr_dylib_path.c_str());
     luajr_pcall(l, 1, 0, "(luajr Lua module from luajr_newstate())");
 
-    // Get luajr module
+    // Open luajr module
     luaL_loadstring(l, "luajr = require 'luajr'");
     luajr_pcall(l, 0, 0, "(require luajr module)");
 
