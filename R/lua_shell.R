@@ -53,7 +53,7 @@ lua_shell = function(L = NULL)
         res = tryCatch(lua(xline, L = L), error = function(e) e)
 
         # If there is an error:
-        if (is(res, "error")) {
+        if ("error" %in% class(res)) {
             if (grepl("'<eof>'$", res$message)) {
                 # Unexpected end of input: try to gather more input
                 prev_line = line
