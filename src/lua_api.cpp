@@ -82,6 +82,21 @@ extern "C" void AllocInteger(integer_rt* x, ptrdiff_t size)
     x->_p = INTEGER(x->_s) - 1;
 }
 
+extern "C" void AllocIntegerCompact1N(integer_rt* x, ptrdiff_t N)
+{
+    if (N > 0)
+    {
+        x->_s = R_compact_intrange(1, N);
+        R_PreserveObject(x->_s);
+        x->_p = 0;
+    }
+    else
+    {
+        x->_s = R_NilValue;
+        x->_p = 0;
+    }
+}
+
 extern "C" void AllocNumeric(numeric_rt* x, ptrdiff_t size)
 {
     x->_s = Rf_allocVector3(REALSXP, size, 0);
@@ -99,9 +114,10 @@ extern "C" void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v)
 {
     x->_s = Rf_allocVector3(STRSXP, size, 0);
     R_PreserveObject(x->_s);
-    SEXP sv = Rf_mkChar(v);
+    SEXP sv = PROTECT(Rf_mkChar(v));
     for (ptrdiff_t i = 0; i < size; ++i)
         SET_STRING_ELT(x->_s, i, sv);
+    UNPROTECT(1);
 }
 
 extern "C" void Release(SEXP s)
@@ -202,11 +218,4 @@ extern "C" void SetPtr(void** ptr, void* val)
 extern "C" double SEXP_length(SEXP s)
 {
     return Rf_xlength(s);
-}
-
-extern "C" SEXP CompactRowNames(ptrdiff_t nrow)
-{
-    if (nrow > 0)
-        return R_compact_intrange(1, nrow);
-    return R_NilValue;
 }

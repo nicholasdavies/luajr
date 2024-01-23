@@ -3,7 +3,6 @@ Feature plan
 - For luajr.list:
     v("/list/order", ord) -- reorder elements (like data.table)
 - Make thread safe, perhaps by locking on any R operations from within Lua
-- Is bytecode alignment (64bit) an issue?
 - Remove dependency on Rcpp
 
 - Mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1? Or

@@ -463,8 +463,9 @@ extern "C" SEXP luajr_return(lua_State* L, int nret)
     else if (nret == 1)
     {
         // One return value: convert to SEXP, pop, and return
-        SEXP retval = luajr_tosexp(L, -1);
+        SEXP retval = PROTECT(luajr_tosexp(L, -1));
         lua_pop(L, 1);
+        UNPROTECT(1);
         return retval;
     }
     else

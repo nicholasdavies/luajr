@@ -78,6 +78,7 @@ void SetCharacterRef(character_rt* x, SEXP s);
 // call Release in garbage collection for the corresponding R_ReleaseObject().
 void AllocLogical(logical_rt* x, ptrdiff_t size);
 void AllocInteger(integer_rt* x, ptrdiff_t size);
+void AllocIntegerCompact1N(integer_rt* x, ptrdiff_t N);
 void AllocNumeric(numeric_rt* x, ptrdiff_t size);
 void AllocCharacter(character_rt* x, ptrdiff_t size);
 void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v);
@@ -110,9 +111,6 @@ void SetPtr(void** ptr, void* val);
 // Returns length of object s; returns as a double to be larger than 32-bit,
 // but still compatible with Lua's single number type.
 double SEXP_length(SEXP s);
-
-// Returns 1:nrow as an altrep
-SEXP CompactRowNames(ptrdiff_t nrow);
 
 // For vector types' manual memory management
 void* malloc(size_t size);
@@ -1026,8 +1024,7 @@ function luajr.dataframe(nrow)
 
     -- Make rownames
     local rownames = luajr.integer_r(nullptr)
-    rownames._p = nullptr
-    rownames._s = internal.CompactRowNames(nrow)
+    internal.AllocIntegerCompact1N(rownames, nrow)
     df[0]["row.names"] = rownames
 
     return df
