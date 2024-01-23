@@ -121,7 +121,7 @@ translated into Lua values for use inside the function.
 
 The permissible arg codes are:
 
- * `'s'`: **s**implest Lua type
+ * `'s'`: **s**implest Lua type (the default)
  * `'a'`: **a**rray type
  * `'1'`: same as `'s'`, but require that the argument has length 1
  * ...
@@ -157,7 +157,7 @@ while if `argcode` is `"sr"`, then the first argument has argcode `"s"`, the
 second argument has argcode `"r"`, the third argument has argcode `"s"`, etc.
 
 When a vector (logical vector, integer vector, numeric vector, or character 
-vector) is passed from R to lua by **r**eference, modifications made to the
+vector) is passed from R to Lua by **r**eference, modifications made to the
 elements of that passed-in vector persist back in the R calling frame. For
 example:
 
@@ -217,15 +217,37 @@ print(x)
 Here, because we are returning a modified value, we can add elements to the list
 (`f3`) and change whole entries of the list (`f4`).
 
-### Performance considerations
+## Benchmarking
+
+In the same way that using R packages 
+[cpp11](https://cran.r-project.org/web/packages/cpp11/index.html) or 
+[Rcpp](https://cran.r-project.org/web/packages/cpp11/index.html) allows you to 
+bridge your R code with C++ code that runs faster than R, you can use `luajr` to 
+bridge your R code with Lua code that runs faster than R.
+
+In general, C/C++ code runs about 5-1,000 times faster than the equivalent R 
+code.
+
+In my experience, luajr code often presents a similar speedup, about the same as
+C/C++ code, or in the worst case, maybe half as fast. Sometimes luajr code can
+be faster than C/C++, though usually it isn't quite as good. Why use luajr then? 
+Rcpp and cpp11 require a C++ toolchain (e.g. gcc, clang, etc) and requires long 
+compilation times, whereas luajr doesn't. This means that luajr is usable when
+a C++ compiler isn't available and when compilation times are prohibitive or
+an annoyance.
+
+In the following section, we look at two aspects of benchmarking. In the first
+example, we compare different ways of passing vectors to Lua functions relative
+to R. In the second example, we compare more fundamentally the difference in
+running a whole algorithm in Lua versus R. 
+
+### Parameter passing example: sum of squares
 
 For reasonably long vectors, passing by reference (`'r'`) is faster than passing 
 by value (`'v'`), which is faster than passing by simplify (`'s'`, `'a'`, or 
 `'1'`&ndash;`'9'`). But for relatively short vectors, passing by simplify can 
 avoid some overhead, and for very simple operations on very short vectors, it 
 might not be worth using Lua at all.
-
-#### Underwhelming example: sum of squares
 
 To illustrate the above points, here is some code that takes a numeric vector 
 and calculates the sum of squares, comparing a pure R function with three 
@@ -282,7 +304,7 @@ is relatively short, and there is a certain amount of overhead in invoking it,
 while the R function doesn't have the overhead of transferring control between 
 languages.
 
-#### More compelling example: logistic map
+### Processing time example: logistic map
 
 Consider the following:
 
@@ -319,9 +341,9 @@ logistic_map_L = lua_func(
 end", "s")
 ```
 
-Here we are comparing two different methods of running a parameter sweep of the
-logistic map, a chaotic dynamical system popularized by Bob May in a 
-[1976 Nature article](https://sites.ifi.unicamp.br/aguiar/files/2014/10/May-Nature-1976.pdf).
+Here we are comparing two different methods (R versus Lua) of running a 
+parameter sweep of the logistic map, a chaotic dynamical system popularized by 
+Bob May in a [1976 Nature article](https://sites.ifi.unicamp.br/aguiar/files/2014/10/May-Nature-1976.pdf).
 The output looks like this:
 
 ```{r}
@@ -380,16 +402,16 @@ the next garbage collection.
 
 Note that `luajr.list()` isn't quite aligned with the vector types 
 (e.g. `luajr.character()`), because there's no working analogy to '__newindex' 
-(i.e. passing a list `x` into a function with mode `'r'` and then doing 
+(i.e. passing a list `x` into a function with args code `'r'` and then doing 
 `x[1] = "foo"` doesn't change the underlying list, although doing 
-`x[1][1] = "foo"` would.)
+`x[1][1] = "foo"` does.)
 
 In general, arguments that can be expressed as lists aren't ever really passed 
 by reference; only their atomic vector elements are by reference or by value.
 
 Note that logical semantics don't make a huge amount of sense in Lua due to 
-true/false/NA, so it is better to explicitly check using the built-in values
+true/false/NA, so it is better to explicitly check against the built-in values
 `luajr.TRUE_logical_`, `luajr.FALSE_logical_`, and `luajr.NA_logical_`.
 
-For integer, numeric, and character `NA` values, we can use `luajr.NA_integer_`,
-`luajr.NA_real_`, and `luajr.NA_character_`.
+For integer, numeric, and character `NA` values, we can compare to 
+`luajr.NA_integer_`, `luajr.NA_real_`, and `luajr.NA_character_`.

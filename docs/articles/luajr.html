@@ -412,8 +412,32 @@ function:</p>
 <p>Here, because we are returning a modified value, we can add elements
 to the list (<code>f3</code>) and change whole entries of the list
 (<code>f4</code>).</p>
+</div>
+<div class="section level2">
+<h2 id="benchmarking">Benchmarking<a class="anchor" aria-label="anchor" href="#benchmarking"></a>
+</h2>
+<p>In the same way that using R packages <a href="https://cran.r-project.org/web/packages/cpp11/index.html" class="external-link">cpp11</a>
+or <a href="https://cran.r-project.org/web/packages/cpp11/index.html" class="external-link">Rcpp</a>
+allows you to bridge your R code with C++ code that runs faster than R,
+you can use <code>luajr</code> to bridge your R code with Lua code that
+runs faster than R.</p>
+<p>In general, C/C++ code runs about 5-1,000 times faster than the
+equivalent R code.</p>
+<p>In my experience, luajr code often presents a similar speedup, about
+the same as C/C++ code, or in the worst case, maybe half as fast.
+Sometimes luajr code can be faster than C/C++, though usually it isn’t
+quite as good. Why use luajr then? Rcpp and cpp11 require a C++
+toolchain (e.g. gcc, clang, etc) and requires long compilation times,
+whereas luajr doesn’t. This means that luajr is usable when a C++
+compiler isn’t available and when compilation times are prohibitive or
+an annoyance.</p>
+<p>In the following section, we look at two aspects of benchmarking. In
+the first example, we compare different ways of passing vectors to Lua
+functions relative to R. In the second example, we compare more
+fundamentally the difference in running a whole algorithm in Lua versus
+R.</p>
 <div class="section level3">
-<h3 id="performance-considerations">Performance considerations<a class="anchor" aria-label="anchor" href="#performance-considerations"></a>
+<h3 id="parameter-passing-example-sum-of-squares">Parameter passing example: sum of squares<a class="anchor" aria-label="anchor" href="#parameter-passing-example-sum-of-squares"></a>
 </h3>
 <p>For reasonably long vectors, passing by reference (<code>'r'</code>)
 is faster than passing by value (<code>'v'</code>), which is faster than
@@ -422,9 +446,6 @@ passing by simplify (<code>'s'</code>, <code>'a'</code>, or
 passing by simplify can avoid some overhead, and for very simple
 operations on very short vectors, it might not be worth using Lua at
 all.</p>
-<div class="section level4">
-<h4 id="underwhelming-example-sum-of-squares">Underwhelming example: sum of squares<a class="anchor" aria-label="anchor" href="#underwhelming-example-sum-of-squares"></a>
-</h4>
 <p>To illustrate the above points, here is some code that takes a
 numeric vector and calculates the sum of squares, comparing a pure R
 function with three alternatives written in Lua, respectively passing
@@ -442,13 +463,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 10.4041</span></span>
+<span><span class="co">#&gt; [1] 10.30213</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 10.4041</span></span>
+<span><span class="co">#&gt; [1] 10.30213</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 10.4041</span></span>
+<span><span class="co">#&gt; [1] 10.30213</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 10.4041</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 10.30213</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>
@@ -571,9 +592,9 @@ function is relatively short, and there is a certain amount of overhead
 in invoking it, while the R function doesn’t have the overhead of
 transferring control between languages.</p>
 </div>
-<div class="section level4">
-<h4 id="more-compelling-example-logistic-map">More compelling example: logistic map<a class="anchor" aria-label="anchor" href="#more-compelling-example-logistic-map"></a>
-</h4>
+<div class="section level3">
+<h3 id="processing-time-example-logistic-map">Processing time example: logistic map<a class="anchor" aria-label="anchor" href="#processing-time-example-logistic-map"></a>
+</h3>
 <p>Consider the following:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">logistic_map_R</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x0</span>, <span class="va">burn</span>, <span class="va">iter</span>, <span class="va">A</span><span class="op">)</span></span>
@@ -641,7 +662,6 @@ Nature article</a>. The output looks like this:</p>
 </table>
 <p>The version written in Lua is around 2,000 times faster than the
 version in R.</p>
-</div>
 </div>
 </div>
 <div class="section level2">
