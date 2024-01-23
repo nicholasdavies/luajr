@@ -143,7 +143,7 @@ under different arg codes, is summarized in the following table:
 |`integer(nn)`   |`1:2`           |`{1, 2}`         |`{1.0, 2.0}`     |**error**   |`{1.0, 2.0}`     |`luajr.integer({1, 2})`                      |`luajr.integer_r({1, 2})`                      |
 |`numeric(nn)`   |`exp(0:1)`      |`{1, 2.71828...}`|`{1, 2.71828...}`|**error**   |`{1, 2.71828...}`|`luajr.numeric({1, 2.71828...})`             |`luajr.numeric_r({1, 2.71828...})`             |
 |`character(nn)` |`letters[1:2]`  |`{"a", "b"}`     |`{"a", "b"}`     |**error**   |`{"a", "b"}`     |`luajr.character({"a", "b"})`                |`luajr.character_r({"a", "b"})`                |
-|`list(...)`     |`list(1, b='b')`|`{[1]=1, b='b'}` |**error**        |**error**   |**error**        |`x = luajr.list(); x[1]=luajr.numeric({1}); x.b=luajr.character({'b'}); return x`|`x = luajr.list(); x[1]=luajr.numeric_r({1}); x.b=luajr.character_r({'b'}); return x`|
+|`list(...)`     |`list(1, b='b')`|`{[1]=1, b='b'}` |**error**        |**error**   |**error**        |`x = luajr.list(); x[1] = luajr.numeric({1});`<br/>`x.b = luajr.character({'b'}); return x`|`x = luajr.list(); x[1] = luajr.numeric_r({1});`<br/>`x.b = luajr.character_r({'b'}); return x`|
 |external pointer|`lua_open()`    |`userdata:…`     |`userdata:…`     |`userdata:…`|`userdata:…`     |`userdata:…`                                 |`userdata:…`                                   |
 
 Above, `nn` stands for an integer that is greater than 1; in the examples, it
@@ -389,7 +389,7 @@ by reference; only their atomic vector elements are by reference or by value.
 
 Note that logical semantics don't make a huge amount of sense in Lua due to 
 true/false/NA, so it is better to explicitly check using the built-in values
-`luajr.TRUE`, `luajr.FALSE`, and `luajr.NA`.
+`luajr.TRUE_logical_`, `luajr.FALSE_logical_`, and `luajr.NA_logical_`.
 
 For integer, numeric, and character `NA` values, we can use `luajr.NA_integer_`,
 `luajr.NA_real_`, and `luajr.NA_character_`.

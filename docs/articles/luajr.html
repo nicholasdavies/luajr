@@ -313,8 +313,12 @@ table:</p>
 <td><strong>error</strong></td>
 <td><strong>error</strong></td>
 <td><strong>error</strong></td>
-<td><code>x = luajr.list(); x[1]=luajr.numeric({1}); x.b=luajr.character({'b'}); return x</code></td>
-<td><code>x = luajr.list(); x[1]=luajr.numeric_r({1}); x.b=luajr.character_r({'b'}); return x</code></td>
+<td>
+<code>x = luajr.list(); x[1] = luajr.numeric({1});</code><br><code>x.b = luajr.character({'b'}); return x</code>
+</td>
+<td>
+<code>x = luajr.list(); x[1] = luajr.numeric_r({1});</code><br><code>x.b = luajr.character_r({'b'}); return x</code>
+</td>
 </tr>
 <tr class="odd">
 <td align="center">external pointer</td>
@@ -438,13 +442,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 8.094412</span></span>
+<span><span class="co">#&gt; [1] 10.4041</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 8.094412</span></span>
+<span><span class="co">#&gt; [1] 10.4041</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 8.094412</span></span>
+<span><span class="co">#&gt; [1] 10.4041</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 8.094412</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 10.4041</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>
@@ -692,8 +696,9 @@ really passed by reference; only their atomic vector elements are by
 reference or by value.</p>
 <p>Note that logical semantics don’t make a huge amount of sense in Lua
 due to true/false/NA, so it is better to explicitly check using the
-built-in values <code>luajr.TRUE</code>, <code>luajr.FALSE</code>, and
-<code>luajr.NA</code>.</p>
+built-in values <code>luajr.TRUE_logical_</code>,
+<code>luajr.FALSE_logical_</code>, and
+<code>luajr.NA_logical_</code>.</p>
 <p>For integer, numeric, and character <code>NA</code> values, we can
 use <code>luajr.NA_integer_</code>, <code>luajr.NA_real_</code>, and
 <code>luajr.NA_character_</code>.</p>
