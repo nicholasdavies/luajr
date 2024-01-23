@@ -437,13 +437,13 @@ the vector by reference, by value, and by simplify.</p>
 <span><span class="va">sum2_s</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"s"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span><span class="co">#&gt; [1] 7.848765</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span><span class="co">#&gt; [1] 7.848765</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span><span class="co">#&gt; [1] 7.848765</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 10.76672</span></span>
+<span><span class="co">#&gt; [1] 7.848765</span></span>
 <span></span>
 <span><span class="fu">bench</span><span class="fu">::</span><span class="fu"><a href="http://bench.r-lib.org/reference/mark.html" class="external-link">mark</a></span><span class="op">(</span></span>
 <span>    <span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>,</span>
@@ -454,10 +454,10 @@ the vector by reference, by value, and by simplify.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
 <span><span class="co">#&gt;   expression      min   median `itr/sec` mem_alloc `gc/sec`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v1)        1µs   1.16µs   <span style="text-decoration: underline;">820</span>742.   18.36KB      0  </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v1)   4.19µs      6µs   <span style="text-decoration: underline;">133</span>187.    2.49KB      0  </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v1)   5.51µs   6.63µs   <span style="text-decoration: underline;">121</span>567.    2.49KB     12.2</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v1)   3.62µs   4.29µs   <span style="text-decoration: underline;">202</span>996.    2.49KB     20.3</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v1)      935ns   1.06µs   <span style="text-decoration: underline;">904</span>136.   18.36KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v1)   4.09µs   5.91µs   <span style="text-decoration: underline;">134</span>096.    2.49KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v1)   5.84µs   6.38µs   <span style="text-decoration: underline;">122</span>394.    2.49KB     12.2</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v1)   3.73µs   4.16µs   <span style="text-decoration: underline;">200</span>236.    2.49KB     20.0</span></span>
 <span></span>
 <span><span class="fu">bench</span><span class="fu">::</span><span class="fu"><a href="http://bench.r-lib.org/reference/mark.html" class="external-link">mark</a></span><span class="op">(</span></span>
 <span>    <span class="fu">sum2</span><span class="op">(</span><span class="va">v4</span><span class="op">)</span>,</span>
@@ -468,10 +468,10 @@ the vector by reference, by value, and by simplify.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
 <span><span class="co">#&gt;   expression      min   median `itr/sec` mem_alloc `gc/sec`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v4)     30.5µs   60.3µs    <span style="text-decoration: underline;">15</span>984.   78.17KB    40.8 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v4)   33.2µs   35.5µs    <span style="text-decoration: underline;">26</span>029.    2.49KB     2.60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v4)   68.4µs  101.1µs     <span style="text-decoration: underline;">9</span>687.    2.49KB     0   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v4)     90µs   97.2µs    <span style="text-decoration: underline;">10</span>025.    2.49KB     2.02</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v4)     30.9µs     62µs    <span style="text-decoration: underline;">15</span>542.   78.17KB    40.6 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v4)   35.1µs   35.5µs    <span style="text-decoration: underline;">25</span>965.    2.49KB     0   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v4)   77.9µs  110.1µs     <span style="text-decoration: underline;">9</span>031.    2.49KB     2.02</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v4)   86.2µs   89.4µs    <span style="text-decoration: underline;">10</span>675.    2.49KB     0</span></span>
 <span></span>
 <span><span class="fu">bench</span><span class="fu">::</span><span class="fu"><a href="http://bench.r-lib.org/reference/mark.html" class="external-link">mark</a></span><span class="op">(</span></span>
 <span>    <span class="fu">sum2</span><span class="op">(</span><span class="va">v7</span><span class="op">)</span>,</span>
@@ -484,10 +484,10 @@ the vector by reference, by value, and by simplify.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
 <span><span class="co">#&gt;   expression      min   median `itr/sec` mem_alloc `gc/sec`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:tm&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v7)     45.3ms   45.7ms     21.7    76.29MB     21.7</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v7)   30.8ms   31.7ms     31.6     2.49KB      0  </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v7)  101.2ms  103.8ms      9.47    2.49KB      0  </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v7)  132.6ms  184.9ms      5.88    2.49KB      0</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> sum2(v7)     46.2ms   46.8ms     21.3    76.29MB     21.3</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sum2_r(v7)   31.7ms     32ms     30.8     2.49KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> sum2_v(v7)   83.3ms  108.7ms      9.54    2.49KB      0  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> sum2_s(v7)    126ms  127.9ms      7.81    2.49KB      0</span></span></code></pre></div>
 <p>When the vector is 10 elements long, the R version wins handily.</p>
 <p>When the vector is 10,000 elements long, the pass-by-reference Lua
 version is fastest, but the other methods are all comparable.</p>
@@ -542,8 +542,8 @@ transferring control between languages.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 6</span></span></span>
 <span><span class="co">#&gt;   expression                             min median `itr/sec` mem_alloc `gc/sec`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;bch:expr&gt;</span>                           <span style="color: #949494; font-style: italic;">&lt;bch&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;bch:byt&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> data_R &lt;- logistic_map_R(0.5, 500, … 915ms  915ms      1.09    1.35GB     12.0</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> data_L &lt;- logistic_map_L(0.5, 500, … 345µs  386µs   <span style="text-decoration: underline;">2</span>261.    374.61KB     14.0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> data_R &lt;- logistic_map_R(0.5, 500, … 935ms  935ms      1.07    1.35GB     11.8</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> data_L &lt;- logistic_map_L(0.5, 500, … 255µs  403µs   <span style="text-decoration: underline;">1</span>935.    374.61KB     14.0</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">data_R</span><span class="op">$</span><span class="va">x</span> <span class="op">-</span> <span class="va">data_L</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="co"># If this is 0, results are exactly the same for both</span></span>
 <span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
