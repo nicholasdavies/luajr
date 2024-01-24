@@ -27,7 +27,4 @@ inlineCxxPlugin = function(...)
 #'
 #' @section Further reading:
 #' For an introduction to 'luajr', see `vignette("luajr")`
-#'
-#' @docType package
-#' @name luajr
-NULL
+"_PACKAGE"

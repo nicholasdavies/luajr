@@ -29,7 +29,7 @@ The parameter \code{argcode} is a string with one character for each argument of
 the Lua function, recycled as needed (e.g. so that a single character would
 apply to all arguments regardless of how many there are).
 
-In the following, the corresponding character of \code{acode} for a specific
+In the following, the corresponding character of \code{argcode} for a specific
 argument is referred to as its argcode.
 
 For \code{NULL} or any argument with length 0, the result in Lua is \strong{nil}

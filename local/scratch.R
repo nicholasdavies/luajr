@@ -16,14 +16,17 @@ lua("return x")
 # Testing speed of r versus v
 
 lua("sum = function(x) local s = 0 for i=1,#x do s = s + x[i] end return s end")
+sum_R = sum
 sum_r = lua_func("sum", "r")
 sum_v = lua_func("sum", "v")
-x = rnorm(100000, 10)
+x = rnorm(10000, 10)
 
+sum_R(x)
 sum_r(x)
 sum_v(x)
 
 bench::mark(
+    sum(x),
     sum_r(x),
     sum_v(x),
     min_time = 5

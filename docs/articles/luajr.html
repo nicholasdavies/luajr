@@ -464,13 +464,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 14.86151</span></span>
+<span><span class="co">#&gt; [1] 9.333029</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 14.86151</span></span>
+<span><span class="co">#&gt; [1] 9.333029</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 14.86151</span></span>
+<span><span class="co">#&gt; [1] 9.333029</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 14.86151</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 9.333029</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>
