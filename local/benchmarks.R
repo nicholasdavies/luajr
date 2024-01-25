@@ -1,5 +1,6 @@
 bench::mark(
     luajr:::luajr_run_code("return nil", NULL),
+    .Call(luajr:::`_luajr_run_code`, "return nil", NULL),
     min_time = 5
 )
 

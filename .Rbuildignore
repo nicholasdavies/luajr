@@ -3,7 +3,7 @@
 ^LICENSE\.md$
 ^local$
 ^README\.Rmd$
-^module.sh$
+^update_lj.sh$
 
 ^_pkgdown\.yml$
 ^docs$
