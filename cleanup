@@ -8,6 +8,9 @@ rm -f inst/include/luajr_conf.h inst/include/luajr_lua.h \
 # Clean up Makevars
 rm -f src/Makevars
 
+# Clean up generated .relver
+rm -f src/luajit/.relver
+
 # Clean up built package
 if [ `uname` = Darwin ]; then
   cd src/luajit && MACOSX_DEPLOYMENT_TARGET=10.8 $MAKE clean

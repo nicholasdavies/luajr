@@ -50,4 +50,7 @@ sed -e "s|@PKG_CXXFLAGS@|$PKG_CXXFLAGS|" src/Makevars.win > src/Makevars.tmp && 
 sed -e "s|@PKG_CPPFLAGS@|$PKG_CPPFLAGS|" src/Makevars.win > src/Makevars.tmp && mv src/Makevars.tmp src/Makevars.win
 sed -e "s|@PKG_LIBS@|$PKG_LIBS|" src/Makevars.win > src/Makevars.tmp && mv src/Makevars.tmp src/Makevars.win
 
+### Write to .relver
+cp src/luajit/relver.txt src/luajit/.relver
+
 exit 0

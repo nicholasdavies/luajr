@@ -79,7 +79,7 @@ from R.</p>
 <p>Lua is a lightweight, simple, and fast scripting language that is
 used in a variety of settings. The standard Lua interpreter is already
 reasonably fast, but there is also a just-in-time compiler for Lua
-called <a href="https://www.luajit.org" class="external-link">LuaJIT</a> that is even faster.
+called <a href="https://luajit.org" class="external-link">LuaJIT</a> that is even faster.
 luajr uses LuaJIT.</p>
 <p>This is <strong>not</strong> a guide to Lua or LuaJIT; it is a
 quick-start guide to luajr for people who already know how to program in
@@ -417,11 +417,10 @@ to the list (<code>f3</code>) and change whole entries of the list
 <div class="section level2">
 <h2 id="benchmarking">Benchmarking<a class="anchor" aria-label="anchor" href="#benchmarking"></a>
 </h2>
-<p>In the same way that using R packages <a href="https://cran.r-project.org/web/packages/cpp11/index.html" class="external-link">cpp11</a>
-or <a href="https://cran.r-project.org/web/packages/cpp11/index.html" class="external-link">Rcpp</a>
-allows you to bridge your R code with C++ code that runs faster than R,
-you can use <code>luajr</code> to bridge your R code with Lua code that
-runs faster than R.</p>
+<p>In the same way that using R packages <a href="https://CRAN.R-project.org/package=cpp11" class="external-link">cpp11</a> or <a href="https://CRAN.R-project.org/package=Rcpp" class="external-link">Rcpp</a> allows you to
+bridge your R code with C++ code that runs faster than R, you can use
+<code>luajr</code> to bridge your R code with Lua code that runs faster
+than R.</p>
 <p>In general, C/C++ code runs about 5-1,000 times faster than the
 equivalent R code.</p>
 <p>In my experience, luajr code often presents a similar speedup, about
@@ -464,13 +463,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 16.49448</span></span>
+<span><span class="co">#&gt; [1] 13.67141</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 16.49448</span></span>
+<span><span class="co">#&gt; [1] 13.67141</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 16.49448</span></span>
+<span><span class="co">#&gt; [1] 13.67141</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 16.49448</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 13.67141</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>

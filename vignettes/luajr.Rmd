@@ -19,7 +19,7 @@ luajr allows you to run [Lua](https://www.lua.org) code from R.
 Lua is a lightweight, simple, and fast scripting language that is used in a 
 variety of settings. The standard Lua interpreter is already reasonably fast, 
 but there is also a just-in-time compiler for Lua called 
-[LuaJIT](https://www.luajit.org) that is even faster. luajr uses LuaJIT.
+[LuaJIT](https://luajit.org) that is even faster. luajr uses LuaJIT.
 
 This is **not** a guide to Lua or LuaJIT; it is a quick-start guide to luajr for
 people who already know how to program in Lua. See the 
@@ -220,8 +220,8 @@ Here, because we are returning a modified value, we can add elements to the list
 ## Benchmarking
 
 In the same way that using R packages 
-[cpp11](https://cran.r-project.org/web/packages/cpp11/index.html) or 
-[Rcpp](https://cran.r-project.org/web/packages/cpp11/index.html) allows you to 
+[cpp11](https://CRAN.R-project.org/package=cpp11) or 
+[Rcpp](https://CRAN.R-project.org/package=Rcpp) allows you to 
 bridge your R code with C++ code that runs faster than R, you can use `luajr` to 
 bridge your R code with Lua code that runs faster than R.
 

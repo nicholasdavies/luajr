@@ -19,5 +19,6 @@ inst/include/luajr_lua.h
 inst/include/luajr_lauxlib.h
 inst/include/luajr_lualib.h
 inst/include/luajr_luajit.h
+src/luajit/.relver
 
 update_lj.sh
