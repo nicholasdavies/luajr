@@ -8,5 +8,5 @@ rm -f inst/include/luajr_conf.h inst/include/luajr_lua.h \
 # Clean up Makevars.win
 rm -f src/Makevars.win
 
-# # Clean up built package
-# cd src/luajit && $MAKE clean
+# Clean up built package
+cd src/luajit && ${MAKE:-make} clean
