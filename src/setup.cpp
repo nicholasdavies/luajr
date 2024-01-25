@@ -14,12 +14,26 @@ extern "C" {
 lua_State* L0 = 0;
 
 // Initializes the luajr package
-// [[Rcpp::init]]
-void luajr_init(DllInfo *dll)
-{
-    (void) dll;
+static const R_CallMethodDef CallEntries[] = {
+    {"_luajr_run_code", (DL_FUNC) &luajr_run_code, 2},
+    {"_luajr_run_file", (DL_FUNC) &luajr_run_file, 2},
+    {"_luajr_func_create", (DL_FUNC) &luajr_func_create, 2},
+    {"_luajr_func_call", (DL_FUNC) &luajr_func_call, 4},
+    {"_luajr_locate_dylib", (DL_FUNC) &luajr_locate_dylib, 1},
+    {"_luajr_locate_module", (DL_FUNC) &luajr_locate_module, 1},
+    {"_luajr_open", (DL_FUNC) &luajr_open, 0},
+    {"_luajr_reset", (DL_FUNC) &luajr_reset, 0},
+    {NULL, NULL, 0}
+};
 
-    // Register API functions, so that they can be called from user C/C++ code
+// Initializes the luajr package
+extern "C" void R_init_luajr(DllInfo *dll)
+{
+    // Register luajr API functions that can be called from package/user R code
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+
+    // Register Lua, LuaJIT, and luajr API functions that can be called from user C/C++ code
 #define API_FUNCTION(return_type, func_name, ...) \
     R_RegisterCCallable("luajr", #func_name, reinterpret_cast<DL_FUNC>(func_name));
 #include "../inst/include/luajr_funcs.h"

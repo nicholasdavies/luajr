@@ -25,23 +25,17 @@ static void finalize_registry_entry(SEXP xptr)
     R_ClearExternalPtr(xptr);
 }
 
-// Run the specified Lua code or file.
-// If mode == 0, run code. If mode == 1, run file.
-// Behaviour is undefined for any other mode.
-// [[Rcpp::export]]
-SEXP luajr_run(const char* code, int mode, SEXP Lx)
+// Run the specified Lua code.
+extern "C" SEXP luajr_run_code(SEXP code, SEXP Lx)
 {
+    CheckSEXP(code, STRSXP, 1);
+
     // Get Lua state
     lua_State* L = luajr_getstate(Lx);
 
     // Run code, counting number of returned values
     int top0 = lua_gettop(L);
-    int r;
-    if (mode == 0)
-        r = luaL_dostring(L, code);
-    else
-        r = luaL_dofile(L, code);
-    if (r)
+    if (luaL_dostring(L, CHAR(STRING_ELT(code, 0))))
     {
         std::string err = lua_tostring(L, -1);
         lua_pop(L, 1);
@@ -53,15 +47,39 @@ SEXP luajr_run(const char* code, int mode, SEXP Lx)
     return luajr_return(L, top1 - top0);
 }
 
-// [[Rcpp::export]]
-SEXP luajr_func_create(const char* code, SEXP Lx)
+// Run the specified Lua file.
+extern "C" SEXP luajr_run_file(SEXP filename, SEXP Lx)
 {
+    CheckSEXP(filename, STRSXP, 1);
+
+    // Get Lua state
+    lua_State* L = luajr_getstate(Lx);
+
+    // Run code, counting number of returned values
+    int top0 = lua_gettop(L);
+    if (luaL_dofile(L, CHAR(STRING_ELT(filename, 0))))
+    {
+        std::string err = lua_tostring(L, -1);
+        lua_pop(L, 1);
+        Rf_error("%s", err.c_str());
+    }
+    int top1 = lua_gettop(L);
+
+    // Return results
+    return luajr_return(L, top1 - top0);
+}
+
+// Create a Lua function
+extern "C" SEXP luajr_func_create(SEXP code, SEXP Lx)
+{
+    CheckSEXP(code, STRSXP, 1);
+
     // Get Lua state
     lua_State* L = luajr_getstate(Lx);
 
     // Run code, counting number of returned values
     std::string cmd = "return ";
-    cmd += code;
+    cmd += CHAR(STRING_ELT(code, 0));
     int top0 = lua_gettop(L);
     if (luaL_dostring(L, cmd.c_str()))
     {
@@ -85,8 +103,8 @@ SEXP luajr_func_create(const char* code, SEXP Lx)
     return luajr_makepointer(re, LUAJR_REGFUNC_CODE, finalize_registry_entry);
 }
 
-// [[Rcpp::export]]
-SEXP luajr_func_call(SEXP fx, SEXP alist, const char* acode, SEXP Lx)
+// Call a Lua function
+extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 {
     // Get registry entry
     RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(fx, LUAJR_REGFUNC_CODE));
@@ -96,6 +114,7 @@ SEXP luajr_func_call(SEXP fx, SEXP alist, const char* acode, SEXP Lx)
         Rf_error("luajr_func_call expects a valid registry entry.");
     if (TYPEOF(alist) != VECSXP)
         Rf_error("luajr_func_call expects alist to be a list.");
+    CheckSEXP(acode, STRSXP, 1);
 
     // Get Lua state
     lua_State* L = luajr_getstate(Lx);
@@ -103,7 +122,7 @@ SEXP luajr_func_call(SEXP fx, SEXP alist, const char* acode, SEXP Lx)
     // Assemble function call
     int top0 = lua_gettop(L);
     re->Get();
-    luajr_pass(L, alist, acode);
+    luajr_pass(L, alist, CHAR(STRING_ELT(acode, 0)));
 
     // Call function
     luajr_pcall(L, Rf_length(alist), LUA_MULTRET, "(user function from luajr_func_call())");

@@ -1,8 +1,6 @@
 #ifndef REGISTRY_ENTRY_H
 #define REGISTRY_ENTRY_H
 
-// [[Rcpp::plugins(cpp11)]]
-
 // Forward declaration
 struct lua_State;
 

@@ -16,17 +16,14 @@ Encoding: UTF-8
 SystemRequirements:
     C++11,
     GNU make
-LinkingTo: 
-    Rcpp
-Imports: 
-    Rcpp
 Suggests:
+    Rcpp,
     crayon,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.0
+RoxygenNote: 7.3.1
 VignetteBuilder: knitr
 Config/testthat/edition: 3

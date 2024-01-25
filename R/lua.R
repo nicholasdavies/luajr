@@ -16,9 +16,9 @@
 lua = function(code, filename = NULL, L = NULL)
 {
     if (is.null(filename)) {
-        ret = luajr_run(code, 0, L)
+        ret = luajr_run_code(code, L)
     } else {
-        ret = luajr_run(filename, 1, L)
+        ret = luajr_run_file(filename, L)
     }
 
     if (is.null(ret)) invisible() else ret

@@ -1,5 +1,4 @@
 ## usethis namespace: start
-#' @importFrom Rcpp sourceCpp
 #' @useDynLib luajr, .registration = TRUE
 ## usethis namespace: end
 NULL

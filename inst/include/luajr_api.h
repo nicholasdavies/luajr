@@ -14,7 +14,7 @@ typedef struct SEXPREC* SEXP;
 // TODO this is easy to break if these do not match API funcs defined elsewhere.
 extern SEXP (*luajr_open)();
 extern lua_State* (*luajr_newstate)();
-extern void (*luajr_reset)();
+extern SEXP (*luajr_reset)();
 extern lua_State* (*luajr_getstate)(SEXP Lx);
 extern void (*luajr_pass)(lua_State* L, SEXP args, const char* acode);
 extern SEXP (*luajr_return)(lua_State* L, int nret);
