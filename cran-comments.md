@@ -1,3 +1,13 @@
+## Resubmission
+This is a resubmission. In this version I have:
+
+* Resolved a R CMD check warning about values of the enum x86Op in LuaJIT 
+defining values outside the int (but within the uint32_t) range, which was 
+identified by the flag -Wpedantic.
+
+* Resolved an R CMD check warning about a non-void* argument to lj_strfmt_pushf,
+which was identified by the flag -Wformat.
+
 ## R CMD check results
 
 0 errors | 0 warnings | 2 notes
