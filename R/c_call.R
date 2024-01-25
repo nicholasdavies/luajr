@@ -53,8 +53,8 @@ luajr_locate_module = function(path) {
 #' L1 <- lua_open()
 #' lua("a = 2")
 #' lua("a = 4", L = L1)
-#' lua("print(a)")
-#' lua("print(a)", L = L1)
+#' lua("print(a)") # 2
+#' lua("print(a)", L = L1) # 4
 #' @export lua_open
 lua_open = function() {
     .Call(`_luajr_open`)
@@ -69,12 +69,13 @@ lua_open = function() {
 #' Lua state `L` returned by [lua_open()], just do `L <- lua_open()` again. The
 #' memory previously used will be cleaned up at the next garbage collection.
 #'
+#' @return None.
 #' @examples
 #' lua("a = 2")
 #' lua_reset()
 #' lua("print(a)") # nil
 #' @export lua_reset
 lua_reset = function() {
-    .Call(`_luajr_reset`)
+    invisible(.Call(`_luajr_reset`))
 }
 

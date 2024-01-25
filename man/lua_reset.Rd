@@ -6,6 +6,9 @@
 \usage{
 lua_reset()
 }
+\value{
+None.
+}
 \description{
 Clears out all variables from the default Lua state, freeing up the
 associated memory.

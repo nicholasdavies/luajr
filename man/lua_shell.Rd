@@ -11,7 +11,7 @@ lua_shell(L = NULL)
 uses the default Lua state for \pkg{luajr}.}
 }
 \value{
-Nothing.
+None.
 }
 \description{
 When in interactive mode, provides a basic read-eval-print loop with LuaJIT.

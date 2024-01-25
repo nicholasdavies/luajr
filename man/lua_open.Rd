@@ -36,6 +36,6 @@ when they are garbage collected in R.
 L1 <- lua_open()
 lua("a = 2")
 lua("a = 4", L = L1)
-lua("print(a)")
-lua("print(a)", L = L1)
+lua("print(a)") # 2
+lua("print(a)", L = L1) # 4
 }

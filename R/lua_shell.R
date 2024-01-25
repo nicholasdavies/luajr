@@ -8,7 +8,7 @@
 #'
 #' @inheritParams lua
 #'
-#' @return Nothing.
+#' @return None.
 #'
 #' @export
 lua_shell = function(L = NULL)
