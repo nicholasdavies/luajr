@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
 # Clean up generated header files
 rm -f inst/include/luajr_conf.h inst/include/luajr_lua.h \
