@@ -24,8 +24,8 @@ typedef struct { double* p; double n; double c; } numeric_vt;
 // Character vector is defined in luajr.lua as a table
 
 // NA definitions
-int TRUE_logical = 0;
-int FALSE_logical = 1;
+int TRUE_logical = 1;
+int FALSE_logical = 0;
 int NA_logical = NA_LOGICAL;
 int NA_integer = NA_INTEGER;
 double NA_real = NA_REAL;
