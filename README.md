@@ -2,7 +2,10 @@
 # luajr: LuaJIT Scripting
 
 <!-- badges: start -->
+
+[![R-CMD-check](https://github.com/nicholasdavies/luajr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/nicholasdavies/luajr/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
+
 <!-- reminder: update README.md with devtools::build_readme() -->
 
 luajr provides an R interface to Mike Pall’s
