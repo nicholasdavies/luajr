@@ -11,3 +11,4 @@
 ^pkgdown$
 ^README\.Rmd$
 ^update_lj.sh$
+^CRAN-SUBMISSION$

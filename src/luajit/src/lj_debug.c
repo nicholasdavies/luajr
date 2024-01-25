@@ -392,7 +392,7 @@ void lj_debug_pushloc(lua_State *L, GCproto *pt, BCPos pc)
       }
     lj_strfmt_pushf(L, "%s:%d", s, line);
   } else if (len > 40) {
-    lj_strfmt_pushf(L, "%p:%d", pt, line);
+    lj_strfmt_pushf(L, "%p:%d", (void*)pt, line);
   } else if (*s == '=') {
     lj_strfmt_pushf(L, "%s:%d", s+1, line);
   } else {

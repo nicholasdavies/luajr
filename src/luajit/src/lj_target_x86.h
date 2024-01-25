@@ -202,119 +202,118 @@ typedef struct {
 ** included when needed. Take a look at DynASM or jit.dis_x86 to see the
 ** whole mess.
 */
-typedef enum {
-  /* Fixed length opcodes. XI_* prefix. */
-  XI_O16 =	0x66,
-  XI_NOP =	0x90,
-  XI_XCHGa =	0x90,
-  XI_CALL =	0xe8,
-  XI_JMP =	0xe9,
-  XI_JMPs =	0xeb,
-  XI_PUSH =	0x50, /* Really 50+r. */
-  XI_JCCs =	0x70, /* Really 7x. */
-  XI_JCCn =	0x80, /* Really 0f8x. */
-  XI_LEA =	0x8d,
-  XI_MOVrib =	0xb0, /* Really b0+r. */
-  XI_MOVri =	0xb8, /* Really b8+r. */
-  XI_ARITHib =	0x80,
-  XI_ARITHi =	0x81,
-  XI_ARITHi8 =	0x83,
-  XI_PUSHi8 =	0x6a,
-  XI_TESTb =	0x84,
-  XI_TEST =	0x85,
-  XI_INT3 =	0xcc,
-  XI_MOVmi =	0xc7,
-  XI_GROUP5 =	0xff,
+typedef uint32_t x86Op;
+/* Fixed length opcodes. XI_* prefix. */
+const x86Op XI_O16 =	0x66;
+const x86Op XI_NOP =	0x90;
+const x86Op XI_XCHGa =	0x90;
+const x86Op XI_CALL =	0xe8;
+const x86Op XI_JMP =	0xe9;
+const x86Op XI_JMPs =	0xeb;
+const x86Op XI_PUSH =	0x50; /* Really 50+r. */
+const x86Op XI_JCCs =	0x70; /* Really 7x. */
+const x86Op XI_JCCn =	0x80; /* Really 0f8x. */
+const x86Op XI_LEA =	0x8d;
+const x86Op XI_MOVrib =	0xb0; /* Really b0+r. */
+const x86Op XI_MOVri =	0xb8; /* Really b8+r. */
+const x86Op XI_ARITHib =	0x80;
+const x86Op XI_ARITHi =	0x81;
+const x86Op XI_ARITHi8 =	0x83;
+const x86Op XI_PUSHi8 =	0x6a;
+const x86Op XI_TESTb =	0x84;
+const x86Op XI_TEST =	0x85;
+const x86Op XI_INT3 =	0xcc;
+const x86Op XI_MOVmi =	0xc7;
+const x86Op XI_GROUP5 =	0xff;
 
-  /* Note: little-endian byte-order! */
-  XI_FLDZ =	0xeed9,
-  XI_FLD1 =	0xe8d9,
-  XI_FDUP =	0xc0d9,  /* Really fld st0. */
-  XI_FPOP =	0xd8dd,  /* Really fstp st0. */
-  XI_FPOP1 =	0xd9dd,  /* Really fstp st1. */
-  XI_FRNDINT =	0xfcd9,
-  XI_FSCALE =	0xfdd9,
-  XI_FYL2X =	0xf1d9,
+/* Note: little-endian byte-order! */
+const x86Op XI_FLDZ =	0xeed9;
+const x86Op XI_FLD1 =	0xe8d9;
+const x86Op XI_FDUP =	0xc0d9;  /* Really fld st0. */
+const x86Op XI_FPOP =	0xd8dd;  /* Really fstp st0. */
+const x86Op XI_FPOP1 =	0xd9dd;  /* Really fstp st1. */
+const x86Op XI_FRNDINT =	0xfcd9;
+const x86Op XI_FSCALE =	0xfdd9;
+const x86Op XI_FYL2X =	0xf1d9;
 
-  /* VEX-encoded instructions. XV_* prefix. */
-  XV_RORX =	XV_f20f3a(f0),
-  XV_SARX =	XV_f30f38(f7),
-  XV_SHLX =	XV_660f38(f7),
-  XV_SHRX =	XV_f20f38(f7),
+/* VEX-encoded instructions. XV_* prefix. */
+const x86Op XV_RORX =	XV_f20f3a(f0);
+const x86Op XV_SARX =	XV_f30f38(f7);
+const x86Op XV_SHLX =	XV_660f38(f7);
+const x86Op XV_SHRX =	XV_f20f38(f7);
 
-  /* Variable-length opcodes. XO_* prefix. */
-  XO_OR =	XO_(0b),
-  XO_MOV =	XO_(8b),
-  XO_MOVto =	XO_(89),
-  XO_MOVtow =	XO_66(89),
-  XO_MOVtob =	XO_(88),
-  XO_MOVmi =	XO_(c7),
-  XO_MOVmib =	XO_(c6),
-  XO_LEA =	XO_(8d),
-  XO_ARITHib =	XO_(80),
-  XO_ARITHi =	XO_(81),
-  XO_ARITHi8 =	XO_(83),
-  XO_ARITHiw8 =	XO_66(83),
-  XO_SHIFTi =	XO_(c1),
-  XO_SHIFT1 =	XO_(d1),
-  XO_SHIFTcl =	XO_(d3),
-  XO_IMUL =	XO_0f(af),
-  XO_IMULi =	XO_(69),
-  XO_IMULi8 =	XO_(6b),
-  XO_CMP =	XO_(3b),
-  XO_TESTb =	XO_(84),
-  XO_TEST =	XO_(85),
-  XO_GROUP3b =	XO_(f6),
-  XO_GROUP3 =	XO_(f7),
-  XO_GROUP5b =	XO_(fe),
-  XO_GROUP5 =	XO_(ff),
-  XO_MOVZXb =	XO_0f(b6),
-  XO_MOVZXw =	XO_0f(b7),
-  XO_MOVSXb =	XO_0f(be),
-  XO_MOVSXw =	XO_0f(bf),
-  XO_MOVSXd =	XO_(63),
-  XO_BSWAP =	XO_0f(c8),
-  XO_CMOV =	XO_0f(40),
+/* Variable-length opcodes. XO_* prefix. */
+const x86Op XO_OR =	XO_(0b);
+const x86Op XO_MOV =	XO_(8b);
+const x86Op XO_MOVto =	XO_(89);
+const x86Op XO_MOVtow =	XO_66(89);
+const x86Op XO_MOVtob =	XO_(88);
+const x86Op XO_MOVmi =	XO_(c7);
+const x86Op XO_MOVmib =	XO_(c6);
+const x86Op XO_LEA =	XO_(8d);
+const x86Op XO_ARITHib =	XO_(80);
+const x86Op XO_ARITHi =	XO_(81);
+const x86Op XO_ARITHi8 =	XO_(83);
+const x86Op XO_ARITHiw8 =	XO_66(83);
+const x86Op XO_SHIFTi =	XO_(c1);
+const x86Op XO_SHIFT1 =	XO_(d1);
+const x86Op XO_SHIFTcl =	XO_(d3);
+const x86Op XO_IMUL =	XO_0f(af);
+const x86Op XO_IMULi =	XO_(69);
+const x86Op XO_IMULi8 =	XO_(6b);
+const x86Op XO_CMP =	XO_(3b);
+const x86Op XO_TESTb =	XO_(84);
+const x86Op XO_TEST =	XO_(85);
+const x86Op XO_GROUP3b =	XO_(f6);
+const x86Op XO_GROUP3 =	XO_(f7);
+const x86Op XO_GROUP5b =	XO_(fe);
+const x86Op XO_GROUP5 =	XO_(ff);
+const x86Op XO_MOVZXb =	XO_0f(b6);
+const x86Op XO_MOVZXw =	XO_0f(b7);
+const x86Op XO_MOVSXb =	XO_0f(be);
+const x86Op XO_MOVSXw =	XO_0f(bf);
+const x86Op XO_MOVSXd =	XO_(63);
+const x86Op XO_BSWAP =	XO_0f(c8);
+const x86Op XO_CMOV =	XO_0f(40);
 
-  XO_MOVSD =	XO_f20f(10),
-  XO_MOVSDto =	XO_f20f(11),
-  XO_MOVSS =	XO_f30f(10),
-  XO_MOVSSto =	XO_f30f(11),
-  XO_MOVLPD =	XO_660f(12),
-  XO_MOVAPS =	XO_0f(28),
-  XO_XORPS =	XO_0f(57),
-  XO_ANDPS =	XO_0f(54),
-  XO_ADDSD =	XO_f20f(58),
-  XO_SUBSD =	XO_f20f(5c),
-  XO_MULSD =	XO_f20f(59),
-  XO_DIVSD =	XO_f20f(5e),
-  XO_SQRTSD =	XO_f20f(51),
-  XO_MINSD =	XO_f20f(5d),
-  XO_MAXSD =	XO_f20f(5f),
-  XO_ROUNDSD =	0x0b3a0ffc,  /* Really 66 0f 3a 0b. See asm_fpmath. */
-  XO_UCOMISD =	XO_660f(2e),
-  XO_CVTSI2SD =	XO_f20f(2a),
-  XO_CVTTSD2SI=	XO_f20f(2c),
-  XO_CVTSI2SS =	XO_f30f(2a),
-  XO_CVTTSS2SI=	XO_f30f(2c),
-  XO_CVTSS2SD =	XO_f30f(5a),
-  XO_CVTSD2SS =	XO_f20f(5a),
-  XO_ADDSS =	XO_f30f(58),
-  XO_MOVD =	XO_660f(6e),
-  XO_MOVDto =	XO_660f(7e),
+const x86Op XO_MOVSD =	XO_f20f(10);
+const x86Op XO_MOVSDto =	XO_f20f(11);
+const x86Op XO_MOVSS =	XO_f30f(10);
+const x86Op XO_MOVSSto =	XO_f30f(11);
+const x86Op XO_MOVLPD =	XO_660f(12);
+const x86Op XO_MOVAPS =	XO_0f(28);
+const x86Op XO_XORPS =	XO_0f(57);
+const x86Op XO_ANDPS =	XO_0f(54);
+const x86Op XO_ADDSD =	XO_f20f(58);
+const x86Op XO_SUBSD =	XO_f20f(5c);
+const x86Op XO_MULSD =	XO_f20f(59);
+const x86Op XO_DIVSD =	XO_f20f(5e);
+const x86Op XO_SQRTSD =	XO_f20f(51);
+const x86Op XO_MINSD =	XO_f20f(5d);
+const x86Op XO_MAXSD =	XO_f20f(5f);
+const x86Op XO_ROUNDSD =	0x0b3a0ffc;  /* Really 66 0f 3a 0b. See asm_fpmath. */
+const x86Op XO_UCOMISD =	XO_660f(2e);
+const x86Op XO_CVTSI2SD =	XO_f20f(2a);
+const x86Op XO_CVTTSD2SI=	XO_f20f(2c);
+const x86Op XO_CVTSI2SS =	XO_f30f(2a);
+const x86Op XO_CVTTSS2SI=	XO_f30f(2c);
+const x86Op XO_CVTSS2SD =	XO_f30f(5a);
+const x86Op XO_CVTSD2SS =	XO_f20f(5a);
+const x86Op XO_ADDSS =	XO_f30f(58);
+const x86Op XO_MOVD =	XO_660f(6e);
+const x86Op XO_MOVDto =	XO_660f(7e);
 
-  XO_FLDd =	XO_(d9), XOg_FLDd = 0,
-  XO_FLDq =	XO_(dd), XOg_FLDq = 0,
-  XO_FILDd =	XO_(db), XOg_FILDd = 0,
-  XO_FILDq =	XO_(df), XOg_FILDq = 5,
-  XO_FSTPd =	XO_(d9), XOg_FSTPd = 3,
-  XO_FSTPq =	XO_(dd), XOg_FSTPq = 3,
-  XO_FISTPq =	XO_(df), XOg_FISTPq = 7,
-  XO_FISTTPq =	XO_(dd), XOg_FISTTPq = 1,
-  XO_FADDq =	XO_(dc), XOg_FADDq = 0,
-  XO_FLDCW =	XO_(d9), XOg_FLDCW = 5,
-  XO_FNSTCW =	XO_(d9), XOg_FNSTCW = 7
-} x86Op;
+const x86Op XO_FLDd =	XO_(d9), XOg_FLDd = 0;
+const x86Op XO_FLDq =	XO_(dd), XOg_FLDq = 0;
+const x86Op XO_FILDd =	XO_(db), XOg_FILDd = 0;
+const x86Op XO_FILDq =	XO_(df), XOg_FILDq = 5;
+const x86Op XO_FSTPd =	XO_(d9), XOg_FSTPd = 3;
+const x86Op XO_FSTPq =	XO_(dd), XOg_FSTPq = 3;
+const x86Op XO_FISTPq =	XO_(df), XOg_FISTPq = 7;
+const x86Op XO_FISTTPq =	XO_(dd), XOg_FISTTPq = 1;
+const x86Op XO_FADDq =	XO_(dc), XOg_FADDq = 0;
+const x86Op XO_FLDCW =	XO_(d9), XOg_FLDCW = 5;
+const x86Op XO_FNSTCW =	XO_(d9), XOg_FNSTCW = 7;
 
 /* x86 opcode groups. */
 typedef uint32_t x86Group;
