@@ -1,14 +1,14 @@
 Package: luajr
 Type: Package
-Title: LuaJIT Scripting
+Title: 'LuaJIT' Scripting
 Version: 0.1.1
 Authors@R: c(
     person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", role = c("cre", "aut", "cph"), comment = c(ORCID = "0000-0002-1740-1412")),
     person("Mike", "Pall", role = "cph", comment = "Author of the embedded LuaJIT compiler"),
     person("Lua.org, PUC-Rio", role = "cph", comment = "Authors of the Lua scripting language"))
 Description: An interface to 'LuaJIT' (<https://luajit.org>), a just-in-time 
-    compiler for the Lua scripting language (<https://www.lua.org>). Allows 
-    users to run Lua code from 'R'.
+    compiler for the 'Lua' scripting language (<https://www.lua.org>). Allows 
+    users to run 'Lua' code from 'R'.
 URL: https://github.com/nicholasdavies/luajr, https://nicholasdavies.github.io/luajr/
 BugReports: https://github.com/nicholasdavies/luajr/issues
 License: MIT + file LICENSE

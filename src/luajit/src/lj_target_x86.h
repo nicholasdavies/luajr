@@ -204,116 +204,127 @@ typedef struct {
 */
 typedef uint32_t x86Op;
 /* Fixed length opcodes. XI_* prefix. */
-const x86Op XI_O16 =	0x66;
-const x86Op XI_NOP =	0x90;
-const x86Op XI_XCHGa =	0x90;
-const x86Op XI_CALL =	0xe8;
-const x86Op XI_JMP =	0xe9;
-const x86Op XI_JMPs =	0xeb;
-const x86Op XI_PUSH =	0x50; /* Really 50+r. */
-const x86Op XI_JCCs =	0x70; /* Really 7x. */
-const x86Op XI_JCCn =	0x80; /* Really 0f8x. */
-const x86Op XI_LEA =	0x8d;
-const x86Op XI_MOVrib =	0xb0; /* Really b0+r. */
-const x86Op XI_MOVri =	0xb8; /* Really b8+r. */
-const x86Op XI_ARITHib =	0x80;
-const x86Op XI_ARITHi =	0x81;
-const x86Op XI_ARITHi8 =	0x83;
-const x86Op XI_PUSHi8 =	0x6a;
-const x86Op XI_TESTb =	0x84;
-const x86Op XI_TEST =	0x85;
-const x86Op XI_INT3 =	0xcc;
-const x86Op XI_MOVmi =	0xc7;
-const x86Op XI_GROUP5 =	0xff;
+#define XI_O16	0x66
+#define XI_NOP	0x90
+#define XI_XCHGa	0x90
+#define XI_CALL	0xe8
+#define XI_JMP	0xe9
+#define XI_JMPs	0xeb
+#define XI_PUSH	0x50 /* Really 50+r. */
+#define XI_JCCs	0x70 /* Really 7x. */
+#define XI_JCCn	0x80 /* Really 0f8x. */
+#define XI_LEA	0x8d
+#define XI_MOVrib	0xb0 /* Really b0+r. */
+#define XI_MOVri	0xb8 /* Really b8+r. */
+#define XI_ARITHib	0x80
+#define XI_ARITHi	0x81
+#define XI_ARITHi8	0x83
+#define XI_PUSHi8	0x6a
+#define XI_TESTb	0x84
+#define XI_TEST	0x85
+#define XI_INT3	0xcc
+#define XI_MOVmi	0xc7
+#define XI_GROUP5	0xff
 
 /* Note: little-endian byte-order! */
-const x86Op XI_FLDZ =	0xeed9;
-const x86Op XI_FLD1 =	0xe8d9;
-const x86Op XI_FDUP =	0xc0d9;  /* Really fld st0. */
-const x86Op XI_FPOP =	0xd8dd;  /* Really fstp st0. */
-const x86Op XI_FPOP1 =	0xd9dd;  /* Really fstp st1. */
-const x86Op XI_FRNDINT =	0xfcd9;
-const x86Op XI_FSCALE =	0xfdd9;
-const x86Op XI_FYL2X =	0xf1d9;
+#define XI_FLDZ	0xeed9
+#define XI_FLD1	0xe8d9
+#define XI_FDUP	0xc0d9  /* Really fld st0. */
+#define XI_FPOP	0xd8dd  /* Really fstp st0. */
+#define XI_FPOP1	0xd9dd  /* Really fstp st1. */
+#define XI_FRNDINT	0xfcd9
+#define XI_FSCALE	0xfdd9
+#define XI_FYL2X	0xf1d9
 
 /* VEX-encoded instructions. XV_* prefix. */
-const x86Op XV_RORX =	XV_f20f3a(f0);
-const x86Op XV_SARX =	XV_f30f38(f7);
-const x86Op XV_SHLX =	XV_660f38(f7);
-const x86Op XV_SHRX =	XV_f20f38(f7);
+#define XV_RORX	XV_f20f3a(f0)
+#define XV_SARX	XV_f30f38(f7)
+#define XV_SHLX	XV_660f38(f7)
+#define XV_SHRX	XV_f20f38(f7)
 
 /* Variable-length opcodes. XO_* prefix. */
-const x86Op XO_OR =	XO_(0b);
-const x86Op XO_MOV =	XO_(8b);
-const x86Op XO_MOVto =	XO_(89);
-const x86Op XO_MOVtow =	XO_66(89);
-const x86Op XO_MOVtob =	XO_(88);
-const x86Op XO_MOVmi =	XO_(c7);
-const x86Op XO_MOVmib =	XO_(c6);
-const x86Op XO_LEA =	XO_(8d);
-const x86Op XO_ARITHib =	XO_(80);
-const x86Op XO_ARITHi =	XO_(81);
-const x86Op XO_ARITHi8 =	XO_(83);
-const x86Op XO_ARITHiw8 =	XO_66(83);
-const x86Op XO_SHIFTi =	XO_(c1);
-const x86Op XO_SHIFT1 =	XO_(d1);
-const x86Op XO_SHIFTcl =	XO_(d3);
-const x86Op XO_IMUL =	XO_0f(af);
-const x86Op XO_IMULi =	XO_(69);
-const x86Op XO_IMULi8 =	XO_(6b);
-const x86Op XO_CMP =	XO_(3b);
-const x86Op XO_TESTb =	XO_(84);
-const x86Op XO_TEST =	XO_(85);
-const x86Op XO_GROUP3b =	XO_(f6);
-const x86Op XO_GROUP3 =	XO_(f7);
-const x86Op XO_GROUP5b =	XO_(fe);
-const x86Op XO_GROUP5 =	XO_(ff);
-const x86Op XO_MOVZXb =	XO_0f(b6);
-const x86Op XO_MOVZXw =	XO_0f(b7);
-const x86Op XO_MOVSXb =	XO_0f(be);
-const x86Op XO_MOVSXw =	XO_0f(bf);
-const x86Op XO_MOVSXd =	XO_(63);
-const x86Op XO_BSWAP =	XO_0f(c8);
-const x86Op XO_CMOV =	XO_0f(40);
+#define XO_OR	XO_(0b)
+#define XO_MOV	XO_(8b)
+#define XO_MOVto	XO_(89)
+#define XO_MOVtow	XO_66(89)
+#define XO_MOVtob	XO_(88)
+#define XO_MOVmi	XO_(c7)
+#define XO_MOVmib	XO_(c6)
+#define XO_LEA	XO_(8d)
+#define XO_ARITHib	XO_(80)
+#define XO_ARITHi	XO_(81)
+#define XO_ARITHi8	XO_(83)
+#define XO_ARITHiw8	XO_66(83)
+#define XO_SHIFTi	XO_(c1)
+#define XO_SHIFT1	XO_(d1)
+#define XO_SHIFTcl	XO_(d3)
+#define XO_IMUL	XO_0f(af)
+#define XO_IMULi	XO_(69)
+#define XO_IMULi8	XO_(6b)
+#define XO_CMP	XO_(3b)
+#define XO_TESTb	XO_(84)
+#define XO_TEST	XO_(85)
+#define XO_GROUP3b	XO_(f6)
+#define XO_GROUP3	XO_(f7)
+#define XO_GROUP5b	XO_(fe)
+#define XO_GROUP5	XO_(ff)
+#define XO_MOVZXb	XO_0f(b6)
+#define XO_MOVZXw	XO_0f(b7)
+#define XO_MOVSXb	XO_0f(be)
+#define XO_MOVSXw	XO_0f(bf)
+#define XO_MOVSXd	XO_(63)
+#define XO_BSWAP	XO_0f(c8)
+#define XO_CMOV	XO_0f(40)
 
-const x86Op XO_MOVSD =	XO_f20f(10);
-const x86Op XO_MOVSDto =	XO_f20f(11);
-const x86Op XO_MOVSS =	XO_f30f(10);
-const x86Op XO_MOVSSto =	XO_f30f(11);
-const x86Op XO_MOVLPD =	XO_660f(12);
-const x86Op XO_MOVAPS =	XO_0f(28);
-const x86Op XO_XORPS =	XO_0f(57);
-const x86Op XO_ANDPS =	XO_0f(54);
-const x86Op XO_ADDSD =	XO_f20f(58);
-const x86Op XO_SUBSD =	XO_f20f(5c);
-const x86Op XO_MULSD =	XO_f20f(59);
-const x86Op XO_DIVSD =	XO_f20f(5e);
-const x86Op XO_SQRTSD =	XO_f20f(51);
-const x86Op XO_MINSD =	XO_f20f(5d);
-const x86Op XO_MAXSD =	XO_f20f(5f);
-const x86Op XO_ROUNDSD =	0x0b3a0ffc;  /* Really 66 0f 3a 0b. See asm_fpmath. */
-const x86Op XO_UCOMISD =	XO_660f(2e);
-const x86Op XO_CVTSI2SD =	XO_f20f(2a);
-const x86Op XO_CVTTSD2SI=	XO_f20f(2c);
-const x86Op XO_CVTSI2SS =	XO_f30f(2a);
-const x86Op XO_CVTTSS2SI=	XO_f30f(2c);
-const x86Op XO_CVTSS2SD =	XO_f30f(5a);
-const x86Op XO_CVTSD2SS =	XO_f20f(5a);
-const x86Op XO_ADDSS =	XO_f30f(58);
-const x86Op XO_MOVD =	XO_660f(6e);
-const x86Op XO_MOVDto =	XO_660f(7e);
+#define XO_MOVSD	XO_f20f(10)
+#define XO_MOVSDto	XO_f20f(11)
+#define XO_MOVSS	XO_f30f(10)
+#define XO_MOVSSto	XO_f30f(11)
+#define XO_MOVLPD	XO_660f(12)
+#define XO_MOVAPS	XO_0f(28)
+#define XO_XORPS	XO_0f(57)
+#define XO_ANDPS	XO_0f(54)
+#define XO_ADDSD	XO_f20f(58)
+#define XO_SUBSD	XO_f20f(5c)
+#define XO_MULSD	XO_f20f(59)
+#define XO_DIVSD	XO_f20f(5e)
+#define XO_SQRTSD	XO_f20f(51)
+#define XO_MINSD	XO_f20f(5d)
+#define XO_MAXSD	XO_f20f(5f)
+#define XO_ROUNDSD	0x0b3a0ffc  /* Really 66 0f 3a 0b. See asm_fpmath. */
+#define XO_UCOMISD	XO_660f(2e)
+#define XO_CVTSI2SD	XO_f20f(2a)
+#define XO_CVTTSD2SI    XO_f20f(2c)
+#define XO_CVTSI2SS	XO_f30f(2a)
+#define XO_CVTTSS2SI    XO_f30f(2c)
+#define XO_CVTSS2SD	XO_f30f(5a)
+#define XO_CVTSD2SS	XO_f20f(5a)
+#define XO_ADDSS	XO_f30f(58)
+#define XO_MOVD	XO_660f(6e)
+#define XO_MOVDto	XO_660f(7e)
 
-const x86Op XO_FLDd =	XO_(d9), XOg_FLDd = 0;
-const x86Op XO_FLDq =	XO_(dd), XOg_FLDq = 0;
-const x86Op XO_FILDd =	XO_(db), XOg_FILDd = 0;
-const x86Op XO_FILDq =	XO_(df), XOg_FILDq = 5;
-const x86Op XO_FSTPd =	XO_(d9), XOg_FSTPd = 3;
-const x86Op XO_FSTPq =	XO_(dd), XOg_FSTPq = 3;
-const x86Op XO_FISTPq =	XO_(df), XOg_FISTPq = 7;
-const x86Op XO_FISTTPq =	XO_(dd), XOg_FISTTPq = 1;
-const x86Op XO_FADDq =	XO_(dc), XOg_FADDq = 0;
-const x86Op XO_FLDCW =	XO_(d9), XOg_FLDCW = 5;
-const x86Op XO_FNSTCW =	XO_(d9), XOg_FNSTCW = 7;
+#define XO_FLDd	XO_(d9)
+#define XOg_FLDd 0
+#define XO_FLDq	XO_(dd)
+#define XOg_FLDq 0
+#define XO_FILDd	XO_(db)
+#define XOg_FILDd 0
+#define XO_FILDq	XO_(df)
+#define XOg_FILDq 5
+#define XO_FSTPd	XO_(d9)
+#define XOg_FSTPd 3
+#define XO_FSTPq	XO_(dd)
+#define XOg_FSTPq 3
+#define XO_FISTPq	XO_(df)
+#define XOg_FISTPq 7
+#define XO_FISTTPq	XO_(dd)
+#define XOg_FISTTPq 1
+#define XO_FADDq	XO_(dc)
+#define XOg_FADDq 0
+#define XO_FLDCW	XO_(d9)
+#define XOg_FLDCW 5
+#define XO_FNSTCW	XO_(d9)
+#define XOg_FNSTCW 7
 
 /* x86 opcode groups. */
 typedef uint32_t x86Group;

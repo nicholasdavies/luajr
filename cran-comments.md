@@ -1,7 +1,13 @@
 ## Resubmission
 This is a resubmission. In this version I have:
 
-* Resolved a R CMD check warning about values of the enum x86Op in LuaJIT 
+* Resolved an R CMD check warning about initializers of const uint32_t 
+variables not being constant expressions by replacing them with #defines in
+lj_target_x86.h.
+
+This is in addition to the previous resubmission, in which I:
+
+* Resolved an R CMD check warning about values of the enum x86Op in LuaJIT 
 defining values outside the int (but within the uint32_t) range, which was 
 identified by the flag -Wpedantic.
 
