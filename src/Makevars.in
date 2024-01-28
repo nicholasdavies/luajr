@@ -11,8 +11,9 @@ $(SHLIB): luajit/src/libluajit.a
 # The amalg target amalgamates luajit source into one large C file, which allows
 # GCC to generate 'shorter and faster code' (see Installation docs for LuaJIT).
 # This also overrides CC, CFLAGS etc for compiling the library, as recommended
-# by 'Writing R Extensions'. We also define LUAJIT_ENABLE_LUA52COMPAT.
+# by 'Writing R Extensions'. We also define LUAJIT_ENABLE_LUA52COMPAT. We turn
+# off pedantic and Wformat to avoid certain CRAN warnings for LuaJIT.
 luajit/src/libluajit.a:
 	@(cd luajit && @make@ amalg BUILDMODE=static \
-	  CC="$(CC)" CFLAGS="$(CFLAGS) $(CPICFLAGS) -DLUAJIT_ENABLE_LUA52COMPAT" \
+	  CC="$(CC)" CFLAGS="$(CFLAGS) -Wno-pedantic -Wformat=0 $(CPICFLAGS) -DLUAJIT_ENABLE_LUA52COMPAT" \
 	  AR="$(AR)" RANLIB="$(RANLIB)")

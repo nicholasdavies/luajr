@@ -1,18 +1,10 @@
-## Resubmission
-This is a resubmission. In this version I have:
+## Additional issues
 
-* Resolved an R CMD check warning about initializers of const uint32_t 
-variables not being constant expressions by replacing them with #defines in
-lj_target_x86.h.
+This release fixes an 'Additional issue' for M1mac that was identified during 
+the CRAN rollout process:
 
-This is in addition to the previous resubmission, in which I:
-
-* Resolved an R CMD check warning about values of the enum x86Op in LuaJIT 
-defining values outside the int (but within the uint32_t) range, which was 
-identified by the flag -Wpedantic.
-
-* Resolved an R CMD check warning about a non-void* argument to lj_strfmt_pushf,
-which was identified by the flag -Wformat.
+* Resolved an R CMD check warning about enums in LuaJIT defining values outside 
+the int (but within the uint32_t) range, as identified by the flag -Wpedantic.
 
 ## R CMD check results
 
