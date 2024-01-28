@@ -6,9 +6,9 @@
 \alias{luajr-package}
 \title{luajr: LuaJIT Scripting}
 \description{
-'luajr' provides an interface to Mike Pall's LuaJIT (\url{https://luajit.org}),
-a just-in-time compiler for the Lua scripting language
-(\url{https://www.lua.org}). It allows users to run Lua code from R.
+'luajr' provides an interface to \href{https://luajit.org}{LuaJIT}, a
+just-in-time compiler for the \href{https://www.lua.org}{Lua scripting language}.
+It allows users to run Lua code from R.
 }
 \section{The R API}{
 

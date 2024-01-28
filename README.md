@@ -8,10 +8,9 @@
 
 <!-- reminder: update README.md with devtools::build_readme() -->
 
-luajr provides an R interface to Mike Pall’s
-[LuaJIT](https://luajit.org), a just-in-time compiler for the [Lua
-scripting language](https://www.lua.org). It allows users to run Lua
-code from R.
+luajr provides an interface to [LuaJIT](https://luajit.org), a
+just-in-time compiler for the [Lua scripting
+language](https://www.lua.org). It allows users to run Lua code from R.
 
 One of the advantages of using luajr is that LuaJIT runs Lua code with
 very fast compilation times, fast execution times, and no need for an
@@ -33,9 +32,8 @@ devtools::install_github("nicholasdavies/luajr")
 
 ## Under development
 
-luajr is under **early development**. As such, it has not yet been
-tested to work on all platforms, and the interface and behaviour of the
-package is subject to change without notice.
+luajr is under **early development**. As such, the interface and
+behaviour of the package is subject to change.
 
 <!--
 ## Example
