@@ -22,8 +22,15 @@ toolchain like `gcc` or `clang`.
 
 ## Installation
 
+You can install the released version of luajr from
+[CRAN](https://CRAN.R-project.org/package=luajr) with:
+
+``` r
+install.packages("luajr")
+```
+
 You can install the development version of luajr from
-[GitHub](https://github.com/) with:
+[GitHub](https://github.com/nicholasdavies/luajr) with:
 
 ``` r
 # install.packages("devtools")

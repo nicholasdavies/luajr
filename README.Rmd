@@ -25,9 +25,15 @@ One of the advantages of using luajr is that LuaJIT runs Lua code with very fast
 
 ## Installation
 
-You can install the development version of luajr from [GitHub](https://github.com/) with:
+You can install the released version of luajr from [CRAN](https://CRAN.R-project.org/package=luajr) with:
 
-``` r
+```{r, eval = FALSE}
+install.packages("luajr")
+```
+
+You can install the development version of luajr from [GitHub](https://github.com/nicholasdavies/luajr) with:
+
+```{r, eval = FALSE}
 # install.packages("devtools")
 devtools::install_github("nicholasdavies/luajr")
 ```
