@@ -53,4 +53,4 @@ enum
     REFERENCE_T = 0, VECTOR_T = 4, LIST_T = 8, NULL_T = 16
 };
 
-#define CheckSEXP(x, type, len) if (TYPEOF(x) != type || Rf_length(x) != len) { Rf_error("%s expects argument %s to be a length-%d of type %s", __func__, #x, len, Rf_type2char(TYPEOF(x))); }
+#define CheckSEXP(x, type, len) if (TYPEOF(x) != type || Rf_length(x) != len) { Rf_error("%s expects argument %s to be a length-%d of type %s", __func__, #x, len, Rf_type2char(type)); }
