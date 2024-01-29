@@ -16,9 +16,9 @@
 lua = function(code, filename = NULL, L = NULL)
 {
     if (is.null(filename)) {
-        ret = luajr_run_code(code, L)
+        ret = .Call(`_luajr_run_code`, code, L)
     } else {
-        ret = luajr_run_file(filename, L)
+        ret = .Call(`_luajr_run_file`, filename, L)
     }
 
     if (is.null(ret)) invisible() else ret
