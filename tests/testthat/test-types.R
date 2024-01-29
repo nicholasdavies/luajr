@@ -16,22 +16,22 @@ test_that("returning R reference types works", {
 
 test_that("extra types work", {
     # luajr.dataframe
-    lua("x = luajr.dataframe(2)")
+    lua("x = luajr.dataframe()")
     lua("x.l = luajr.logical({true, false})")
     lua("x.i = luajr.integer({1, 2})")
     lua("x.r = luajr.numeric({1.1, 2.2})")
     lua("x.c = luajr.character({'hi', 'lo'})")
     expect_identical(lua("return x"), data.frame(l = c(TRUE, FALSE), i = c(1L, 2L), r = c(1.1, 2.2), c = c("hi", "lo")))
 
-    # luajr.matrix
-    lua("x = luajr.matrix(3, 3)")
+    # luajr.matrix_r
+    lua("x = luajr.matrix_r(3, 3)")
     lua("x[1] = 1")
     lua("x[5] = 1")
     lua("x[9] = 1")
     expect_identical(lua("return x"), diag(3))
 
-    # luajr.datamatrix
-    lua("x = luajr.datamatrix(3, 3, {'a', 'b', 'c'})")
+    # luajr.datamatrix_r
+    lua("x = luajr.datamatrix_r(3, 3, {'a', 'b', 'c'})")
     lua("x[1] = 1")
     lua("x[5] = 1")
     lua("x[9] = 1")

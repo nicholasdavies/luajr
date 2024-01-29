@@ -466,13 +466,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 16.78013</span></span>
+<span><span class="co">#&gt; [1] 9.269167</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 16.78013</span></span>
+<span><span class="co">#&gt; [1] 9.269167</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 16.78013</span></span>
+<span><span class="co">#&gt; [1] 9.269167</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 16.78013</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 9.269167</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>
@@ -623,7 +623,7 @@ transferring control between languages.</p>
 <span><span class="va">logistic_map_L</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span></span>
 <span><span class="st">"function(x0, burn, iter, A)</span></span>
 <span><span class="st">    local dflen = #A * iter</span></span>
-<span><span class="st">    local result = luajr.dataframe(dflen)</span></span>
+<span><span class="st">    local result = luajr.dataframe()</span></span>
 <span><span class="st">    result.a = luajr.numeric_r(dflen, 0)</span></span>
 <span><span class="st">    result.x = luajr.numeric_r(dflen, 0)</span></span>
 <span><span class="st">    </span></span>

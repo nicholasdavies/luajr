@@ -13,4 +13,7 @@ reference:
   contents:
   - lua_open
   - lua_reset
+- title: Parallel processing
+  contents:
+  - lua_parallel
 

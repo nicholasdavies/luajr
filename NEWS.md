@@ -1,5 +1,6 @@
 # luajr (development version)
 
+-   Added `lua_parallel()` for basic multithreading.
 -   Fixed compilation warnings about enums on some platforms.
 
 # luajr 0.1.2

@@ -18,6 +18,7 @@ It allows users to run Lua code from R.
 \item \code{\link[=lua_shell]{lua_shell()}}: run an interactive Lua shell
 \item \code{\link[=lua_open]{lua_open()}}: create a new Lua state
 \item \code{\link[=lua_reset]{lua_reset()}}: reset the default Lua state
+\item \code{\link[=lua_parallel]{lua_parallel()}}: run Lua code in parallel
 }
 }
 

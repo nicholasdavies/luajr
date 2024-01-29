@@ -55,7 +55,7 @@ function run()
     local q = { S = 0, I = 0, R = 0 }
 
     -- Solution storage
-    local df = luajr.dataframe(1000)
+    local df = luajr.dataframe()
     df.t = luajr.numeric_r(1000, 0)
     df.S = luajr.numeric_r(1000, 0)
     df.I = luajr.numeric_r(1000, 0)

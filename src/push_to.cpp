@@ -345,6 +345,21 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                     lua_pop(L, 1);
                 }
 
+                // Special check: ensure data.frame has rownames attribute
+                // If retval is data.frame with at least one column, but no row names:
+                if (Rf_inherits(retval, "data.frame") && Rf_length(retval) > 0 &&
+                    Rf_getAttrib(retval, R_RowNamesSymbol) == R_NilValue)
+                {
+                    // R has a special shorthand for "short" rownames: c(NA_integer_, nrow) (see attrib.c)
+                    // TODO This will fail if the number of rows is 2^31 or higher. However, it also seems
+                    // that R itself cannot really handle such long data.frames (at least as of R 4.3.2).
+                    SEXP rownames = PROTECT(Rf_allocVector3(INTSXP, 2, NULL));
+                    ++nprotect;
+                    INTEGER(rownames)[0] = NA_INTEGER;
+                    INTEGER(rownames)[1] = Rf_length(VECTOR_ELT(retval, 0));
+                    Rf_setAttrib(retval, R_RowNamesSymbol, rownames);
+                }
+
                 // Return
                 lua_pop(L, 1); // pop list[0]
                 UNPROTECT(nprotect);

@@ -1017,21 +1017,16 @@ sexp_set_attr = function(s, k, v)
     end
 end
 
--- dataframe type: specify number of rows
-function luajr.dataframe(nrow)
+-- dataframe type
+function luajr.dataframe()
     local df = luajr.list()
     df[0].class = "data.frame"
-
-    -- Make rownames
-    local rownames = luajr.integer_r(nullptr)
-    internal.AllocIntegerCompact1N(rownames, nrow)
-    df[0]["row.names"] = rownames
 
     return df
 end
 
--- matrix type: specify nrow and ncol
-function luajr.matrix(nrow, ncol)
+-- matrix reference type: specify nrow and ncol
+function luajr.matrix_r(nrow, ncol)
     local m = luajr.numeric_r(nrow * ncol, 0.0)
 
     -- Make dimensions
@@ -1043,12 +1038,12 @@ function luajr.matrix(nrow, ncol)
     return m
 end
 
--- datamatrix type: specify nrow, ncol, and column names
-function luajr.datamatrix(nrow, ncol, names)
-    local m = luajr.matrix(nrow, ncol)
+-- datamatrix reference type: specify nrow, ncol, and column names
+function luajr.datamatrix_r(nrow, ncol, names)
+    local m = luajr.matrix_r(nrow, ncol)
 
     -- Make column names
-    if #names > ncol then error("Supplied more names than columns to luajr.datamatrix.") end
+    if #names > ncol then error("Supplied more names than columns to luajr.datamatrix_r.") end
     local colnames = luajr.character_r(ncol)
     for i = 1,#names do colnames[i] = names[i] end
     m("/matrix/colnames", colnames)

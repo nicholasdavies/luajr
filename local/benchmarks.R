@@ -149,7 +149,7 @@ logistic_map_R = function(x0, burn, iter, A)
 logistic_map_L = lua_func(
 "function(x0, burn, iter, A)
     local dflen = #A * iter
-    local result = luajr.dataframe(dflen)
+    local result = luajr.dataframe()
     result.a = luajr.numeric_r(dflen, 0)
     result.x = luajr.numeric_r(dflen, 0)
 

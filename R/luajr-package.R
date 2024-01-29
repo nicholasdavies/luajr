@@ -23,6 +23,7 @@ inlineCxxPlugin = function(...)
 #' * [lua_shell()]: run an interactive Lua shell
 #' * [lua_open()]: create a new Lua state
 #' * [lua_reset()]: reset the default Lua state
+#' * [lua_parallel()]: run Lua code in parallel
 #'
 #' @section Further reading:
 #' For an introduction to 'luajr', see `vignette("luajr")`
