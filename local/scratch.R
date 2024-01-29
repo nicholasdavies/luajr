@@ -21,6 +21,17 @@ sum_r = lua_func("sum", "r")
 sum_v = lua_func("sum", "v")
 x = rnorm(10000, 10)
 
+# something as simple as this would be nice
+# TODO convert types
+system.time(
+lua_parallel(
+    "function(i) local s = 0  for j = 1,1000000+i do s = s + 1 end  return s end",
+    n = 100L,
+    threads = 4L,
+    pre = NA_character_
+)
+)
+
 sum_R(x)
 sum_r(x)
 sum_v(x)

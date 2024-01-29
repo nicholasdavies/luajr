@@ -39,6 +39,9 @@ SEXP luajr_run_file(SEXP filename, SEXP Lx);
 SEXP luajr_func_create(SEXP code, SEXP Lx);
 SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
 
+// Run Lua code in parallel (parallel.cpp)
+SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre);
+
 // Miscellaneous functions (setup.cpp)
 SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));
 void* luajr_getpointer(SEXP x, int tag_code);

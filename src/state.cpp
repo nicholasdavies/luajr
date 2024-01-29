@@ -5,7 +5,6 @@ extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-#include "luajit_rolling.h"
 }
 #define R_NO_REMAP
 #include <R.h>

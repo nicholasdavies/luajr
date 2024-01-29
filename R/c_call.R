@@ -25,10 +25,6 @@ luajr_func_call = function(fx, alist, acode, Lx) {
     .Call(`_luajr_func_call`, fx, alist, acode, Lx)
 }
 
-luajr_run_parallel = function(n) {
-    .Call(`_luajr_run_parallel`, n)
-}
-
 #' Create a new Lua state
 #'
 #' Creates a new, empty Lua state and returns an external pointer wrapping that
@@ -59,7 +55,7 @@ luajr_run_parallel = function(n) {
 #' lua("a = 4", L = L1)
 #' lua("print(a)") # 2
 #' lua("print(a)", L = L1) # 4
-#' @export lua_open
+#' @export
 lua_open = function() {
     .Call(`_luajr_open`)
 }
@@ -78,8 +74,7 @@ lua_open = function() {
 #' lua("a = 2")
 #' lua_reset()
 #' lua("print(a)") # nil
-#' @export lua_reset
+#' @export
 lua_reset = function() {
     invisible(.Call(`_luajr_reset`))
 }
-

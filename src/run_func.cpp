@@ -7,7 +7,6 @@
 #include <string>
 extern "C" {
 #include "lua.h"
-#include "lualib.h"
 #include "lauxlib.h"
 }
 #define R_NO_REMAP
@@ -92,9 +91,9 @@ extern "C" SEXP luajr_func_create(SEXP code, SEXP Lx)
 
     // Handle mistakes
     if (nret != 1)
-        Rf_error("lua_func expects `code' to evaluate to one value, not %d.", nret);
+        Rf_error("lua_func expects `func' to evaluate to one value, not %d.", nret);
     if (lua_type(L, -1) != LUA_TFUNCTION)
-        Rf_error("lua_func expects `code' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
+        Rf_error("lua_func expects `func' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
 
     // Create the registry entry with the value on the top of the stack
     RegistryEntry* re = new RegistryEntry(L);

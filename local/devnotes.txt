@@ -1,6 +1,7 @@
 Feature plan
 ------------
 - Document the luajr module
+- Make sure all API functions can handle NAs, wrong types, etc.
 - For luajr.list:
     v("/list/order", ord) -- reorder elements (like data.table)
 - Make thread safe, perhaps by locking on any R operations from within Lua
