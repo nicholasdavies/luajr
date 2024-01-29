@@ -49,7 +49,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         l[t] = luajr_newstate();
 
     // The work itself
-    std::atomic<int> iter = 0;
+    std::atomic<int> iter { 0 };
     std::string error_msg;
     std::mutex pm;
     SEXP result = PROTECT(Rf_allocVector3(VECSXP, n_iter, NULL));
@@ -61,7 +61,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         {
             if (luaL_dostring(l[t], pre_code))
             {
-                std::lock_guard lock { pm };
+                std::lock_guard<std::mutex> lock { pm };
                 error_msg = lua_tostring(l[t], -1);
             }
             lua_settop(l[t], 0); // Discard any return values
@@ -78,14 +78,14 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 
         // Handle errors
         if (err) {
-            std::lock_guard lock { pm };
+            std::lock_guard<std::mutex> lock { pm };
             error_msg = lua_tostring(l[t], -1);
         } else if (nret != 1) {
-            std::lock_guard lock { pm };
+            std::lock_guard<std::mutex> lock { pm };
             error_msg = "lua_parallel expects `func' to evaluate to one value, not " +
                 std::to_string(nret) + ".";
         } else if (lua_type(l[t], -1) != LUA_TFUNCTION) {
-            std::lock_guard lock { pm };
+            std::lock_guard<std::mutex> lock { pm };
             error_msg = "lua_parallel expects `func' to evaluate to a function, not a " +
                 std::string(lua_typename(l[t], lua_type(l[t], -1))) + ".";
         }
@@ -107,7 +107,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 
             // Store computed value and handle errors
             {
-                std::lock_guard lock { pm };
+                std::lock_guard<std::mutex> lock { pm };
 
                 // Did this iteration produce an error?
                 if (err != 0)
