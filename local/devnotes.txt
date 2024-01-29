@@ -1,5 +1,6 @@
 Feature plan
 ------------
+- Document the luajr module
 - For luajr.list:
     v("/list/order", ord) -- reorder elements (like data.table)
 - Make thread safe, perhaps by locking on any R operations from within Lua
