@@ -16,14 +16,15 @@ lua_State* L0 = 0;
 // Initializes the luajr package
 static const R_CallMethodDef CallEntries[] =
 {
-    { "_luajr_run_code",        (DL_FUNC)&luajr_run_code,       2 },
-    { "_luajr_run_file",        (DL_FUNC)&luajr_run_file,       2 },
-    { "_luajr_func_create",     (DL_FUNC)&luajr_func_create,    2 },
-    { "_luajr_func_call",       (DL_FUNC)&luajr_func_call,      4 },
     { "_luajr_locate_dylib",    (DL_FUNC)&luajr_locate_dylib,   1 },
     { "_luajr_locate_module",   (DL_FUNC)&luajr_locate_module,  1 },
     { "_luajr_open",            (DL_FUNC)&luajr_open,           0 },
     { "_luajr_reset",           (DL_FUNC)&luajr_reset,          0 },
+    { "_luajr_run_code",        (DL_FUNC)&luajr_run_code,       2 },
+    { "_luajr_run_file",        (DL_FUNC)&luajr_run_file,       2 },
+    { "_luajr_func_create",     (DL_FUNC)&luajr_func_create,    2 },
+    { "_luajr_func_call",       (DL_FUNC)&luajr_func_call,      4 },
+    { "_luajr_run_parallel",    (DL_FUNC)&luajr_run_parallel,   1 },
     { NULL, NULL, 0 }
 };
 

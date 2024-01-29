@@ -23,8 +23,8 @@ extern "C" {
 SEXP luajr_locate_dylib(SEXP path);
 SEXP luajr_locate_module(SEXP path);
 SEXP luajr_open();
-lua_State* luajr_newstate();
 SEXP luajr_reset();
+lua_State* luajr_newstate();
 lua_State* luajr_getstate(SEXP Lx);
 
 // Move values between R and Lua (push_to.cpp)

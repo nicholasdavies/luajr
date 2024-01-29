@@ -1,6 +1,14 @@
 # Wrappers to call C functions from R
 
 # Non-exported (used internally by luajr package)
+luajr_locate_dylib = function(path) {
+    .Call(`_luajr_locate_dylib`, path)
+}
+
+luajr_locate_module = function(path) {
+    .Call(`_luajr_locate_module`, path)
+}
+
 luajr_run_code = function(code, Lx) {
     .Call(`_luajr_run_code`, code, Lx)
 }
@@ -17,12 +25,8 @@ luajr_func_call = function(fx, alist, acode, Lx) {
     .Call(`_luajr_func_call`, fx, alist, acode, Lx)
 }
 
-luajr_locate_dylib = function(path) {
-    .Call(`_luajr_locate_dylib`, path)
-}
-
-luajr_locate_module = function(path) {
-    .Call(`_luajr_locate_module`, path)
+luajr_run_parallel = function(n) {
+    .Call(`_luajr_run_parallel`, n)
 }
 
 #' Create a new Lua state

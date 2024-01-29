@@ -58,6 +58,34 @@ extern "C" SEXP luajr_locate_module(SEXP path)
     return R_NilValue;
 }
 
+// Destroy a Lua state pointed to by an R external pointer when it is no longer
+// needed (i.e. at program exit or garbage collection of the R pointer).
+static void finalize_lua_state(SEXP xptr)
+{
+    lua_State* L = reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr));
+    RegistryEntry::DisarmAll(L);
+    lua_close(L);
+    R_ClearExternalPtr(xptr);
+}
+
+// Create a new Lua state
+extern "C" SEXP luajr_open()
+{
+    return luajr_makepointer(luajr_newstate(), LUAJR_STATE_CODE, finalize_lua_state);
+}
+
+// Reset the default Lua state
+extern "C" SEXP luajr_reset()
+{
+    if (L0)
+    {
+        RegistryEntry::DisarmAll(L0);
+        lua_close(L0);
+        L0 = 0;
+    }
+    return R_NilValue;
+}
+
 // Helper function to create a fresh Lua state with the required libraries
 // and with the JIT compiler loaded.
 extern "C" lua_State* luajr_newstate()
@@ -113,34 +141,6 @@ extern "C" lua_State* luajr_newstate()
     lua_setfield(l, LUA_REGISTRYINDEX, "luajrx");
 
     return l;
-}
-
-// Destroy a Lua state pointed to by an R external pointer when it is no longer
-// needed (i.e. at program exit or garbage collection of the R pointer).
-static void finalize_lua_state(SEXP xptr)
-{
-    lua_State* L = reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr));
-    RegistryEntry::DisarmAll(L);
-    lua_close(L);
-    R_ClearExternalPtr(xptr);
-}
-
-// Create a new Lua state
-extern "C" SEXP luajr_open()
-{
-    return luajr_makepointer(luajr_newstate(), LUAJR_STATE_CODE, finalize_lua_state);
-}
-
-// Reset the default Lua state
-extern "C" SEXP luajr_reset()
-{
-    if (L0)
-    {
-        RegistryEntry::DisarmAll(L0);
-        lua_close(L0);
-        L0 = 0;
-    }
-    return R_NilValue;
 }
 
 // Helper function to interpret the Lua state handle Lx as either a reference
