@@ -44,7 +44,7 @@ static std::string luajr_bytecode;
 // Provide path to luajr dylib
 extern "C" SEXP luajr_locate_dylib(SEXP path)
 {
-    CheckSEXP(path, STRSXP, 1);
+    CheckSEXPLen(path, STRSXP, 1);
     luajr_dylib_path = CHAR(STRING_ELT(path, 0));
     return R_NilValue;
 }
@@ -52,7 +52,7 @@ extern "C" SEXP luajr_locate_dylib(SEXP path)
 // Provide path to luajr module source
 extern "C" SEXP luajr_locate_module(SEXP path)
 {
-    CheckSEXP(path, STRSXP, 1);
+    CheckSEXPLen(path, STRSXP, 1);
     luajr_module_path = CHAR(STRING_ELT(path, 0));
     return R_NilValue;
 }

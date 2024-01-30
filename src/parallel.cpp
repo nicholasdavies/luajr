@@ -17,22 +17,46 @@ extern "C" {
 #include <R.h>
 #include <Rinternals.h>
 
-// Open [threads] new Lua states, run code [pre] in each one, then run
-// "return [func]" and call it with integers 1 to n across the threads
+// Open [threads] new Lua states (or use [threads] if a list of states), run
+// code [pre] in each one, then run "return [func]" to get a function. Call the
+// func(i) with i in 1 to n.
 extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 {
-    CheckSEXP(func, STRSXP, 1);
-    CheckSEXP(n, INTSXP, 1);
-    CheckSEXP(threads, INTSXP, 1);
-    CheckSEXP(pre, STRSXP, 1);
+    CheckSEXPLen(func, STRSXP, 1);
+    CheckSEXPLen(n, INTSXP, 1);
+    CheckSEXPLen(pre, STRSXP, 1);
 
-    // Further checks on parameters
+    // Ensure n is sensible
     int n_iter = INTEGER(n)[0];
     if (n_iter < 0) // also covers NA_INTEGER
         Rf_error("Invalid number of iterations.");
-    int n_threads = INTEGER(threads)[0];
-    if (n_threads <= 0) // also covers NA_INTEGER
-        Rf_error("Invalid number of threads.");
+
+    // Create or get Lua states for each thread
+    std::vector<lua_State*> l;
+    if (TYPEOF(threads) == INTSXP && Rf_length(threads) == 1)
+    {
+        int n_threads = INTEGER(threads)[0];
+        if (n_threads <= 0) // also covers NA_INTEGER
+            Rf_error("Invalid number of threads.");
+        l.assign(n_threads, 0);
+        for (unsigned int t = 0; t < l.size(); ++t)
+            l[t] = luajr_newstate();
+    }
+    else if (TYPEOF(threads) == VECSXP && Rf_length(threads) > 0)
+    {
+        l.assign(Rf_length(threads), 0);
+        for (unsigned int t = 0; t < l.size(); ++t)
+        {
+            l[t] = luajr_getstate(VECTOR_ELT(threads, t));
+            for (unsigned int u = 0; u < t; ++u)
+                if (l[u] == l[t])
+                    Rf_error("Cannot use the same Lua state across multiple threads.");
+        }
+    }
+    else
+    {
+        Rf_error("threads parameter must be either an integer or a list of Lua states.");
+    }
 
     // Assemble statement that returns Lua function
     std::string cmd = "return ";
@@ -43,16 +67,11 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
     if (STRING_ELT(pre, 0) != NA_STRING)
         pre_code = CHAR(STRING_ELT(pre, 0));
 
-    // Create Lua states for each thread
-    std::vector<lua_State*> l(n_threads, 0);
-    for (unsigned int t = 0; t < l.size(); ++t)
-        l[t] = luajr_newstate();
-
     // The work itself
     std::atomic<int> iter { 0 };
     std::string error_msg;
     std::mutex pm;
-    SEXP result = PROTECT(Rf_allocVector3(VECSXP, n_iter, NULL));
+    SEXP result = R_NilValue;
 
     auto work = [&](const unsigned int t)
     {
@@ -94,31 +113,35 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         if (!error_msg.empty())
             return;
 
-        // Get new top of stack
+        // Get new top of stack (i.e. the function)
         top0 = lua_gettop(l[t]);
 
-        for (int i = 0; (i = ++iter) <= n_iter; )
+        // Do calls
+        for (int i = ++iter; i <= n_iter; i = ++iter)
         {
             // Call the function with iteration number as argument
-            lua_pushvalue(l[t], -1);
+            int top1 = lua_gettop(l[t]);
+            lua_pushvalue(l[t], top0);
             lua_pushinteger(l[t], i);
             err = lua_pcall(l[t], 1, LUA_MULTRET, 0);
-            nret = lua_gettop(l[t]) - top0;
 
-            // Store computed value and handle errors
+            // Check for errors
+            if (err)
             {
                 std::lock_guard<std::mutex> lock { pm };
+                error_msg = lua_tostring(l[t], -1);
+            }
+            if (!error_msg.empty())
+                return;
 
-                // Did this iteration produce an error?
-                if (err != 0)
-                    error_msg = lua_tostring(l[t], -1);
-
-                // Has any thread produced an error?
-                if (!error_msg.empty())
-                    return;
-
-                // Store result
-                SET_VECTOR_ELT(result, i - 1, luajr_return(l[t], nret));
+            // Push number of return values and index for assignment onto the
+            // stack, unless there were no return values at all.
+            nret = lua_gettop(l[t]) - top1;
+            if (nret > 0)
+            {
+                lua_checkstack(l[t], 4);
+                lua_pushinteger(l[t], nret);
+                lua_pushinteger(l[t], i);
             }
         }
     };
@@ -132,14 +155,45 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
     for (unsigned int t = 0; t < thr.size(); ++t)
         thr[t].join();
 
-    // Close states
-    for (unsigned int t = 0; t < l.size(); ++t)
-        lua_close(l[t]);
-
-    // Handle errors and return
-    UNPROTECT(1);
+    // Handle errors
     if (!error_msg.empty())
+    {
+        // Close states, if lua_parallel created them
+        if (TYPEOF(threads) == INTSXP)
+            for (unsigned int t = 0; t < l.size(); ++t)
+                lua_close(l[t]);
+        // Otherwise, clear stacks (as may be quite full)
+        if (TYPEOF(threads) == VECSXP)
+            for (unsigned int t = 0; t < l.size(); ++t)
+                lua_settop(l[t], 0);
+        // Stop with error
         Rf_error("Error running parallel task: %s", error_msg.c_str());
+    }
 
+    // Assign computed values to list
+    int nprotect = 0;
+    for (unsigned int t = 0; t < l.size(); ++t)
+    {
+        while (lua_isnumber(l[t], -1))
+        {
+            if (result == R_NilValue)
+            {
+                result = PROTECT(Rf_allocVector3(VECSXP, n_iter, NULL));
+                ++nprotect;
+            }
+            int index = lua_tointeger(l[t], -1);
+            int nret = lua_tointeger(l[t], -2);
+            lua_pop(l[t], 2);
+            SET_VECTOR_ELT(result, index - 1, luajr_return(l[t], nret));
+            lua_pop(l[t], nret);
+        }
+    }
+
+    // Close states, if lua_parallel created them
+    if (TYPEOF(threads) == INTSXP)
+        for (unsigned int t = 0; t < l.size(); ++t)
+            lua_close(l[t]);
+
+    UNPROTECT(nprotect);
     return result;
 }
