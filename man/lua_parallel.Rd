@@ -11,7 +11,8 @@ lua_parallel(func, n, threads, pre = NA_character_)
 
 \item{n}{Number of function executions.}
 
-\item{threads}{Number of threads.}
+\item{threads}{Number of threads to create, or a list of existing Lua states
+(e.g. as created by \code{\link[=lua_open]{lua_open()}}), all different, one for each thread.}
 
 \item{pre}{Lua code block to run once for each thread at creation.}
 }
@@ -26,25 +27,39 @@ multiple threads.
 This function is experimental. Its interface and behaviour are likely to
 change in subsequent versions of luajr.
 
-First, \code{threads} new states are created with the standard Lua libraries
-opened in each. Then, a thread is launched for each state. Within each
-thread, the code in \code{pre} is run in the corresponding Lua state.
-Then, \code{func(i)} is called for each \code{i} in \code{1:n}, with the calls spread
-across the states. Finally, the Lua states are closed and the results are
-returned in a list.
+\code{\link[=lua_parallel]{lua_parallel()}} works as follows. A number \code{threads} of new Lua states is
+created with the standard Lua libraries and the \code{luajr} module opened in
+each (i.e. as though the states were created using \code{\link[=lua_open]{lua_open()}}). Then, a
+thread is launched for each state. Within each thread, the code in \code{pre} is
+run in the corresponding Lua state. Then, \code{func(i)} is called for each \code{i}
+in \code{1:n}, with the calls spread across the states. Finally, the Lua states
+are closed and the results are returned in a list.
+
+Instead of an integer, \code{threads} can be a list of Lua states, e.g. \code{NULL}
+for the default Lua state or a state returned by \code{\link[=lua_open]{lua_open()}}. This saves
+the time needed to open the new states, which takes a few milliseconds.
+}
+\section{Safety and performance}{
+
 
 Note that \code{func} has to be thread-safe. All pure Lua code and built-in Lua
 library functions are thread-safe, except for certain functions in the
 built-in \strong{os} and \strong{io} libraries (search for "thread safe" in the
 \href{https://www.lua.org/manual/5.2/manual.html}{Lua 5.2 reference manual}).
-Additionally, use of luajr reference types is \strong{not} thread-safe because
-these use R to allocate and manage memory, and R is not thread-safe.
 
-This means that you cannot safely use \code{luajr.logical_r}, \code{luajr.integer_r},
+Additionally, use of luajr reference types is \strong{not} thread-safe because
+these use R to allocate and manage memory, and R is not thread-safe. This
+means that you cannot safely use \code{luajr.logical_r}, \code{luajr.integer_r},
 \code{luajr.numeric_r}, \code{luajr.character_r}, or other reference types within
 \code{func}. \code{luajr.list} and \code{luajr.dataframe} are fine, provided the list
 entries / dataframe columns are value types.
+
+There is overhead associated with creating new Lua states and with gathering
+all the function results in an R list. It is advisable to check whether
+running your Lua code in parallel actually gives a substantial speed
+increase.
 }
+
 \examples{
 lua_parallel("function(i) return i end", n = 4, threads = 2)
 }

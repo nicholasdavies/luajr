@@ -1,0 +1,404 @@
+---
+title: "Interface with R from Lua"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Interface with R from Lua}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Whenever the `luajr` R package opens a new Lua state, it opens all the 
+[standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) in that 
+state, as well as the `luajr` module, which is designed to provide some key
+capabilities for your Lua code to interface well with R code. This vignette
+documents the `luajr` module.
+
+# Vector types
+
+The vector types are modelled after C++'s `std::vector` class. A vector type is
+what you end up with if you pass an argument into a Lua function using
+`lua_func()` with args code `"v"`, but you can also create new vectors within
+Lua. 
+
+Like their C++ counterparts, vector types all maintain an internal "capacity" 
+which is equal to or greater than their "length", or actual number of elements.
+The exception is the character vector, which is implemented internally as a 
+Lua table but has the same interface as the other vector types.
+
+Note that for vector types, indexes start at 1, not at 0. You must be very 
+careful not to access or write out of these bounds, as the `luajr` module does 
+**not** do bounds checking. Going out of bounds will cause crashes or other 
+undefined behaviour. Unlike Lua tables, vector types can only be indexed with 
+integers from 1 to the vector length, not with strings or any other types.
+
+## Creating and testing vector types {#vcreate}
+
+**`luajr.logical(a, b)`, `luajr.integer(a, b)`, `luajr.numeric(a, b)`, `luajr.character(a, b)`**
+
+These functions can be used to create "vector types" in Lua code. The meaning 
+of `a` and `b` depends on their type. For example:
+
+```lua
+luajr.numeric()     -- Empty numeric vector
+luajr.numeric(n, x) -- Size-n numeric vector, all entries equal to x
+luajr.numeric(v)    -- Copied from vector vec
+luajr.numeric(z)    -- Copied from "vector-ish" object z
+```
+
+Above, `n` is a nonnegative number, `x` is a boolean, number, string (as
+appropriate for the vector type) or `nil`, `vec` is another vector object of 
+the same type, and `z` is a table, vector type, or reference type.
+
+If `x == nil` in the `(n, x)` form of the above functions, then the values of
+the vector are left uninitialized (except for `luajr.character`, where the 
+values are set to the empty string).
+
+**`luajr.is_logical(obj)`, `luajr.is_integer(obj)`, `luajr.is_numeric(obj)`, `luajr.is_character(obj)`**
+
+Check whether a value `obj` is one of the corresponding vector types. These 
+return `true` if `obj` is of the corresponding type, and `false` otherwise.
+
+## Vector type methods
+
+All the vector types have the following methods:
+
+**`#v`**
+
+Returns the length of the vector.
+
+**`x = v[i]`, `v[i] = x`**
+
+Get or set the `i`th element of the vector. 
+
+Again: Note that for vector types, indexes start at 1, not at 0. You must be 
+very careful not to access or write out of these bounds, as the `luajr` module 
+does **not** do bounds checking. Going out of bounds will cause crashes or 
+other undefined behaviour. Unlike Lua tables, vector types can only be indexed 
+with integers from 1 to the vector length, not with strings or any other types.
+
+**`pairs(v)`, `ipairs(v)`**
+
+Use with a Lua `for` loop to iterate over the values of the vector. For 
+example:
+
+```lua
+for i,x in pairs(v) do
+    print(i, x)
+end
+```
+
+Note that for vector types, `pairs` and `ipairs` are interchangeable and the
+same loop above can be written as
+
+```lua
+for i = 1, #v do
+    print(i, v[i])
+end
+```
+
+**`v:assign(a, b)`**
+
+Assign a new value to the vector; `a` and `b` have the same meaning as in the
+[vector type constructors](#vcreate).
+
+**`v:print()`**
+
+Print each value of the vector next to its index, each value on a new line.
+
+**`v:concat(sep)`**
+
+Returns a string comprised of the elements of the vector converted into strings 
+and concatenated together with `sep` as a separator. If `sep` is missing, the
+default is `","`.
+
+**`v:debug_str()`**
+
+Returns a compact string representation of the vector, useful mainly for
+debugging. This contains the length of the vector, then the capacity of the
+vector, then each of the vector elements separated by commas.
+
+**`v:reserve(n)`**
+
+If `n` is larger than the vector's current capacity, suggests that the vector
+be enlarged to a capacity of `n`. Otherwise, does nothing.
+
+**`v:capacity()`**
+
+Returns the capacity of the vector.
+
+**`v:shrink_to_fit()`**
+
+If the vector's capacity is larger than its length, reallocates the vector so 
+that its capacity is equal to its length.
+
+**`v:clear()`**
+
+Sets the size of the vector to 0.
+
+**`v:resize(n, val)`**
+
+Sets the size of the vector to `n`. If `n` is smaller than the vector's current
+length, removes elements at the end of the vector. If `n` is larger than the 
+vector's current length, adds new elements at the end equal to `val`. `val` can
+be `nil` or missing.
+
+**`v:push_back(val)`**
+
+Adds `val` to the end of the vector.
+
+**`v:pop_back()`**
+
+Removes one element from the end of the vector.
+
+**`v:insert(i, a, b)`**
+
+Inserts new elements before position `i`, which must be between 1 and `#v + 1`.
+`a` and `b` have the same meaning as in the 
+[vector type constructors](#vcreate).
+
+**`v:erase(first, last)`**
+
+Removes elements from position `first` to position `last`, inclusive (e.g. so 
+that `v:erase(1, #v)` erases the whole vector). If `last` is `nil` or missing,
+just erases the single element at position `first`.
+
+# Reference types
+
+The reference types are similar to the vector types, but they are more 
+"low-level" and hence are missing much of the functionality of the vector 
+types. They map directly onto memory managed by R, so judicious use of 
+reference types when passing to or returning from Lua can avoid unnecessary
+memory allocations and copies.
+
+Although reference types are missing lots of methods that the vector types 
+have, they do have one feature that the vector types don't have, namely that
+you can set and get the attributes associated with the underlying R value.
+
+A reference type is what you end up with if you pass an argument into a Lua 
+function using `lua_func()` with args code `"r"`, but you can also create new 
+reference types within Lua. 
+
+As with the vector types, indexes start at 1, not at 0, and you must be very
+careful not to access or write out of these bounds.
+
+Finally, because reference types depend upon R, they are not completely 
+thread safe and therefore they cannot safely be used with `lua_parallel()`.
+
+## Creating and testing reference types
+
+**`luajr.logical_r(a, b)`, `luajr.integer_r(a, b)`, `luajr.numeric_r(a, b)`, `luajr.character_r(a, b)`**
+
+These functions can be used to create "vector types" in Lua code. The meaning 
+of `a` and `b` depends on their type. Namely:
+
+```lua
+luajr.numeric_r(n, x) -- Size n, all entries equal to x if x ~= nil
+luajr.numeric_r(z)    -- Copied from z
+```
+
+Above, `n` is a nonnegative number, `x` is a boolean, number, or string (as
+appropriate for the vector type) or `nil`, and `z` is a table, vector type, or 
+reference type.
+
+**`luajr.is_logical_r(obj)`, `luajr.is_integer_r(obj)`, `luajr.is_numeric_r(obj)`, `luajr.is_character_r(obj)`**
+
+Check whether a value `obj` is one of the corresponding reference types. These 
+return `true` if `obj` is of the corresponding type, and `false` otherwise.
+
+## Reference type methods
+
+All the reference types have the following methods:
+
+**`#v`**
+
+Returns the length of the referenced vector.
+
+**`x = v[i]`, `v[i] = x`**
+
+Get or set the `i`th element of the referenced vector. 
+
+**`pairs(v)`, `ipairs(v)`**
+
+Use with a Lua `for` loop to iterate over the values of the vector.
+
+**`x = v(attr)`, `v(attr, val)`**
+
+Get or set the attribute named `attr`. The second form, with two arguments,
+sets the attribute to `val`. Note that even though you can get and manipulate
+the `names` attribute, you cannot access a reference vector's elements by their 
+names.
+
+# List type
+
+A list is a special kind of Lua table that can be indexed either with positive
+integers or with strings. Unlike Lua tables, a list remembers the order in 
+which you have added elements to it, like an R list does. 
+
+## Creating and testing lists
+
+**`luajr.list()`**
+
+Creates a new, empty list.
+
+**`luajr.is_list(obj)`**
+
+Check whether a value `obj` is a list. Returns `true` if `obj` is a list, and
+`false` otherwise.
+
+## List methods
+
+Lists have the following methods:
+
+**`#v`**
+
+Returns the length of the list, including both integer- and string-keyed 
+entries.
+
+**`x = v[i]`, `v[i] = x`**
+
+Get or set element `i` of the list. `i` can be either a positive integer or
+a string. Note that you cannot write to any integer keys greater than `#v + 1`.
+
+**`pairs(v)`, `ipairs(v)`**
+
+Use with a Lua `for` loop to iterate over the values of the vector. Unlike with
+vector and reference types, `pairs` and `ipairs` are not exactly the same when
+applied to lists; the former will provide either string or number keys as you
+iterate through the list (strings if they are present, numbers otherwise) and
+the latter will give number keys only. Either one iterates through every 
+element of the list and both iterate through the list in the same order.
+
+**`x = v(attr)`, `v(attr, val)`**
+
+Get or set the attribute named `attr`. The second form, with two arguments,
+sets the attribute to `val`. Note that, for a list, the `"names"` attribute is 
+not a simple vector of names, like in R, but is an associative array linking
+keys to their indices. For example, for a list with elements `a = 1`, `2`, and 
+`c = 3`, `v("names")` is equal to `{ "a" = 1, "c" = 3 }`. However, when a
+list is returned to R, its `"names"` attribute has the normal R format.
+
+Note that lists have this interface for setting and getting attributes, but
+unlike the reference types (which also have this capability), they are not
+internally managed by R. This means that they are safe to use with 
+`lua_parallel()`, as long as they don't contain any reference types.
+
+# Data frame and matrix types
+
+There are a handful of additional types based on the above types, but which
+have some special behaviour when returned to R.
+
+## Data frame
+
+A data frame can be created with
+
+```lua
+df = luajr.dataframe()
+```
+
+This is just a `luajr.list` with the `"class"` attribute set to `"data.frame"`.
+However, when a list with this class gets returned to R, it gets turned into a
+data frame.
+
+## Matrix
+
+A matrix can be created with
+
+```lua
+df = luajr.matrix_r(nrow, ncol)
+```
+
+This is a special kind of `luajr.numeric_r` with the `"dim"` attribute set to
+`luajr.integer_r({ nrow, ncol })`. It gets recognized as a matrix when returned 
+to R. However, you can only access elements with a single index that starts at 
+1 and goes in column-major order. So, for example, for a 2x2 matrix, the 
+top-left element has index 1, bottom-left has index 2, top-right has index 3 
+and bottom-right has index 4.
+
+Note that it is a reference type.
+
+## Data matrix
+
+A data matrix can be created with
+
+```lua
+dm = luajr.datamatrix_r(nrow, ncol, names)
+```
+
+This is similar to `luajr.matrix_r`, but it has `names` as column names. 
+`names` can be passed in as a Lua table (e.g. `{ "foo", "bar" }`) or as a 
+`luajr.character` or `luajr.character_r` object.
+
+Using a data matrix is very slightly faster than using a data frame because 
+only one memory allocation needs to be made, but this difference is on the
+order of microseconds for normal sized data. Also, if you are just going to
+convert the returned matrix into a data frame anyway, you lose the speed 
+advantage. So don't worry about it too much.
+
+The column names can be get and set within Lua using the special attribute name 
+`"/matrix/colnames"`.
+
+# Constants
+
+The following constants are defined in the `luajr` table:
+
+```lua
+luajr.TRUE
+luajr.FALSE
+luajr.NA_logical_
+luajr.NA_integer_
+luajr.NA_real_
+luajr.NA_character_
+```
+
+Note that Lua's semantics in dealing with logical types, and NA values, are
+very different from R's semantics. Lua does not "understand" NA values in the
+same way that R does, and it sees the R "logical" type as fundamentally an
+integer, not a boolean.
+
+Specifically, whereas in R you could do the following:
+
+```r
+x = c(TRUE, FALSE, NA)
+if (x[1]) print("First element of x is TRUE!")
+```
+
+in Lua you have to do this:
+
+```lua
+x = luajr.logical({ luajr.TRUE, luajr.FALSE, luajr.NA_logical_ })
+if x[1] == luajr.TRUE then print("First element of x is TRUE!") end
+```
+
+This is because "under the hood", R's TRUE is defined as 1 (or any nonzero 
+integer besides NA), FALSE is defined as 0, and NA (when logical or integer) is 
+defined as a special 'flag' value of -2147483648 (i.e. -2^31). However, in Lua, 
+anything other than `nil` or `false` evaluates as `true`, meaning that the 
+following Lua code
+
+```lua
+x = luajr.logical({ luajr.TRUE, luajr.FALSE, luajr.NA_logical_ })
+if x[1] then print("First element of x is TRUE!") end
+```
+
+may appear to work, but in fact it will print the statement about `x[1]` being 
+TRUE regardless of whether `x[1]` is `luajr.TRUE`, `luajr.FALSE`, or 
+`luajr.NA_logical_`.
+
+When testing for NA in Lua, you have to check if a value is equal to (`==`) or
+not equal to (`~=`) the corresponding NA constant above, depending on the type 
+of the variable in question.
+
+All of this only applies to the vector and reference types described above.
+Lua also has its own boolean type (with possible values `true` and `false`) 
+which will never compare equal with either `luajr.TRUE`, `luajr.FALSE` or any 
+of the NA values. A Lua string can never compare equal with
+`luajr.NA_character_`, but conversely a Lua number may sometimes compare 
+equal with `luajr.NA_logical_`, `luajr.NA_integer_`, or `luajr.NA_real_`, so
+do be careful not to mix Lua types and these R constants.

@@ -1,8 +1,8 @@
 ---
-title: "Introduction to luajr"
+title: "Introduction to `luajr`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to luajr}
+  %\VignetteIndexEntry{Introduction to `luajr`}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,7 +25,7 @@ This is **not** a guide to Lua or LuaJIT; it is a quick-start guide to luajr for
 people who already know how to program in Lua. See the 
 [Lua web site](https://www.lua.org) for resources related to coding in Lua.
 
-## Running Lua code: `lua()` and `lua_shell()`
+# Running Lua code: `lua()` and `lua_shell()`
 
 ```{r setup}
 library(luajr)
@@ -76,7 +76,7 @@ source file, instead of running the contents of a string.
 Call `lua_shell()` to open an interactive Lua shell at the R prompt. This can 
 can be helpful for debugging or for testing Lua statements.
 
-## Calling Lua functions from R: `lua_func()`
+# Calling Lua functions from R: `lua_func()`
 
 The key piece of functionality for luajr is probably `lua_func()`. This allows 
 you to call Lua functions from R.
@@ -217,7 +217,7 @@ print(x)
 Here, because we are returning a modified value, we can add elements to the list
 (`f3`) and change whole entries of the list (`f4`).
 
-## Benchmarking
+# Benchmarking
 
 In the same way that using R packages 
 [cpp11](https://CRAN.R-project.org/package=cpp11) or 
@@ -242,7 +242,7 @@ example, we compare different ways of passing vectors to Lua functions relative
 to R. In the second example, we compare more fundamentally the difference in
 running a whole algorithm in Lua versus R. 
 
-### Parameter passing example: sum of squares
+## Parameter passing example: sum of squares
 
 For reasonably long vectors, passing by reference (`'r'`) is faster than passing 
 by value (`'v'`), which is faster than passing by simplify (`'s'`, `'a'`, or 
@@ -305,7 +305,7 @@ is relatively short, and there is a certain amount of overhead in invoking it,
 while the R function doesn't have the overhead of transferring control between 
 languages.
 
-### Processing time example: logistic map
+## Processing time example: logistic map
 
 Consider the following:
 
@@ -374,7 +374,7 @@ The times taken by each function on a 2019-era MacBook Pro are as follows:
 
 The version written in Lua is around 2,500 times faster than the version in R.
 
-## Working with Lua States: `lua_open()`, `lua_reset()` {#states}
+# Working with Lua States: `lua_open()`, `lua_reset()` {#states}
 
 All the functions mentioned above (`lua()`, `lua_shell()`, and `lua_func()`)
 can also take an argument `L` that specifies a particular Lua state that the
@@ -411,20 +411,10 @@ To reset a non-default Lua state `L` returned by `lua_open()`, just do
 `L = lua_open()` again. The memory previously used by `L` will be cleaned up at 
 the next garbage collection.
 
-## Semi-incomprehensible notes
+# Further reading
 
-Note that `luajr.list()` isn't quite aligned with the vector types 
-(e.g. `luajr.character()`), because there's no working analogy to '__newindex' 
-(i.e. passing a list `x` into a function with args code `'r'` and then doing 
-`x[1] = "foo"` doesn't change the underlying list, although doing 
-`x[1][1] = "foo"` does.)
-
-In general, arguments that can be expressed as lists aren't ever really passed 
-by reference; only their atomic vector elements are by reference or by value.
-
-Note that logical semantics don't make a huge amount of sense in Lua due to 
-true/false/NA, so it is better to explicitly check against the built-in values
-`luajr.TRUE_logical_`, `luajr.FALSE_logical_`, and `luajr.NA_logical_`.
+For notes on the `luajr` Lua module -- which contains functions and types for
+interacting with R from Lua code -- see `vignette("luajr-module")`.
 
 For integer, numeric, and character `NA` values, we can compare to 
 `luajr.NA_integer_`, `luajr.NA_real_`, and `luajr.NA_character_`.

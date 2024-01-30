@@ -18,14 +18,16 @@
 #' for the default Lua state or a state returned by [lua_open()]. This saves
 #' the time needed to open the new states, which takes a few milliseconds.
 #'
+#' @section Safety and performance:
+#'
 #' Note that `func` has to be thread-safe. All pure Lua code and built-in Lua
 #' library functions are thread-safe, except for certain functions in the
 #' built-in **os** and **io** libraries (search for "thread safe" in the
 #' [Lua 5.2 reference manual](https://www.lua.org/manual/5.2/manual.html)).
-#' Additionally, use of luajr reference types is **not** thread-safe because
-#' these use R to allocate and manage memory, and R is not thread-safe.
 #'
-#' This means that you cannot safely use `luajr.logical_r`, `luajr.integer_r`,
+#' Additionally, use of luajr reference types is **not** thread-safe because
+#' these use R to allocate and manage memory, and R is not thread-safe. This
+#' means that you cannot safely use `luajr.logical_r`, `luajr.integer_r`,
 #' `luajr.numeric_r`, `luajr.character_r`, or other reference types within
 #' `func`. `luajr.list` and `luajr.dataframe` are fine, provided the list
 #' entries / dataframe columns are value types.

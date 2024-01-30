@@ -26,6 +26,12 @@ multiple threads."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/aja
 <li class="active nav-item">
   <a class="nav-link" href="../reference/index.html">Reference</a>
 </li>
+<li class="nav-item dropdown">
+  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
+  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/luajr-module.html">Interface with R from Lua</a>
+  </div>
+</li>
 <li class="nav-item">
   <a class="nav-link" href="../news/index.html">Changelog</a>
 </li>
@@ -71,7 +77,8 @@ multiple threads.</p>
 
 
 <dt>threads</dt>
-<dd><p>Number of threads.</p></dd>
+<dd><p>Number of threads to create, or a list of existing Lua states
+(e.g. as created by <code><a href="lua_open.html">lua_open()</a></code>), all different, one for each thread.</p></dd>
 
 
 <dt>pre</dt>
@@ -88,22 +95,36 @@ multiple threads.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function is experimental. Its interface and behaviour are likely to
 change in subsequent versions of luajr.</p>
-<p>First, <code>threads</code> new states are created with the standard Lua libraries
-opened in each. Then, a thread is launched for each state. Within each
-thread, the code in <code>pre</code> is run in the corresponding Lua state.
-Then, <code>func(i)</code> is called for each <code>i</code> in <code>1:n</code>, with the calls spread
-across the states. Finally, the Lua states are closed and the results are
-returned in a list.</p>
+<p><code>lua_parallel()</code> works as follows. A number <code>threads</code> of new Lua states is
+created with the standard Lua libraries and the <code>luajr</code> module opened in
+each (i.e. as though the states were created using <code><a href="lua_open.html">lua_open()</a></code>). Then, a
+thread is launched for each state. Within each thread, the code in <code>pre</code> is
+run in the corresponding Lua state. Then, <code>func(i)</code> is called for each <code>i</code>
+in <code>1:n</code>, with the calls spread across the states. Finally, the Lua states
+are closed and the results are returned in a list.</p>
+<p>Instead of an integer, <code>threads</code> can be a list of Lua states, e.g. <code>NULL</code>
+for the default Lua state or a state returned by <code><a href="lua_open.html">lua_open()</a></code>. This saves
+the time needed to open the new states, which takes a few milliseconds.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="safety-and-performance">Safety and performance<a class="anchor" aria-label="anchor" href="#safety-and-performance"></a></h2>
+    
+
+
 <p>Note that <code>func</code> has to be thread-safe. All pure Lua code and built-in Lua
 library functions are thread-safe, except for certain functions in the
 built-in <strong>os</strong> and <strong>io</strong> libraries (search for "thread safe" in the
-<a href="https://www.lua.org/manual/5.2/manual.html" class="external-link">Lua 5.2 reference manual</a>).
-Additionally, use of luajr reference types is <strong>not</strong> thread-safe because
-these use R to allocate and manage memory, and R is not thread-safe.</p>
-<p>This means that you cannot safely use <code>luajr.logical_r</code>, <code>luajr.integer_r</code>,
+<a href="https://www.lua.org/manual/5.2/manual.html" class="external-link">Lua 5.2 reference manual</a>).</p>
+<p>Additionally, use of luajr reference types is <strong>not</strong> thread-safe because
+these use R to allocate and manage memory, and R is not thread-safe. This
+means that you cannot safely use <code>luajr.logical_r</code>, <code>luajr.integer_r</code>,
 <code>luajr.numeric_r</code>, <code>luajr.character_r</code>, or other reference types within
 <code>func</code>. <code>luajr.list</code> and <code>luajr.dataframe</code> are fine, provided the list
 entries / dataframe columns are value types.</p>
+<p>There is overhead associated with creating new Lua states and with gathering
+all the function results in an R list. It is advisable to check whether
+running your Lua code in parallel actually gives a substantial speed
+increase.</p>
     </div>
 
     <div class="section level2">
