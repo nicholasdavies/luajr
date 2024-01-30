@@ -133,6 +133,14 @@ extern "C" void AllocCharacter(character_rt* x, ptrdiff_t size)
     R_PreserveObject(x->_s);
 }
 
+extern "C" void AllocCharacterNA(character_rt* x, ptrdiff_t size)
+{
+    x->_s = Rf_allocVector3(STRSXP, size, 0);
+    R_PreserveObject(x->_s);
+    for (ptrdiff_t i = 0; i < size; ++i)
+        SET_STRING_ELT(x->_s, i, NA_STRING);
+}
+
 extern "C" void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v)
 {
     x->_s = Rf_allocVector3(STRSXP, size, 0);

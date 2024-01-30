@@ -81,6 +81,7 @@ void AllocInteger(integer_rt* x, ptrdiff_t size);
 void AllocIntegerCompact1N(integer_rt* x, ptrdiff_t N);
 void AllocNumeric(numeric_rt* x, ptrdiff_t size);
 void AllocCharacter(character_rt* x, ptrdiff_t size);
+void AllocCharacterNA(character_rt* x, ptrdiff_t size);
 void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v);
 void Release(SEXP s);
 
@@ -139,9 +140,10 @@ luajr.NA_integer_   = internal.NA_integer;
 luajr.NA_real_      = internal.NA_real;
 luajr.NA_character_ = internal.NA_character;
 
--- Forward declarations of attribute set/getters
+-- Forward declarations
 local sexp_get_attr
 local sexp_set_attr
+local vectorish
 
 
 ------------------------
@@ -160,7 +162,7 @@ local mt_basic_r = function(allocator)
                 if init2 ~= nil then
                     for i = 1,#self do self._p[i] = init2 end
                 end
-            elseif #init1 ~= nil then
+            elseif vectorish(init1) then
                 allocator(self, #init1)
                 for i = 1,#self do self._p[i] = init1[i] end
             else
@@ -221,11 +223,13 @@ local mt_character_r = {
         elseif type(init1) == "number" then
             if init2 == nil then
                 internal.AllocCharacter(self, init1)
+            elseif init2 == luajr.NA_character_ then
+                internal.AllocCharacterNA(self, init1)
             else
                 internal.AllocCharacterTo(self, init1, init2)
             end
-        elseif #init1 ~= nil then
-            allocator(self, #init1)
+        elseif vectorish(init1) then
+            internal.AllocCharacter(self, #init1)
             for i = 1,#self do self[i] = init1[i] end
         else
             error("Reference type must be initialised.")
@@ -242,11 +246,20 @@ local mt_character_r = {
     end,
 
     __index = function(x, k)
-        return ffi.string(internal.GetCharacterElt(x._s, k - 1))
+        local v = internal.GetCharacterElt(x._s, k - 1)
+        if v == nullptr then
+            return luajr.NA_character_
+        else
+            return ffi.string(v)
+        end
     end,
 
     __newindex = function(x, k, v)
-        internal.SetCharacterElt(x._s, k - 1, v)
+        if v == luajr.NA_character_ then
+            internal.SetCharacterElt(x._s, k - 1, nullptr)
+        else
+            internal.SetCharacterElt(x._s, k - 1, v)
+        end
     end,
 
     __call = function(x, k, v)
@@ -309,10 +322,12 @@ local vec_realloc = function(p, vtype, ptype, nelem, init1, init2)
     end
 
     -- initialize according to init1 and init2
-    if (type(init1) == "number" or type(init1) == "boolean") and init2 == nil then
+    if init1 == nil and init2 == nil then
+        -- do nothing
+    elseif (type(init1) == "number" or type(init1) == "boolean") and init2 == nil then
         -- number, nil: fill with number
         for i = 1,nelem do new_p[i] = init1 end
-    elseif type(init1) == "table" then
+    elseif vectorish(init1) then
         -- table, any: fill with table, only the first init2 entries if provided
         for i = 1,init2 or #init1 do new_p[i] = init1[i] end
     elseif ffi.istype(ptype, init1) then
@@ -350,25 +365,17 @@ local mt_basic_v = function(ct)
         assign = function(self, a, b)
             if a == nil and b == nil then
                 self.n = 0
-            elseif type(a) == "number" and (type(b) == "number" or type(b) == "boolean") then
+            elseif type(a) == "number" and (type(b) == "number" or type(b) == "boolean" or b == nil) then
                 -- a copies of b
                 if a <= self.c then
-                    for i = 1,a do self.p[i] = b end
+                    if b ~= nil then
+                        for i = 1,a do self.p[i] = b end
+                    end
                     self.n = a
                 else
                     self.p = vec_realloc(self.p, vtype, ptype, a, b)
                     self.n = a
                     self.c = a
-                end
-            elseif type(a) == "table" and b == nil then
-                -- from table initializer
-                if #a <= self.c then
-                    for i = 1,#a do self.p[i] = a[i] end
-                    self.n = #a
-                else
-                    self.p = vec_realloc(self.p, vtype, ptype, #a, a)
-                    self.n = #a
-                    self.c = #a
                 end
             elseif ffi.istype(self, a) and b == nil then
                 -- from vector
@@ -379,6 +386,16 @@ local mt_basic_v = function(ct)
                     self.p = vec_realloc(self.p, vtype, ptype, a.n, a.p)
                     self.n = a.n
                     self.c = a.n
+                end
+            elseif vectorish(a) and b == nil then
+                -- from vector-ish object
+                if #a <= self.c then
+                    for i = 1,#a do self.p[i] = a[i] end
+                    self.n = #a
+                else
+                    self.p = vec_realloc(self.p, vtype, ptype, #a, a)
+                    self.n = #a
+                    self.c = #a
                 end
             else
                 error("cannot use vector:assign with argument types " ..
@@ -393,6 +410,7 @@ local mt_basic_v = function(ct)
         end,
 
         concat = function(self, sep)
+            sep = sep or ","
             local str = ""
             for i=1,#self do
                 if sep ~= nil and i ~= #self then
@@ -492,18 +510,6 @@ local mt_basic_v = function(ct)
                     self.c = self.n + a
                     self.n = self.n + a
                 end
-            elseif type(a) == "table" and b == nil then
-                -- from table initializer
-                if self.n + #a <= self.c then
-                    for j = self.n,i,-1 do self.p[j + #a] = self.p[j] end
-                    for j = 1,#a do self.p[j + i - 1] = a[j] end
-                    self.n = self.n + #a
-                else
-                    self.p = vec_realloc(self.p, vtype, ptype, self.n + #a, i, #a)
-                    for j = 1,#a do self.p[j + i - 1] = a[j] end
-                    self.c = self.n + #a
-                    self.n = self.n + #a
-                end
             elseif ffi.istype(self, a) and b == nil then
                 -- from vector
                 if self.n + #a <= self.c then
@@ -513,6 +519,18 @@ local mt_basic_v = function(ct)
                 else
                     self.p = vec_realloc(self.p, vtype, ptype, self.n + #a, i, #a)
                     ffi.copy(self.p + i, a.p + 1, ffi.sizeof(vtype, #a))
+                    self.c = self.n + #a
+                    self.n = self.n + #a
+                end
+            elseif vectorish(a) and b == nil then
+                -- from vector-ish object
+                if self.n + #a <= self.c then
+                    for j = self.n,i,-1 do self.p[j + #a] = self.p[j] end
+                    for j = 1,#a do self.p[j + i - 1] = a[j] end
+                    self.n = self.n + #a
+                else
+                    self.p = vec_realloc(self.p, vtype, ptype, self.n + #a, i, #a)
+                    for j = 1,#a do self.p[j + i - 1] = a[j] end
                     self.c = self.n + #a
                     self.n = self.n + #a
                 end
@@ -538,21 +556,21 @@ local mt_basic_v = function(ct)
                 self.p = nullptr
                 self.n = 0
                 self.c = 0
-            elseif type(a) == "number" and (type(b) == "number" or type(b) == "boolean") then
+            elseif type(a) == "number" and (type(b) == "number" or type(b) == "boolean" or b == nil) then
                 -- a copies of b
                 self.p = vec_realloc(nullptr, vtype, ptype, a, b)
                 self.n = a
                 self.c = a
-            elseif type(a) == "table" and b == nil then
-                -- from table initializer
-                self.p = vec_realloc(nullptr, vtype, ptype, #a, a)
-                self.n = #a
-                self.c = #a
             elseif ffi.istype(ctype, a) and b == nil then
                 -- from vector to copy
                 self.p = vec_realloc(nullptr, vtype, ptype, a.n, a.p)
                 self.n = a.n
                 self.c = a.n
+            elseif vectorish(a) and b == nil then
+                -- from vector-ish object
+                self.p = vec_realloc(nullptr, vtype, ptype, #a, a)
+                self.n = #a
+                self.c = #a
             else
                 error("cannot construct vector with argument types " ..
                     type(a) .. ", " .. type(b) .. ".", 2)
@@ -601,6 +619,8 @@ end
 local tostring2 = function(v)
     if v == luajr.NA_character_ then
         return luajr.NA_character_
+    elseif v == nil then
+        return ""
     else
         return tostring(v)
     end
@@ -710,14 +730,14 @@ new_character_v = function(a, b)
         -- a copies of b
         t = table.new(a, 0)
         for i=1,a do t[i] = tostring2(b) end
-    elseif type(a) == "table" and b == nil then
-        -- from table initializer
-        t = table.new(#a, 0)
-        for i=1,#a do t[i] = tostring2(a[i]) end
     elseif getmetatable(a) == mt_character_v and b == nil then
         -- from vector to copy
         t = table.new(#a, 0)
         for i=1,#a do t[i] = a[i] end
+    elseif vectorish(a) and b == nil then
+        -- from vector-ish object
+        t = table.new(#a, 0)
+        for i=1,#a do t[i] = tostring2(a[i]) end
     else
         error("cannot construct character vector with argument types " ..
             type(a) .. ", " .. type(b) .. ".", 2)
@@ -1015,6 +1035,13 @@ sexp_set_attr = function(s, k, v)
     else
         error("No attribute setter for type " .. type(v) .. ".")
     end
+end
+
+-- Does obj have indexing and length capabilities?
+vectorish = function(obj)
+    return type(obj) == "table" or luajr.is_numeric_r(obj) or luajr.is_numeric(obj) or
+        luajr.is_integer_r(obj) or luajr.is_integer(obj) or luajr.is_character_r(obj) or
+            luajr.is_logical_r(obj) or luajr.is_logical(obj)
 end
 
 -- dataframe type
