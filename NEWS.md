@@ -1,4 +1,4 @@
-# luajr (development version)
+# luajr 0.1.3
 
 -   Added a vignette describing the `luajr` Lua module.
 -   Added `lua_parallel()` for basic multithreading.
