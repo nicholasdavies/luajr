@@ -128,12 +128,13 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
     for (unsigned int t = 0; t < l.size(); ++t)
         thr.emplace_back(work, t);
 
-    // Wait for threads to finish and close states
+    // Wait for threads to finish
     for (unsigned int t = 0; t < thr.size(); ++t)
-    {
         thr[t].join();
+
+    // Close states
+    for (unsigned int t = 0; t < l.size(); ++t)
         lua_close(l[t]);
-    }
 
     // Handle errors and return
     UNPROTECT(1);

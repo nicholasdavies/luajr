@@ -174,7 +174,39 @@ end", "sssr")
 bench::mark(
     logistic_map_R(0.5, 50, 100, 200:385/100),
     logistic_map_L(0.5, 50, 100, 200:385/100),
-    min_time = 5)
+    min_time = 5
+)
+
+logistic_map_parallel =
+"function(i)
+    local x0 = 0.5
+    local burn = 50
+    local iter = 100
+    local a = 2 + 0.01 * (i - 1)
+
+    local dflen = iter
+    local result = luajr.dataframe()
+    result.a = luajr.numeric(dflen, 0)
+    result.x = luajr.numeric(dflen, 0)
+
+    local x = x0
+    for i = 1, burn do
+        x = a * x * (1 - x)
+    end
+    for i = 1, iter do
+        result.a[i] = a
+        result.x[i] = x
+        x = a * x * (1 - x)
+    end
+
+    return result
+end"
+
+bench::mark(
+    lua_parallel(logistic_map_parallel, n = 186, threads = 6),
+    min_time = 5,
+    memory = FALSE
+)
 
 # A tibble: 2 × 13
 # expression                                     min   median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result            memory                  time                gc
