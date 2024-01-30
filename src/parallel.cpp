@@ -185,7 +185,6 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
             int nret = lua_tointeger(l[t], -2);
             lua_pop(l[t], 2);
             SET_VECTOR_ELT(result, index - 1, luajr_return(l[t], nret));
-            lua_pop(l[t], nret);
         }
     }
 

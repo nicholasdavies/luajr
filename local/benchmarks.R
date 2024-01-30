@@ -180,7 +180,7 @@ bench::mark(
 logistic_map_parallel =
 "function(i)
     local x0 = 0.5
-    local burn = 50000
+    local burn = 50
     local iter = 100
     local a = 2 + 0.01 * (i - 1)
 
@@ -202,38 +202,15 @@ logistic_map_parallel =
     return result
 end"
 
-logistic_map_parallel_mem =
-"function(i)
-    local x0 = 0.5
-    local burn = 50000
-    local iter = 100
-    local a = 2 + 0.01 * (i - 1)
-
-    local rn = #result_a
-    result_a:resize(rn + iter)
-    result_x:resize(rn + iter)
-
-    local x = x0
-    for i = 1, burn do
-        x = a * x * (1 - x)
-    end
-    for i = 1, iter do
-        result_a[rn + i] = a
-        result_x[rn + i] = x
-        x = a * x * (1 - x)
-    end
-end"
-
 th2 = list()
 for (i in 1:4) {
     th2[[i]] = lua_open()
 }
 
 bench::mark(
-    logistic_map_L(0.5, 50000, 100, 200:385/100),
+    logistic_map_L(0.5, 50, 100, 2 + 0.01 * 0:185),
     lua_parallel(logistic_map_parallel, n = 186, threads = 4),
     lua_parallel(logistic_map_parallel, n = 186, threads = th2),
-    lua_parallel(logistic_map_parallel_mem, n = 186, threads = th2, pre = "result_a = luajr.numeric(0, 0) result_x = luajr.numeric(0, 0)"),
     min_time = 1,
     memory = FALSE,
     check = FALSE
