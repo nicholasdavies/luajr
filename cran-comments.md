@@ -1,8 +1,10 @@
+This is a resubmission.
+
 ## Corrected problems
 
 I fixed two problems identified by CRAN:
 
--   LICENSE did not include all copyright holders. This was an accidental oversight; all copyright holders have always been given in DESCRIPTION and LICENSE.note.
+-   Added all copyright holders to LICENSE. This was an accidental oversight; all copyright holders have always been included in DESCRIPTION and LICENSE.note.
 
 -   Fixed 'Additional issues' resulting from the UBsan build.
 
