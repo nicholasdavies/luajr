@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3.9000</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -350,9 +350,9 @@ more arguments passed than characters in the <code>argcode</code>
 string. So, for example, just passing <code>"s"</code> as
 <code>argcode</code> means all parameters will be passed as the
 <strong>s</strong>implest Lua type, while if <code>argcode</code> is
-<code>"sr"</code>, then the first argument has argcode <code>"s"</code>,
-the second argument has argcode <code>"r"</code>, the third argument has
-argcode <code>"s"</code>, etc.</p>
+<code>"sr"</code>, then the first argument has arg code
+<code>"s"</code>, the second argument has arg code <code>"r"</code>, the
+third argument has arg code <code>"s"</code>, etc.</p>
 <p>When a vector (logical vector, integer vector, numeric vector, or
 character vector) is passed from R to Lua by <strong>r</strong>eference,
 modifications made to the elements of that passed-in vector persist back
@@ -472,13 +472,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 8.643601</span></span>
+<span><span class="co">#&gt; [1] 13.93327</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 8.643601</span></span>
+<span><span class="co">#&gt; [1] 13.93327</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 8.643601</span></span>
+<span><span class="co">#&gt; [1] 13.93327</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 8.643601</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 13.93327</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>
@@ -730,9 +730,6 @@ garbage collection.</p>
 <p>For notes on the <code>luajr</code> Lua module – which contains
 functions and types for interacting with R from Lua code – see
 <code><a href="../articles/luajr-module.html">vignette("luajr-module")</a></code>.</p>
-<p>For integer, numeric, and character <code>NA</code> values, we can
-compare to <code>luajr.NA_integer_</code>, <code>luajr.NA_real_</code>,
-and <code>luajr.NA_character_</code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>

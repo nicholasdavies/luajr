@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3.9000</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,7 +94,7 @@ interface well with R code. This vignette documents the
 </h2>
 <p>The vector types are modelled after C++’s <code>std::vector</code>
 class. A vector type is what you end up with if you pass an argument
-into a Lua function using <code><a href="../reference/lua_func.html">lua_func()</a></code> with args code
+into a Lua function using <code><a href="../reference/lua_func.html">lua_func()</a></code> with arg code
 <code>"v"</code>, but you can also create new vectors within Lua.</p>
 <p>Like their C++ counterparts, vector types all maintain an internal
 “capacity” which is equal to or greater than their “length”, or actual
@@ -118,11 +118,11 @@ meaning of <code>a</code> and <code>b</code> depends on their type. For
 example:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">()</span>     <span class="co">-- Empty numeric vector</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">n</span><span class="op">,</span> <span class="va">x</span><span class="op">)</span> <span class="co">-- Size-n numeric vector, all entries equal to x</span></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">v</span><span class="op">)</span>    <span class="co">-- Copied from vector vec</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">v</span><span class="op">)</span>    <span class="co">-- Copied from vector v</span></span>
 <span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">z</span><span class="op">)</span>    <span class="co">-- Copied from "vector-ish" object z</span></span></code></pre></div>
 <p>Above, <code>n</code> is a nonnegative number, <code>x</code> is a
 boolean, number, string (as appropriate for the vector type) or
-<code>nil</code>, <code>vec</code> is another vector object of the same
+<code>nil</code>, <code>v</code> is another vector object of the same
 type, and <code>z</code> is a table, vector type, or reference type.</p>
 <p>If <code>x == nil</code> in the <code>(n, x)</code> form of the above
 functions, then the values of the vector are left uninitialized (except
@@ -224,7 +224,7 @@ types have, they do have one feature that the vector types don’t have,
 namely that you can set and get the attributes associated with the
 underlying R value.</p>
 <p>A reference type is what you end up with if you pass an argument into
-a Lua function using <code><a href="../reference/lua_func.html">lua_func()</a></code> with args code
+a Lua function using <code><a href="../reference/lua_func.html">lua_func()</a></code> with arg code
 <code>"r"</code>, but you can also create new reference types within
 Lua.</p>
 <p>As with the vector types, indexes start at 1, not at 0, and you must
@@ -242,7 +242,7 @@ completely thread safe and therefore they cannot safely be used with
 meaning of <code>a</code> and <code>b</code> depends on their type.
 Namely:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric_r<span class="op">(</span><span class="va">n</span><span class="op">,</span> <span class="va">x</span><span class="op">)</span> <span class="co">-- Size n, all entries equal to x if x ~= nil</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric_r<span class="op">(</span><span class="va">z</span><span class="op">)</span>    <span class="co">-- Copied from z</span></span></code></pre></div>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric_r<span class="op">(</span><span class="va">z</span><span class="op">)</span>    <span class="co">-- Copied from "vector-ish" object z</span></span></code></pre></div>
 <p>Above, <code>n</code> is a nonnegative number, <code>x</code> is a
 boolean, number, or string (as appropriate for the vector type) or
 <code>nil</code>, and <code>z</code> is a table, vector type, or
@@ -267,18 +267,18 @@ of the corresponding type, and <code>false</code> otherwise.</p>
 <p>Use with a Lua <code>for</code> loop to iterate over the values of
 the vector.</p>
 <p><strong><code>x = v(attr)</code>,
-<code>v(attr, val)</code></strong></p>
+<code>v(attr, x)</code></strong></p>
 <p>Get or set the attribute named <code>attr</code>. The second form,
-with two arguments, sets the attribute to <code>val</code>. Note that
-even though you can get and manipulate the <code>names</code> attribute,
-you cannot access a reference vector’s elements by their names.</p>
+with two arguments, sets the attribute to <code>x</code>. Note that even
+though you can get and manipulate the <code>names</code> attribute, you
+cannot access a reference vector’s elements by their names.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="list-type">List type<a class="anchor" aria-label="anchor" href="#list-type"></a>
 </h2>
 <p>A list is a special kind of Lua table that can be indexed either with
-positive integers or with strings. Unlike Lua tables, a list remembers
+positive integers or with strings. Unlike a Lua table, a list remembers
 the order in which you have added elements to it, like an R list
 does.</p>
 <div class="section level3">
@@ -297,7 +297,9 @@ otherwise.</p>
 <p>Lists have the following methods:</p>
 <p><strong><code>#v</code></strong></p>
 <p>Returns the length of the list, including both integer- and
-string-keyed entries.</p>
+string-keyed entries. This differs from the behaviour of the
+<code>#</code> operator on normal Lua tables, which only report the
+number of integer-keyed entries.</p>
 <p><strong><code>x = v[i]</code>, <code>v[i] = x</code></strong></p>
 <p>Get or set element <code>i</code> of the list. <code>i</code> can be
 either a positive integer or a string. Note that you cannot write to any
@@ -312,10 +314,10 @@ the latter will give number keys only. Either one iterates through every
 element of the list and both iterate through the list in the same
 order.</p>
 <p><strong><code>x = v(attr)</code>,
-<code>v(attr, val)</code></strong></p>
+<code>v(attr, x)</code></strong></p>
 <p>Get or set the attribute named <code>attr</code>. The second form,
-with two arguments, sets the attribute to <code>val</code>. Note that,
-for a list, the <code>"names"</code> attribute is not a simple vector of
+with two arguments, sets the attribute to <code>x</code>. Note that, for
+a list, the <code>"names"</code> attribute is not a simple vector of
 names, like in R, but is an associative array linking keys to their
 indices. For example, for a list with elements <code>a = 1</code>,
 <code>2</code>, and <code>c = 3</code>, <code>v("names")</code> is equal
@@ -385,11 +387,12 @@ table:</p>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NA_</span><span class="va">logical_</span></span>
 <span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NA_</span><span class="va">integer_</span></span>
 <span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NA_</span><span class="va">real_</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NA_</span><span class="va">character_</span></span></code></pre></div>
-<p>Note that Lua’s semantics in dealing with logical types, and NA
-values, are very different from R’s semantics. Lua does not “understand”
-NA values in the same way that R does, and it sees the R “logical” type
-as fundamentally an integer, not a boolean.</p>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NA_</span><span class="va">character_</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NULL</span></span></code></pre></div>
+<p>Note that Lua’s semantics in dealing with logical types and NA values
+are very different from R’s semantics. Lua does not “understand” NA
+values in the same way that R does, and it sees the R logical type as
+fundamentally an integer, not a boolean.</p>
 <p>Specifically, whereas in R you could do the following:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">FALSE</span>, <span class="cn">NA</span><span class="op">)</span></span>
@@ -397,19 +400,24 @@ as fundamentally an integer, not a boolean.</p>
 <p>in Lua you have to do this:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">NA_</span><span class="va">logical_</span> <span class="op">})</span></span>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="cf">if</span> <span class="va">x</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span> <span class="cf">then</span> <span class="fu">print</span><span class="op">(</span><span class="st">"First element of x is TRUE!"</span><span class="op">)</span> <span class="cf">end</span></span></code></pre></div>
-<p>This is because “under the hood”, R’s TRUE is defined as 1 (or any
-nonzero integer besides NA), FALSE is defined as 0, and NA (when logical
-or integer) is defined as a special ‘flag’ value of -2147483648
-(i.e. -2^31). However, in Lua, anything other than <code>nil</code> or
-<code>false</code> evaluates as <code>true</code>, meaning that the
-following Lua code</p>
+<p>This is because under the hood, R’s TRUE is defined as the integer 1
+(though any nonzero integer besides NA will also test as TRUE), FALSE is
+defined as 0, and NA (when logical or integer) is defined as a special
+‘flag’ value of -2147483648 (i.e. -2^31). However, in Lua, anything
+other than <code>nil</code> or <code>false</code> evaluates as
+<code>true</code>, meaning that the following Lua code</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">NA_</span><span class="va">logical_</span> <span class="op">})</span></span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="cf">if</span> <span class="va">x</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="cf">then</span> <span class="fu">print</span><span class="op">(</span><span class="st">"First element of x is TRUE!"</span><span class="op">)</span> <span class="cf">end</span></span></code></pre></div>
-<p>may appear to work, but in fact it will print the statement about
-<code>x[1]</code> being TRUE regardless of whether <code>x[1]</code> is
-<code>luajr.TRUE</code>, <code>luajr.FALSE</code>, or
-<code>luajr.NA_logical_</code>.</p>
-<p>When testing for NA in Lua, you have to check if a value is equal to
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="cf">for</span> <span class="va">i</span> <span class="op">=</span> <span class="dv">1</span><span class="op">,</span> <span class="op">#</span><span class="va">x</span> <span class="cf">do</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>    <span class="cf">if</span> <span class="va">x</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="cf">then</span> <span class="fu">print</span><span class="op">(</span><span class="st">"Element"</span><span class="op">,</span> <span class="va">i</span><span class="op">,</span> <span class="st">"of x is TRUE!"</span><span class="op">)</span> <span class="cf">end</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<p>will incorrectly claim that <code>luajr.TRUE</code>,
+<code>luajr.FALSE</code>, and <code>luajr.NA_logical_</code> are all
+“<code>TRUE</code>”. So, instead, explicitly set logical values to
+either <code>luajr.TRUE</code>, or <code>luajr.FALSE</code>, or
+<code>luajr.NA_logical_</code>, and explicitly test them against the
+same values.</p>
+<p>Note that the different NA constants are not interchangeable. So,
+when testing for NA in Lua, you have to check if a value is equal to
 (<code>==</code>) or not equal to (<code>~=</code>) the corresponding NA
 constant above, depending on the type of the variable in question.</p>
 <p>All of this only applies to the vector and reference types described
@@ -421,6 +429,12 @@ the NA values. A Lua string can never compare equal with
 sometimes compare equal with <code>luajr.NA_logical_</code>,
 <code>luajr.NA_integer_</code>, or <code>luajr.NA_real_</code>, so do be
 careful not to mix Lua types and these R constants.</p>
+<p>Finally, <code>luajr.NULL</code> can be used to represent a
+<code>NULL</code> value, either on its own or as part of a table or
+<code>luajr.list</code> that gets returned to R. If you pass NULL in to
+Lua through arg code <code>"s"</code>, it will come out as
+<code>nil</code> in Lua; but if you use arg code <code>"r"</code> or
+<code>"v"</code>, it will come out as <code>luajr.NULL</code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>

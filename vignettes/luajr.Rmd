@@ -153,8 +153,8 @@ There should be one character in `argcode` for every argument of the function,
 but the string is "recycled" when there are more arguments passed than 
 characters in the `argcode` string. So, for example, just passing `"s"` as 
 `argcode` means all parameters will be passed as the **s**implest Lua type,
-while if `argcode` is `"sr"`, then the first argument has argcode `"s"`, the
-second argument has argcode `"r"`, the third argument has argcode `"s"`, etc.
+while if `argcode` is `"sr"`, then the first argument has arg code `"s"`, the
+second argument has arg code `"r"`, the third argument has arg code `"s"`, etc.
 
 When a vector (logical vector, integer vector, numeric vector, or character 
 vector) is passed from R to Lua by **r**eference, modifications made to the
@@ -416,5 +416,3 @@ the next garbage collection.
 For notes on the `luajr` Lua module -- which contains functions and types for
 interacting with R from Lua code -- see `vignette("luajr-module")`.
 
-For integer, numeric, and character `NA` values, we can compare to 
-`luajr.NA_integer_`, `luajr.NA_real_`, and `luajr.NA_character_`.

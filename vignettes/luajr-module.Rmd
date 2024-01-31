@@ -24,7 +24,7 @@ documents the `luajr` module.
 
 The vector types are modelled after C++'s `std::vector` class. A vector type is
 what you end up with if you pass an argument into a Lua function using
-`lua_func()` with args code `"v"`, but you can also create new vectors within
+`lua_func()` with arg code `"v"`, but you can also create new vectors within
 Lua. 
 
 Like their C++ counterparts, vector types all maintain an internal "capacity" 
@@ -48,12 +48,12 @@ of `a` and `b` depends on their type. For example:
 ```lua
 luajr.numeric()     -- Empty numeric vector
 luajr.numeric(n, x) -- Size-n numeric vector, all entries equal to x
-luajr.numeric(v)    -- Copied from vector vec
+luajr.numeric(v)    -- Copied from vector v
 luajr.numeric(z)    -- Copied from "vector-ish" object z
 ```
 
 Above, `n` is a nonnegative number, `x` is a boolean, number, string (as
-appropriate for the vector type) or `nil`, `vec` is another vector object of 
+appropriate for the vector type) or `nil`, `v` is another vector object of 
 the same type, and `z` is a table, vector type, or reference type.
 
 If `x == nil` in the `(n, x)` form of the above functions, then the values of
@@ -182,7 +182,7 @@ have, they do have one feature that the vector types don't have, namely that
 you can set and get the attributes associated with the underlying R value.
 
 A reference type is what you end up with if you pass an argument into a Lua 
-function using `lua_func()` with args code `"r"`, but you can also create new 
+function using `lua_func()` with arg code `"r"`, but you can also create new 
 reference types within Lua. 
 
 As with the vector types, indexes start at 1, not at 0, and you must be very
@@ -200,7 +200,7 @@ of `a` and `b` depends on their type. Namely:
 
 ```lua
 luajr.numeric_r(n, x) -- Size n, all entries equal to x if x ~= nil
-luajr.numeric_r(z)    -- Copied from z
+luajr.numeric_r(z)    -- Copied from "vector-ish" object z
 ```
 
 Above, `n` is a nonnegative number, `x` is a boolean, number, or string (as
@@ -228,17 +228,17 @@ Get or set the `i`th element of the referenced vector.
 
 Use with a Lua `for` loop to iterate over the values of the vector.
 
-**`x = v(attr)`, `v(attr, val)`**
+**`x = v(attr)`, `v(attr, x)`**
 
 Get or set the attribute named `attr`. The second form, with two arguments,
-sets the attribute to `val`. Note that even though you can get and manipulate
+sets the attribute to `x`. Note that even though you can get and manipulate
 the `names` attribute, you cannot access a reference vector's elements by their 
 names.
 
 # List type
 
 A list is a special kind of Lua table that can be indexed either with positive
-integers or with strings. Unlike Lua tables, a list remembers the order in 
+integers or with strings. Unlike a Lua table, a list remembers the order in 
 which you have added elements to it, like an R list does. 
 
 ## Creating and testing lists
@@ -259,7 +259,8 @@ Lists have the following methods:
 **`#v`**
 
 Returns the length of the list, including both integer- and string-keyed 
-entries.
+entries. This differs from the behaviour of the `#` operator on normal Lua
+tables, which only report the number of integer-keyed entries.
 
 **`x = v[i]`, `v[i] = x`**
 
@@ -275,10 +276,10 @@ iterate through the list (strings if they are present, numbers otherwise) and
 the latter will give number keys only. Either one iterates through every 
 element of the list and both iterate through the list in the same order.
 
-**`x = v(attr)`, `v(attr, val)`**
+**`x = v(attr)`, `v(attr, x)`**
 
 Get or set the attribute named `attr`. The second form, with two arguments,
-sets the attribute to `val`. Note that, for a list, the `"names"` attribute is 
+sets the attribute to `x`. Note that, for a list, the `"names"` attribute is 
 not a simple vector of names, like in R, but is an associative array linking
 keys to their indices. For example, for a list with elements `a = 1`, `2`, and 
 `c = 3`, `v("names")` is equal to `{ "a" = 1, "c" = 3 }`. However, when a
@@ -355,11 +356,12 @@ luajr.NA_logical_
 luajr.NA_integer_
 luajr.NA_real_
 luajr.NA_character_
+luajr.NULL
 ```
 
-Note that Lua's semantics in dealing with logical types, and NA values, are
+Note that Lua's semantics in dealing with logical types and NA values are
 very different from R's semantics. Lua does not "understand" NA values in the
-same way that R does, and it sees the R "logical" type as fundamentally an
+same way that R does, and it sees the R logical type as fundamentally an
 integer, not a boolean.
 
 Specifically, whereas in R you could do the following:
@@ -376,24 +378,28 @@ x = luajr.logical({ luajr.TRUE, luajr.FALSE, luajr.NA_logical_ })
 if x[1] == luajr.TRUE then print("First element of x is TRUE!") end
 ```
 
-This is because "under the hood", R's TRUE is defined as 1 (or any nonzero 
-integer besides NA), FALSE is defined as 0, and NA (when logical or integer) is 
-defined as a special 'flag' value of -2147483648 (i.e. -2^31). However, in Lua, 
-anything other than `nil` or `false` evaluates as `true`, meaning that the 
-following Lua code
+This is because under the hood, R's TRUE is defined as the integer 1 (though 
+any nonzero integer besides NA will also test as TRUE), FALSE is defined as 0, 
+and NA (when logical or integer) is defined as a special 'flag' value of 
+-2147483648 (i.e. -2^31). However, in Lua, anything other than `nil` or `false` 
+evaluates as `true`, meaning that the following Lua code
 
 ```lua
 x = luajr.logical({ luajr.TRUE, luajr.FALSE, luajr.NA_logical_ })
-if x[1] then print("First element of x is TRUE!") end
+for i = 1, #x do
+    if x[i] then print("Element", i, "of x is TRUE!") end
+end
 ```
 
-may appear to work, but in fact it will print the statement about `x[1]` being 
-TRUE regardless of whether `x[1]` is `luajr.TRUE`, `luajr.FALSE`, or 
-`luajr.NA_logical_`.
+will incorrectly claim that `luajr.TRUE`, `luajr.FALSE`, and 
+`luajr.NA_logical_` are all "`TRUE`". So, instead, explicitly set logical 
+values to either `luajr.TRUE`, or `luajr.FALSE`, or `luajr.NA_logical_`, and
+explicitly test them against the same values.
 
-When testing for NA in Lua, you have to check if a value is equal to (`==`) or
-not equal to (`~=`) the corresponding NA constant above, depending on the type 
-of the variable in question.
+Note that the different NA constants are not interchangeable. So, when testing 
+for NA in Lua, you have to check if a value is equal to (`==`) or not equal to 
+(`~=`) the corresponding NA constant above, depending on the type of the 
+variable in question.
 
 All of this only applies to the vector and reference types described above.
 Lua also has its own boolean type (with possible values `true` and `false`) 
@@ -402,3 +408,8 @@ of the NA values. A Lua string can never compare equal with
 `luajr.NA_character_`, but conversely a Lua number may sometimes compare 
 equal with `luajr.NA_logical_`, `luajr.NA_integer_`, or `luajr.NA_real_`, so
 do be careful not to mix Lua types and these R constants.
+
+Finally, `luajr.NULL` can be used to represent a `NULL` value, either on its 
+own or as part of a table or `luajr.list` that gets returned to R. If you pass
+NULL in to Lua through arg code `"s"`, it will come out as `nil` in Lua; but if
+you use arg code `"r"` or `"v"`, it will come out as `luajr.NULL`.
