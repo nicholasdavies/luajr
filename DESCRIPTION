@@ -1,7 +1,7 @@
 Package: luajr
 Type: Package
 Title: 'LuaJIT' Scripting
-Version: 0.1.4
+Version: 0.1.4.9000
 Authors@R: c(
     person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", role = c("cre", "aut", "cph"), comment = c(ORCID = "0000-0002-1740-1412")),
     person("Mike", "Pall", role = "cph", comment = "Author of the embedded LuaJIT compiler"),
