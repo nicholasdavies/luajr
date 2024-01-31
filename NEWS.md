@@ -1,5 +1,8 @@
 # luajr (development version)
 
+-   Added luajr.NULL, to allow working with NULL in Lua.
+-   Fixed some problems for CRAN.
+
 # luajr 0.1.3
 
 -   Added a vignette describing the `luajr` Lua module.
