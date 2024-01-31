@@ -156,9 +156,9 @@ API_FUNCTION(void, luaJIT_profile_stop, lua_State *L)
 API_FUNCTION(const char *, luaJIT_profile_dumpstack, lua_State *L, const char *fmt, int depth, size_t *len)
 
 // Specific to luajr
-API_FUNCTION(SEXP, luajr_open)
-API_FUNCTION(lua_State*, luajr_newstate)
-API_FUNCTION(SEXP, luajr_reset)
+API_FUNCTION(SEXP, luajr_open, void)
+API_FUNCTION(lua_State*, luajr_newstate, void)
+API_FUNCTION(SEXP, luajr_reset, void)
 API_FUNCTION(lua_State*, luajr_getstate, SEXP Lx)
 API_FUNCTION(void, luajr_pass, lua_State* L, SEXP args, const char* acode)
 API_FUNCTION(SEXP, luajr_return, lua_State* L, int nret)
