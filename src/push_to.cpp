@@ -177,7 +177,14 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
     switch (TYPEOF(x))
     {
         case NILSXP: // NULL
-            lua_pushnil(L);
+            if (as == 'r' || as == 'v')
+            {
+                lua_pushlightuserdata(L, (void*)&luajr_construct_null);
+                lua_rawget(L, LUA_REGISTRYINDEX);
+                luajr_pcall(L, 0, 1, "luajr.construct_null() from luajr_pushsexp()");
+            }
+            else
+                lua_pushnil(L);
             break;
         case LGLSXP: // logical vector: r, v, s, a, 1-9
             push_R_vector(L, x, as, LOGICAL_T,
@@ -421,6 +428,11 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [2]");
                 // Return SEXP
                 return ret;
+            }
+            else if (type == NULL_T)
+            {
+                lua_pop(L, 2);
+                return R_NilValue;
             }
             else
             {

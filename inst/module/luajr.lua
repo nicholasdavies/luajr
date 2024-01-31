@@ -59,6 +59,9 @@ typedef struct { int* p;    double n; double c; } logical_vt;
 typedef struct { int* p;    double n; double c; } integer_vt;
 typedef struct { double* p; double n; double c; } numeric_vt;
 
+// Dummy NULL type
+typedef struct { int _; } NULL_t;
+
 // NA values
 extern int TRUE_logical;
 extern int FALSE_logical;
@@ -132,13 +135,14 @@ function package.preload.luajr()
     return luajr
 end
 
--- TRUE, FALSE, NA definitions
-luajr.TRUE          = internal.TRUE_logical;
-luajr.FALSE         = internal.FALSE_logical;
-luajr.NA_logical_   = internal.NA_logical;
-luajr.NA_integer_   = internal.NA_integer;
-luajr.NA_real_      = internal.NA_real;
-luajr.NA_character_ = internal.NA_character;
+-- TRUE, FALSE, NA, NULL definitions
+luajr.TRUE          = internal.TRUE_logical
+luajr.FALSE         = internal.FALSE_logical
+luajr.NA_logical_   = internal.NA_logical
+luajr.NA_integer_   = internal.NA_integer
+luajr.NA_real_      = internal.NA_real
+luajr.NA_character_ = internal.NA_character
+luajr.NULL          = ffi.new("NULL_t")
 
 -- Forward declarations
 local sexp_get_attr
@@ -951,6 +955,11 @@ luajr.construct_list = function(elements, names)
     return list
 end
 
+-- Construct NULL.
+luajr.construct_null = function()
+    return luajr.NULL
+end
+
 
 --------------------
 -- 7. RETURN TO R --
@@ -974,6 +983,7 @@ function luajr.return_info(obj)
     elseif luajr.is_character(obj)      then return internal.CHARACTER_V, #obj
     elseif luajr.is_list(obj)           then return internal.LIST_T, #obj
     elseif obj == nullptr               then return internal.NULL_T, 0
+    elseif ffi.istype(luajr.NULL, obj)  then return internal.NULL_T, 0
     end
 
     return nil, nil

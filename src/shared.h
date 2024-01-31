@@ -10,6 +10,7 @@ extern lua_State* L0;
 extern int luajr_construct_ref;
 extern int luajr_construct_vec;
 extern int luajr_construct_list;
+extern int luajr_construct_null;
 extern int luajr_return_info;
 extern int luajr_return_copy;
 
