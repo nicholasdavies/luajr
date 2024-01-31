@@ -29,6 +29,10 @@ local luajr_dylib_path = ({...})[1]
 -- Null pointer object
 local nullptr = ffi.cast("void*", 0)
 
+-- "Hidden" sentinel object
+ffi.cdef[[ typedef struct { int a; } HIDDEN_t; ]]
+local hidden = ffi.new("HIDDEN_t")
+
 
 ---------------------
 -- 1. INTERNAL API --
@@ -159,7 +163,7 @@ local mt_basic_r = function(allocator)
     local mt = {
         __new = function(ctype, init1, init2)
             local self = ffi.new(ctype)
-            if init1 == nullptr then
+            if init1 == hidden then
                 -- do nothing
             elseif type(init1) == "number" then
                 allocator(self, init1)
@@ -222,7 +226,7 @@ end
 local mt_character_r = {
     __new = function(ctype, init1, init2)
         local self = ffi.new(ctype)
-        if init1 == nullptr then
+        if init1 == hidden then
             -- do nothing
         elseif type(init1) == "number" then
             if init2 == nil then
@@ -918,7 +922,7 @@ local vec_set = {
 --   ud = SEXP to be referenced
 --   typecode = e.g. internal.LOGICAL_R, etc
 luajr.construct_ref = function(ud, typecode)
-    local x = ref_type[typecode](nullptr)
+    local x = ref_type[typecode](hidden)
     ref_set[typecode](x, ud)
     return x
 end
@@ -1026,7 +1030,7 @@ end
 sexp_get_attr = function(s, k)
     local typecode = internal.GetAttrType(s, k)
     if typecode == internal.NULL_T then return nil end
-    local x = ref_type[typecode](nullptr)
+    local x = ref_type[typecode](hidden)
     ref_set[typecode](x, internal.GetAttrSEXP(s, k))
     return x
 end
