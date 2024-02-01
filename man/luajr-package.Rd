@@ -39,9 +39,13 @@ Useful links:
 \author{
 \strong{Maintainer}: Nicholas Davies \email{nicholas.davies@lshtm.ac.uk} (\href{https://orcid.org/0000-0002-1740-1412}{ORCID}) [copyright holder]
 
-Other contributors:
+Authors:
 \itemize{
   \item Mike Pall (Author of the embedded LuaJIT compiler) [copyright holder]
+}
+
+Other contributors:
+\itemize{
   \item Lua.org, PUC-Rio (Authors of the Lua scripting language) [copyright holder]
 }
 

@@ -1,5 +1,8 @@
 # luajr (development version)
 
+-   This version updates the package DESCRIPTION and CITATION to better reflect
+    Mike Pall's role as author of the embedded LuaJIT compiler.
+
 # luajr 0.1.4
 
 -   Added luajr.NULL, to allow working with NULL in Lua.

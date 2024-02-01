@@ -1,0 +1,12 @@
+bibentry("Manual",
+         title        = "{luajr}: {LuaJIT} Scripting",
+         author       = "Nicholas Davies",
+         year         = 2024,
+         note         = "R package version 0.1.5",
+         url          = "https://nicholasdavies.github.io/luajr/")
+
+bibentry("Misc",
+         title        = "{LuaJIT} -- a Just-In-Time Compiler for Lua.",
+         author       = person("Mike", "Pall"),
+         year         = "2005--2024",
+         url          = "https://luajit.org/")
