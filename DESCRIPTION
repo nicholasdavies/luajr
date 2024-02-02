@@ -1,7 +1,7 @@
 Package: luajr
 Type: Package
 Title: 'LuaJIT' Scripting
-Version: 0.1.5
+Version: 0.1.5.9000
 Authors@R: c(
     person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", 
         role = c("cre", "aut", "cph"), 
