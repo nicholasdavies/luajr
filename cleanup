@@ -6,9 +6,9 @@ rm -f src/Makevars
 # Clean up generated .relver
 rm -f src/luajit/.relver
 
-# Clean up built package
+# Clean up luajit. Default value for $MAKE allows run from command line.
 if [ `uname` = Darwin ]; then
-  cd src/luajit && MACOSX_DEPLOYMENT_TARGET=10.8 $MAKE clean
+  (export MACOSX_DEPLOYMENT_TARGET=10.8; cd src/luajit && ${MAKE:-make} clean)
 else
-  cd src/luajit && $MAKE clean
+  cd src/luajit && ${MAKE:-make} clean
 fi

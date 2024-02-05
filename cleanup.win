@@ -6,5 +6,5 @@ rm -f src/Makevars.win
 # Clean up generated .relver
 rm -f src/luajit/.relver
 
-# Clean up built package. Default value for $MAKE is for Github Actions R CMD check on Windows.
+# Clean up luajit. Default value for $MAKE is for Github Actions R CMD check on Windows.
 cd src/luajit && ${MAKE:-make} clean
