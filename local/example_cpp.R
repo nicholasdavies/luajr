@@ -1,6 +1,6 @@
 # NOTE. Cannot test this using testthat because neither example compiles under
 # the environment set by testthat, though they compile on their own. There are
-# issues with the preprocessor not finding luajr_api.h, and then issues with
+# issues with the preprocessor not finding luajr.h, and then issues with
 # the linker not linking to luajr either. Seems like it may be more trouble than
 # it's worth to integrate this into formal testthat testing. But it should be
 # part of package testing, ideally.

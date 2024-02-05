@@ -1,7 +1,7 @@
 // [[Rcpp::depends(luajr)]]
 #include <Rcpp.h>
-#include <luajr_api.h>
-#include <luajr_funcdef.hpp>
+#include <luajr.h>
+#include <luajr_funcdef.h>
 
 // [[Rcpp::export]]
 void exampleS()
