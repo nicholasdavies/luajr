@@ -30,9 +30,9 @@
 
 #include "lua.h"
 
-#define LUAJIT_VERSION		"LuaJIT 2.1.ROLLING"
+#define LUAJIT_VERSION		"LuaJIT 2.1.1707061634"
 #define LUAJIT_VERSION_NUM	20199  /* Deprecated. */
-#define LUAJIT_VERSION_SYM	luaJIT_version_2_1_ROLLING
+#define LUAJIT_VERSION_SYM	luaJIT_version_2_1_1707061634
 #define LUAJIT_COPYRIGHT	"Copyright (C) 2005-2023 Mike Pall"
 #define LUAJIT_URL		"https://luajit.org/"
 
@@ -76,5 +76,4 @@ LUA_API const char *luaJIT_profile_dumpstack(lua_State *L, const char *fmt,
 /* Enforce (dynamic) linker error for version mismatches. Call from main. */
 LUA_API void LUAJIT_VERSION_SYM(void);
 
-#error "DO NOT USE luajit_rolling.h -- only include build-generated luajit.h"
 #endif

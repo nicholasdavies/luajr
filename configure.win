@@ -1,56 +1,12 @@
 #!/usr/bin/env sh
 
-### Generate header files
-# luajr_conf.h: copy
-cp src/luajit/src/luaconf.h inst/include/luajr_conf.h
-
-# lua.h, lauxlib.h, lualib.h, luajitr.h: copy, replacing LUA_API function
-# definitions with function pointers and references to lua.h to luajr_lua.h
-sed -e 's/LUA_API[[:space:]]\{1,\}\(.*\)(\([a-z_]*\))[[:space:]]*(\(.*\)/extern \1 (\*\2) (\3/' \
- -e 's/LUA_API[[:space:]]\{1,\}\([a-zA-Z_ *]\{1,\}\)\(lua_[a-z_]\{1,\}\)[[:space:]]*(\(.*\)/extern \1 (\*\2) (\3/' \
- -e 's/#include "luaconf.h"/#include "luajr_conf.h"/' \
- src/luajit/src/lua.h > inst/include/luajr_lua.h
-sed -e 's/LUALIB_API[[:space:]]\{1,\}\(.*\)(\([a-z_L]*\))[[:space:]]*(\(.*\)/extern \1 (\*\2) (\3/' \
- -e 's/LUALIB_API[[:space:]]\{1,\}\([a-zA-Z_ *]\{1,\}\)\(luaL_[a-z_]\{1,\}\)[[:space:]]*(\(.*\)/extern \1 (\*\2) (\3/' \
- -e 's/#include "lua.h"/#include "luajr_lua.h"/' \
- src/luajit/src/lauxlib.h > inst/include/luajr_lauxlib.h
-sed -e 's/LUALIB_API[[:space:]]\{1,\}\(.*\)(\([a-z_]*\))[[:space:]]*(\(.*\)/extern \1 (\*\2) (\3/' \
- -e 's/LUALIB_API[[:space:]]\{1,\}\([a-zA-Z_ *]\{1,\}\)\(lua\(open\)*L*_[a-z_]\{1,\}\)[[:space:]]*(\(.*\)/extern \1 (\*\2) (\4/' \
- -e 's/#include "lua.h"/#include "luajr_lua.h"/' \
- src/luajit/src/lualib.h > inst/include/luajr_lualib.h
-sed -e 's/LUA_API[[:space:]]\{1,\}\([a-zA-Z_ *]\{1,\}\)\(luaJIT_[a-z_]\{1,\}\)[[:space:]]*(\(.*\)/extern \1 (\*\2) (\3/' \
- -e 's/LUA_API[[:space:]]\{1,\}\([a-zA-Z_ *]\{1,\}\)\(LUAJIT_[A-Z_]\{1,\}\)[[:space:]]*(\(.*\)/extern \1 (\*\2) (\3/' \
- -e 's/#include "lua.h"/#include "luajr_lua.h"/' \
- src/luajit/src/luajit_rolling.h > inst/include/luajr_luajit.h
-
-# Check header file output
-if grep '_API' inst/include/luajr_lua.h; then
-  echo "Error processing luajr_lua.h"
-  exit 1
-fi
-if grep '_API' inst/include/luajr_lualib.h; then
-  echo "Error processing luajr_lualib.h"
-  exit 1
-fi
-if grep '_API' inst/include/luajr_lauxlib.h; then
-  echo "Error processing luajr_lauxlib.h"
-  exit 1
-fi
-if grep '_API' inst/include/luajr_luajit.h; then
-  echo "Error processing luajr_luajit.h"
-  exit 1
-fi
-
 ### Write to Makevars.win
-# Supply make options
-sed -e 's|@make@|$(MAKE)|' src/Makevars.in > src/Makevars.win
-
-# Retain user supplied PKG_ env variables.
-sed -e "s|@PKG_CXXFLAGS@|$PKG_CXXFLAGS|" src/Makevars.win > src/Makevars.tmp && mv src/Makevars.tmp src/Makevars.win
-sed -e "s|@PKG_CPPFLAGS@|$PKG_CPPFLAGS|" src/Makevars.win > src/Makevars.tmp && mv src/Makevars.tmp src/Makevars.win
-sed -e "s|@PKG_LIBS@|$PKG_LIBS|" src/Makevars.win > src/Makevars.tmp && mv src/Makevars.tmp src/Makevars.win
+# Supply make options; retain user supplied PKG_ env variables.
+sed -e 's|@make@|$(MAKE)|' \
+  -e "s|@PKG_CXXFLAGS@|$PKG_CXXFLAGS|" -e "s|@PKG_CPPFLAGS@|$PKG_CPPFLAGS|" \
+  -e "s|@PKG_LIBS@|$PKG_LIBS|" src/Makevars.in > src/Makevars.win
 
 ### Write to .relver
-cp src/luajit/relver.txt src/luajit/.relver
+cp tools/luajit_relver.txt src/luajit/.relver
 
 exit 0

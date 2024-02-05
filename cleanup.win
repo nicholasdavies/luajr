@@ -1,10 +1,5 @@
 #!/usr/bin/env sh
 
-# Clean up generated header files
-rm -f inst/include/luajr_conf.h inst/include/luajr_lua.h \
- inst/include/luajr_lauxlib.h inst/include/luajr_lualib.h \
- inst/include/luajr_luajit.h
-
 # Clean up Makevars.win
 rm -f src/Makevars.win
 
