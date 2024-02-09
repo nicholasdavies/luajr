@@ -1,5 +1,6 @@
 Feature plan
 ------------
+- Improve and document using Lua C API from an R package
 - Make sure all API functions can handle NAs, wrong types, etc.
 - For luajr.list:
     v("/list/order", ord) -- reorder elements (like data.table)
@@ -21,12 +22,6 @@ https://blog.developer.atlassian.com/the-power-of-git-subtree/
 
 but ran into issues. Instead I now pull luajit to its own folder,
 and copy everything except .git to luajr/src.
-
-Use
-   git show -s --format=%ct
-in luaJIT directory to get timestamp of luajit, e.g. 1702296283
-
-This should be put directly into ./src/luajit/.relver
 
 
 Warnings when making luajit
