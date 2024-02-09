@@ -2,6 +2,9 @@
 
 # luajr 0.1.6
 
+-   This version makes further changes to DESCRIPTION and LICENSE requested
+    by CRAN.
+
 # luajr 0.1.5
 
 -   This version updates the package DESCRIPTION and CITATION to better reflect
