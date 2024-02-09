@@ -3,13 +3,13 @@ Type: Package
 Title: 'LuaJIT' Scripting
 Version: 0.1.5.9000
 Authors@R: c(
-    person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", 
-        role = c("cre", "aut", "cph"), 
-        comment = c(ORCID = "0000-0002-1740-1412")),
     person("Mike", "Pall", role = c("aut", "cph"), 
         comment = "Author of the embedded LuaJIT compiler"),
     person("Lua.org, PUC-Rio", role = "cph", 
-        comment = "Authors of the Lua scripting language"))
+        comment = "Copyright holders over portions of Lua source code included in LuaJIT"),
+    person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", 
+        role = c("cre", "ctb", "cph"), 
+        comment = c("Author of the R package wrapper", ORCID = "0000-0002-1740-1412")))
 Description: An interface to 'LuaJIT' <https://luajit.org>, a just-in-time 
     compiler for the 'Lua' scripting language <https://www.lua.org>. Allows 
     users to run 'Lua' code from 'R'.

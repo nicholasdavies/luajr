@@ -37,7 +37,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Nicholas Davies \email{nicholas.davies@lshtm.ac.uk} (\href{https://orcid.org/0000-0002-1740-1412}{ORCID}) [copyright holder]
+\strong{Maintainer}: Nicholas Davies \email{nicholas.davies@lshtm.ac.uk} (\href{https://orcid.org/0000-0002-1740-1412}{ORCID}) (Author of the R package wrapper) [contributor, copyright holder]
 
 Authors:
 \itemize{
@@ -46,7 +46,7 @@ Authors:
 
 Other contributors:
 \itemize{
-  \item Lua.org, PUC-Rio (Authors of the Lua scripting language) [copyright holder]
+  \item Lua.org, PUC-Rio (Copyright holders over portions of Lua source code included in LuaJIT) [copyright holder]
 }
 
 }

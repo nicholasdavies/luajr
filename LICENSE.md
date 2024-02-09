@@ -1,6 +1,12 @@
+*The following license statement applies to the luajr package as a whole, which
+is released under the MIT license. The luajr package includes the LuaJIT 
+compiler by Mike Pall, which is released under the MIT license, and which 
+itself includes components released under MIT or compatible licenses. Copyright 
+and license statements for LuaJIT can be found in LICENSE.note.*
+
 # MIT License
 
-Copyright (c) 2024 luajr authors
+Copyright (c) 2024 Mike Pall, Lua.org, PUC-Rio, Nicholas Davies
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
