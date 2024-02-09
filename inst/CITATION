@@ -2,7 +2,7 @@ bibentry("Manual",
          title        = "{luajr}: {LuaJIT} Scripting",
          author       = "Nicholas Davies",
          year         = 2024,
-         note         = "R package version 0.1.5",
+         note         = "R package version 0.1.6",
          url          = "https://nicholasdavies.github.io/luajr/")
 
 bibentry("Misc",
