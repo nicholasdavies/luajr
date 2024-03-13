@@ -17,5 +17,5 @@ $(SHLIB): luajit/src/libluajit.a
 # (see https://github.com/LuaJIT/LuaJIT/pull/1144).
 luajit/src/libluajit.a:
 	@(cd luajit && @make@ amalg BUILDMODE=static \
-	  CC="$(CC)" CFLAGS="$(CFLAGS) $(CPICFLAGS) -DLUAJIT_ENABLE_LUA52COMPAT -O2 -fomit-frame-pointer -Wno-pedantic -Wformat -fno-sanitize=all" \
+	  CC="$(CC)" CFLAGS="$(CFLAGS) $(CPICFLAGS) -DLUAJIT_ENABLE_LUA52COMPAT -O2 -fomit-frame-pointer -Wno-pedantic -fno-sanitize=all" \
 	  LDFLAGS="$(LDFLAGS) -fno-sanitize=all" AR="$(AR)" RANLIB="$(RANLIB)")
