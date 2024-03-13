@@ -1,5 +1,11 @@
 # luajr (development version)
 
+-   Removed a compiler flag, `-Wformat`, that was causing errors with some 
+    standard R environments, most notably the `rocker/r-base` Docker 
+    environment. This fixes issue 
+    [#1](https://github.com/nicholasdavies/luajr/issues/1). Thanks @jonocarroll 
+    for reporting and helping to fix `luajr`'s first official bug! :-)
+
 # luajr 0.1.6
 
 -   This version makes further changes to DESCRIPTION and LICENSE requested
