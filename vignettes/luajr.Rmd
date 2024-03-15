@@ -312,7 +312,7 @@ Consider the following:
 ```{r}
 logistic_map_R = function(x0, burn, iter, A)
 {
-    result = data.frame(a = rep(A, each = iter), x = 0)
+    result_x = numeric(length(A) * iter)
     
     j = 1
     for (a in A) {
@@ -321,13 +321,13 @@ logistic_map_R = function(x0, burn, iter, A)
             x = a * x * (1 - x)
         }
         for (i in 1:iter) { 
-            result$x[j] = x
+            result_x[j] = x
             x = a * x * (1 - x)
             j = j + 1
         }
     }
     
-    return (result)
+    return (list2DF(list(a = rep(A, each = iter), x = result_x)))
 }
 
 logistic_map_L = lua_func(
@@ -369,10 +369,16 @@ The times taken by each function on a 2019-era MacBook Pro are as follows:
 
 |Call                                         | Method            | Median runtime |
 |---------------------------------------------|-------------------|---------------:|
-|`logistic_map_R(0.5, 50, 100, 200:385/100))` | R function        | 1,100,000 µs   |
-|`logistic_map_L(0.5, 50, 100, 200:385/100))` | Lua function      |     **430 µs** |
+|`logistic_map_R(0.5, 50, 100, 200:385/100))` | R function        |      1900 µs   |
+|`logistic_map_L(0.5, 50, 100, 200:385/100))` | Lua function      |     **200 µs** |
 
-The version written in Lua is around 2,500 times faster than the version in R.
+The version written in Lua is around 10 times faster than the version in R. 
+
+The speedup was much more notable in an earlier test where the R version first
+created the data frame and then performed the iteration, i.e. with the line
+`result$x[j] = x` instead of `result_x[j] = x`. The median runtime for that R
+version was two orders of magnitude slower; the extra overhead associated with
+`data.frame` methods was pointed out by Tim Taylor.
 
 # Working with Lua States: `lua_open()`, `lua_reset()` {#states}
 

@@ -128,7 +128,7 @@ bench::mark(
 
 logistic_map_R = function(x0, burn, iter, A)
 {
-    result = data.frame(a = rep(A, each = iter), x = 0)
+    result_x = numeric(length(A) * iter)
 
     j = 1
     for (a in A) {
@@ -137,17 +137,17 @@ logistic_map_R = function(x0, burn, iter, A)
             x = a * x * (1 - x)
         }
         for (i in 1:iter) {
-            result$x[j] = x
+            result_x[j] = x
             x = a * x * (1 - x)
             j = j + 1
         }
     }
 
-    return (result)
+    return (list2DF(list(a = rep(A, each = iter), x = result_x)))
 }
 
 logistic_map_L = lua_func(
-"function(x0, burn, iter, A)
+    "function(x0, burn, iter, A)
     local dflen = #A * iter
     local result = luajr.dataframe()
     result.a = luajr.numeric_r(dflen, 0)
@@ -171,59 +171,7 @@ logistic_map_L = lua_func(
 end", "sssr")
 
 
-bench::mark(
+microbenchmark::microbenchmark(
     logistic_map_R(0.5, 50, 100, 200:385/100),
-    logistic_map_L(0.5, 50, 100, 200:385/100),
-    min_time = 5
+    logistic_map_L(0.5, 50, 100, 200:385/100)
 )
-
-logistic_map_parallel =
-"function(i)
-    local x0 = 0.5
-    local burn = 50
-    local iter = 100
-    local a = 2 + 0.01 * (i - 1)
-
-    local dflen = iter
-    local result = luajr.dataframe()
-    result.a = luajr.numeric(dflen, 0)
-    result.x = luajr.numeric(dflen, 0)
-
-    local x = x0
-    for i = 1, burn do
-        x = a * x * (1 - x)
-    end
-    for i = 1, iter do
-        result.a[i] = a
-        result.x[i] = x
-        x = a * x * (1 - x)
-    end
-
-    return result
-end"
-
-th2 = list()
-for (i in 1:4) {
-    th2[[i]] = lua_open()
-}
-
-bench::mark(
-    logistic_map_L(0.5, 50, 100, 2 + 0.01 * 0:185),
-    lua_parallel(logistic_map_parallel, n = 186, threads = 4),
-    lua_parallel(logistic_map_parallel, n = 186, threads = th2),
-    min_time = 1,
-    memory = FALSE,
-    check = FALSE
-)
-
-# A tibble: 2 × 13
-# expression                                     min   median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result            memory                  time                gc
-# <bch:expr>                                <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>            <list>                  <list>              <list>
-# logistic_map_R(0.5, 50, 100, 200:385/100)    828ms    842ms      1.19    1.29GB     9.31     6    47      5.05s <df [18,600 × 2]> <Rprofmem [10,044 × 3]> <bench_tm [6]>      <tibble [6 × 3]>
-# logistic_map_L(0.5, 50, 100, 200:385/100)    190µs    323µs   2339.    368.19KB    10.5  10000    45      4.28s <df [18,600 × 2]> <Rprofmem [6 × 3]>      <bench_tm [10,000]> <tibble [10,000 × 3]>
-
-# A tibble: 2 × 13
-# expression                                     min   median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result            memory                 time                gc
-# <bch:expr>                                <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>            <list>                 <list>              <list>
-# logistic_map_R(0.5, 50, 100, 200:385/100)    838ms    882ms      1.14    1.29GB     9.12     6    48      5.26s <df [18,600 × 2]> <Rprofmem [9,535 × 3]> <bench_tm [6]>      <tibble [6 × 3]>
-# logistic_map_L(0.5, 50, 100, 200:385/100)    189µs    336µs   2390.    365.69KB    10.0  10000    42      4.18s <df [18,600 × 2]> <Rprofmem [5 × 3]>     <bench_tm [10,000]> <tibble [10,000 × 3]>

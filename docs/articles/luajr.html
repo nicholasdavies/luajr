@@ -472,13 +472,13 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
-<span><span class="co">#&gt; [1] 8.408737</span></span>
+<span><span class="co">#&gt; [1] 11.1246</span></span>
 <span><span class="fu">sum2_r</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-reference</span></span>
-<span><span class="co">#&gt; [1] 8.408737</span></span>
+<span><span class="co">#&gt; [1] 11.1246</span></span>
 <span><span class="fu">sum2_v</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-value</span></span>
-<span><span class="co">#&gt; [1] 8.408737</span></span>
+<span><span class="co">#&gt; [1] 11.1246</span></span>
 <span><span class="fu">sum2_s</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>  <span class="co"># luajr pass-by-simplify</span></span>
-<span><span class="co">#&gt; [1] 8.408737</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 11.1246</span></span></code></pre></div>
 <p>The time taken to sum <code>v1</code>, <code>v4</code> and
 <code>v7</code>, depending upon the function kind, on a 2019-era MacBook
 Pro is summarised in this table:</p>
@@ -608,7 +608,7 @@ transferring control between languages.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">logistic_map_R</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x0</span>, <span class="va">burn</span>, <span class="va">iter</span>, <span class="va">A</span><span class="op">)</span></span>
 <span><span class="op">{</span></span>
-<span>    <span class="va">result</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">A</span>, each <span class="op">=</span> <span class="va">iter</span><span class="op">)</span>, x <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span>    <span class="va">result_x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">A</span><span class="op">)</span> <span class="op">*</span> <span class="va">iter</span><span class="op">)</span></span>
 <span>    </span>
 <span>    <span class="va">j</span> <span class="op">=</span> <span class="fl">1</span></span>
 <span>    <span class="kw">for</span> <span class="op">(</span><span class="va">a</span> <span class="kw">in</span> <span class="va">A</span><span class="op">)</span> <span class="op">{</span></span>
@@ -617,13 +617,13 @@ transferring control between languages.</p>
 <span>            <span class="va">x</span> <span class="op">=</span> <span class="va">a</span> <span class="op">*</span> <span class="va">x</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">x</span><span class="op">)</span></span>
 <span>        <span class="op">}</span></span>
 <span>        <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">iter</span><span class="op">)</span> <span class="op">{</span> </span>
-<span>            <span class="va">result</span><span class="op">$</span><span class="va">x</span><span class="op">[</span><span class="va">j</span><span class="op">]</span> <span class="op">=</span> <span class="va">x</span></span>
+<span>            <span class="va">result_x</span><span class="op">[</span><span class="va">j</span><span class="op">]</span> <span class="op">=</span> <span class="va">x</span></span>
 <span>            <span class="va">x</span> <span class="op">=</span> <span class="va">a</span> <span class="op">*</span> <span class="va">x</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">x</span><span class="op">)</span></span>
 <span>            <span class="va">j</span> <span class="op">=</span> <span class="va">j</span> <span class="op">+</span> <span class="fl">1</span></span>
 <span>        <span class="op">}</span></span>
 <span>    <span class="op">}</span></span>
 <span>    </span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span> <span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list2DF.html" class="external-link">list2DF</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">A</span>, each <span class="op">=</span> <span class="va">iter</span><span class="op">)</span>, x <span class="op">=</span> <span class="va">result_x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="va">logistic_map_L</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span></span>
@@ -674,17 +674,23 @@ follows:</p>
 <tr class="odd">
 <td><code>logistic_map_R(0.5, 50, 100, 200:385/100))</code></td>
 <td>R function</td>
-<td align="right">1,100,000 µs</td>
+<td align="right">1900 µs</td>
 </tr>
 <tr class="even">
 <td><code>logistic_map_L(0.5, 50, 100, 200:385/100))</code></td>
 <td>Lua function</td>
-<td align="right"><strong>430 µs</strong></td>
+<td align="right"><strong>200 µs</strong></td>
 </tr>
 </tbody>
 </table>
-<p>The version written in Lua is around 2,500 times faster than the
-version in R.</p>
+<p>The version written in Lua is around 10 times faster than the version
+in R.</p>
+<p>The speedup was much more notable in an earlier test where the R
+version first created the data frame and then performed the iteration,
+i.e. with the line <code>result$x[j] = x</code> instead of
+<code>result_x[j] = x</code>. The median runtime for that R version was
+two orders of magnitude slower; the extra overhead associated with
+<code>data.frame</code> methods was pointed out by Tim Taylor.</p>
 </div>
 </div>
 <div class="section level2">

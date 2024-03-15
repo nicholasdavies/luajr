@@ -55,9 +55,11 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="luajr-development-version">luajr (development version)<a class="anchor" aria-label="anchor" href="#luajr-development-version"></a></h2>
-</div>
+<ul><li><p>@TimTaylor improved the R version of the “logistic map” example and benchmark in the main luajr vignette, so that now the Lua version is only 10x faster than the R version, not 2,500x faster. This fixes issue <a href="https://github.com/nicholasdavies/luajr/issues/2" class="external-link">#2</a>. Thanks Tim!</p></li>
+<li><p>Removed a compiler flag, <code>-Wformat</code>, that was causing errors with some standard R environments, most notably the <code>rocker/r-base</code> Docker environment. This fixes issue <a href="https://github.com/nicholasdavies/luajr/issues/1" class="external-link">#1</a>. Thanks <a href="https://github.com/jonocarroll" class="external-link">@jonocarroll</a> for reporting and helping to fix luajr’s first official bug! :-)</p></li>
+</ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.6" id="luajr-016">luajr 0.1.6<a class="anchor" aria-label="anchor" href="#luajr-016"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.1.6" id="luajr-016">luajr 0.1.6<a class="anchor" aria-label="anchor" href="#luajr-016"></a></h2><p class="text-muted">CRAN release: 2024-02-23</p>
 <ul><li>This version makes further changes to DESCRIPTION and LICENSE requested by CRAN.</li>
 </ul></div>
     <div class="section level2">

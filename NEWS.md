@@ -1,10 +1,15 @@
 # luajr (development version)
 
+-   @TimTaylor improved the R version of the "logistic map" example and 
+    benchmark in the main luajr vignette, so that now the Lua version is only 
+    10x faster than the R version, not 2,500x faster. This fixes issue 
+    [#2](https://github.com/nicholasdavies/luajr/issues/2). Thanks Tim!
+
 -   Removed a compiler flag, `-Wformat`, that was causing errors with some 
     standard R environments, most notably the `rocker/r-base` Docker 
     environment. This fixes issue 
     [#1](https://github.com/nicholasdavies/luajr/issues/1). Thanks @jonocarroll 
-    for reporting and helping to fix `luajr`'s first official bug! :-)
+    for reporting and helping to fix luajr's first official bug! :-)
 
 # luajr 0.1.6
 
