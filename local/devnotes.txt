@@ -1,5 +1,7 @@
 Feature plan
 ------------
+- Add lua_load(code, file, L) to turn code/file into bytecode using LuaJIT,
+  which I guess could use lua_dump...
 - Improve and document using Lua C API from an R package
 - Make sure all API functions can handle NAs, wrong types, etc.
 - For luajr.list:
