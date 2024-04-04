@@ -3,6 +3,7 @@
 #include "shared.h"
 #include <vector>
 #include <string>
+#include <cstring>
 extern "C" {
 #include "lua.h"
 }
@@ -168,10 +169,11 @@ static void push_R_list(lua_State* L, SEXP x, char as)
 
 // Analogous to Lua's lua_pushXXX(lua_State* L, XXX x) functions, this pushes
 // the R object [x] onto Lua's stack.
-// Supported: NILSXP, LGLSXP, INTSXP, REALSXP, STRSXP, VECSXP, EXTPTRSXP.
+// Supported: NILSXP, LGLSXP, INTSXP, REALSXP, STRSXP, VECSXP, EXTPTRSXP,
+// RAWSXP.
 // Not supported: SYMSXP, LISTSXP, CLOSXP, ENVSXP, PROMSXP, LANGSXP, SPECIALSXP,
 // BUILTINSXP, CHARSXP, CPLXSXP, DOTSXP, ANYSXP, EXPRSXP, BCODESXP, WEAKREFSXP,
-// RAWSXP, S4SXP.
+// S4SXP.
 extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
 {
     switch (TYPEOF(x))
@@ -212,6 +214,9 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
         case EXTPTRSXP: // external pointer
             lua_pushlightuserdata(L, R_ExternalPtrAddr(x));
             break;
+        case RAWSXP: // raw bytes
+            lua_pushlstring(L, (const char*)RAW(x), Rf_length(x));
+            break;
         default:
             Rf_error("Cannot convert %s to Lua.", Rf_type2char(TYPEOF(x)));
     }
@@ -236,7 +241,27 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
         case LUA_TNUMBER:
             return Rf_ScalarReal(lua_tonumber(L, index));
         case LUA_TSTRING:
-            return Rf_mkString(lua_tostring(L, index));
+        {
+            // Get string and its length
+            size_t len;
+            const char* str = lua_tolstring(L, index, &len);
+
+            // If string contains embedded nulls, needs to be returned as a
+            // RAWSXP instead of as a STRSXP.
+            if (std::strlen(str) != len)
+            {
+                SEXP retval = Rf_allocVector3(RAWSXP, len, NULL);
+                std::memcpy(RAW(retval), str, len);
+                return retval;
+            }
+            else
+            {
+                SEXP retval = PROTECT(Rf_allocVector3(STRSXP, 1, NULL));
+                SET_STRING_ELT(retval, 0, Rf_mkCharLen(str, len));
+                UNPROTECT(1);
+                return retval;
+            }
+        }
         case LUA_TTABLE:
         {
             // Get luajr.return_info() on the stack

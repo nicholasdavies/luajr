@@ -4,7 +4,8 @@
 #' function that can be called to invoke the Lua function.
 #'
 #' The R types that can be passed to Lua are: `NULL`, logical vector,
-#' integer vector, numeric vector, string vector, list, and external pointer.
+#' integer vector, numeric vector, string vector, list, external pointer, and
+#' raw.
 #'
 #' The parameter `argcode` is a string with one character for each argument of
 #' the Lua function, recycled as needed (e.g. so that a single character would
@@ -25,12 +26,15 @@
 #' through `'9'`, this is the same as `'s'`, but the vector is required to have
 #' that specific length, otherwise an error message is emitted.
 #'
-#' Still focusing on vectors, if the argcode is `'r'`, then the vector is
-#' passed *by reference* to Lua, adopting the type `luajr.logical_r`,
+#' Still focusing on the same vector types, if the argcode is `'r'`, then the
+#' vector is passed *by reference* to Lua, adopting the type `luajr.logical_r`,
 #' `luajr.integer_r`, `luajr.numeric_r`, or `luajr.character_r` as appropriate.
 #' If the argcode is `'v'`, the vector is passed *by value* to Lua,
 #' adopting the type `luajr.logical`, `luajr.integer`, `luajr.numeric`, or
 #' `luajr.character` as appropriate.
+#'
+#' For a raw vector, only the `'s'` type is accepted and the result in Lua is
+#' a string (potentially with embedded nulls).
 #'
 #' For lists, if the argcode is `'s'` (simplify), the list is passed as a Lua
 #' table. Any entries of the list with non-blank names are named in the table,
@@ -49,7 +53,7 @@
 #' When the function is called and Lua values are returned from the function,
 #' the Lua return values are converted to R values as follows.
 #'
-#' If nothing is returned, the function returns invisible() (i.e. NULL).
+#' If nothing is returned, the function returns `invisible()` (i.e. `NULL`).
 #'
 #' If multiple arguments are returned, a list with all arguments is returned.
 #'
@@ -65,6 +69,8 @@
 #' in ascending order of keys. Entries with non-number, non-string keys are
 #' discarded. It is probably best to avoid returning a **table** with anything
 #' other than string keys, or to use `luajr.list`.
+#'
+#' A Lua string with embedded nulls is returned as an R raw type.
 #'
 #' @inheritParams lua
 #' @param func Lua expression evaluating to a function.

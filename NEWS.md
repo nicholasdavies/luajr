@@ -1,5 +1,9 @@
 # luajr (development version)
 
+-   Added support for passing the R type "raw" to Lua, as a string potentially
+    with embedded nulls, and for returning strings with embedded nulls from 
+    Lua, which become "raw"s in R.
+    
 -   @TimTaylor improved the R version of the "logistic map" example and 
     benchmark in the main luajr vignette, so that now the Lua version is only 
     10x faster than the R version, not 2,500x faster. This fixes issue 

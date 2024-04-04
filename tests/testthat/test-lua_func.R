@@ -50,6 +50,7 @@ test_that("pass by simplify works", {
     expect_identical(lua_func("type", "s")("Hi"), "string")
     expect_identical(lua_func("type", "s")(list()), "table")
     expect_identical(lua_func("type", "s")(L), "userdata")
+    expect_identical(lua_func("type", "s")(charToRaw("Hello")), "string")
 
     # Check values
     lua_identity = lua_func("function(x) return x end", "s")
@@ -62,6 +63,7 @@ test_that("pass by simplify works", {
     expect_identical(lua_identity(list()), list())
     expect_identical(lua_identity(list(1, b = list(c = 3))), list(1, b = list(c = 3)))
     expect_identical(lua_identity(L), L)
+    expect_identical(lua_identity(as.raw(c(0,1,0))), as.raw(c(0,1,0)))
 
     # Check length enforce
     f_one = lua_func("tostring", "1")
