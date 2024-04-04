@@ -97,6 +97,8 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 
         // Handle errors
         if (err) {
+            // This and similar mutex locks are used to avoid writing
+            // to error_message in multiple threads simultaneously.
             std::lock_guard<std::mutex> lock { pm };
             error_msg = lua_tostring(l[t], -1);
         } else if (nret != 1) {
