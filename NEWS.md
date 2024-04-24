@@ -1,3 +1,5 @@
+# luajr (development version)
+
 # luajr 0.1.7
 
 -   Added support for passing the R type "raw" to Lua, as a string potentially
