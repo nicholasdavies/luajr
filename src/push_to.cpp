@@ -250,13 +250,13 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             // RAWSXP instead of as a STRSXP.
             if (std::strlen(str) != len)
             {
-                SEXP retval = Rf_allocVector3(RAWSXP, len, NULL);
+                SEXP retval = Rf_allocVector(RAWSXP, len);
                 std::memcpy(RAW(retval), str, len);
                 return retval;
             }
             else
             {
-                SEXP retval = PROTECT(Rf_allocVector3(STRSXP, 1, NULL));
+                SEXP retval = PROTECT(Rf_allocVector(STRSXP, 1));
                 SET_STRING_ELT(retval, 0, Rf_mkCharLen(str, len));
                 UNPROTECT(1);
                 return retval;
@@ -290,10 +290,10 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 }
 
                 // Create list and names
-                SEXP retval = PROTECT(Rf_allocVector3(VECSXP, narr + nrec, NULL));
+                SEXP retval = PROTECT(Rf_allocVector(VECSXP, narr + nrec));
                 SEXP names = R_NilValue;
                 if (nrec > 0)
-                    names = PROTECT(Rf_allocVector3(STRSXP, narr + nrec, NULL));
+                    names = PROTECT(Rf_allocVector(STRSXP, narr + nrec));
 
                 // Second pass: add all entries to list.
                 int arr_i = 0, rec_i = narr;
@@ -330,7 +330,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             if (type == LIST_T)
             {
                 // Add each entry to a list
-                SEXP retval = PROTECT(Rf_allocVector3(VECSXP, size, NULL));
+                SEXP retval = PROTECT(Rf_allocVector(VECSXP, size));
                 int nprotect = 1;
 
                 // Get the list contents on the stack
@@ -353,7 +353,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                         {
                             if (size > 0)
                             {
-                                SEXP names = PROTECT(Rf_allocVector3(STRSXP, size, NULL));
+                                SEXP names = PROTECT(Rf_allocVector(STRSXP, size));
                                 ++nprotect;
                                 SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
                                 for (int i = 0; i < Rf_length(val); ++i) {
@@ -385,7 +385,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                     // R has a special shorthand for "short" rownames: c(NA_integer_, nrow) (see attrib.c)
                     // TODO This will fail if the number of rows is 2^31 or higher. However, it also seems
                     // that R itself cannot really handle such long data.frames (at least as of R 4.3.2).
-                    SEXP rownames = PROTECT(Rf_allocVector3(INTSXP, 2, NULL));
+                    SEXP rownames = PROTECT(Rf_allocVector(INTSXP, 2));
                     ++nprotect;
                     INTEGER(rownames)[0] = NA_INTEGER;
                     INTEGER(rownames)[1] = Rf_length(VECTOR_ELT(retval, 0));
@@ -405,7 +405,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             else
                 Rf_error("Unknown type");
 
-            SEXP ret = PROTECT(Rf_allocVector3(rtype, size, NULL));
+            SEXP ret = PROTECT(Rf_allocVector(rtype, size));
             // Now get luajr.return_copy() on the stack
             lua_pushlightuserdata(L, (void*)&luajr_return_copy);
             lua_rawget(L, LUA_REGISTRYINDEX);
@@ -471,7 +471,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 else if (type == (NUMERIC_T | VECTOR_T))    rtype = REALSXP;
                 else Rf_error("Unknown type");
 
-                SEXP ret = PROTECT(Rf_allocVector3(rtype, size, NULL));
+                SEXP ret = PROTECT(Rf_allocVector(rtype, size));
                 // Now get luajr.return_copy() on the stack
                 lua_pushlightuserdata(L, (void*)&luajr_return_copy);
                 lua_rawget(L, LUA_REGISTRYINDEX);
@@ -523,7 +523,7 @@ extern "C" SEXP luajr_return(lua_State* L, int nret)
     else
     {
         // Multiple return values: return as list
-        SEXP retlist = PROTECT(Rf_allocVector3(VECSXP, nret, NULL));
+        SEXP retlist = PROTECT(Rf_allocVector(VECSXP, nret));
 
         // Add elements to table
         for (int i = 0; i < nret; ++i)

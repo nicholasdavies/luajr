@@ -46,7 +46,7 @@ extern "C" void R_init_luajr(DllInfo *dll)
 extern "C" SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP))
 {
     // TODO Use this to wrap the external pointer in a list
-    // SEXP x = PROTECT(Rf_allocVector3(VECSXP, 1, NULL));
+    // SEXP x = PROTECT(Rf_allocVector(VECSXP, 1));
     // SEXP tag = PROTECT(Rf_ScalarInteger(tag_code));
     // SET_VECTOR_ELT(x, 0, R_MakeExternalPtr(ptr, tag, R_NilValue));
     // R_RegisterCFinalizerEx(VECTOR_ELT(x, 0), finalize, TRUE);

@@ -180,7 +180,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         {
             if (result == R_NilValue)
             {
-                result = PROTECT(Rf_allocVector3(VECSXP, n_iter, NULL));
+                result = PROTECT(Rf_allocVector(VECSXP, n_iter));
                 ++nprotect;
             }
             int index = lua_tointeger(l[t], -1);

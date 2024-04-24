@@ -93,14 +93,14 @@ extern "C" void SetCharacterRef(character_rt* x, SEXP s)
 
 extern "C" void AllocLogical(logical_rt* x, ptrdiff_t size)
 {
-    x->_s = Rf_allocVector3(LGLSXP, size, 0);
+    x->_s = Rf_allocVector(LGLSXP, size);
     R_PreserveObject(x->_s);
     x->_p = LOGICAL(x->_s) - 1;
 }
 
 extern "C" void AllocInteger(integer_rt* x, ptrdiff_t size)
 {
-    x->_s = Rf_allocVector3(INTSXP, size, 0);
+    x->_s = Rf_allocVector(INTSXP, size);
     R_PreserveObject(x->_s);
     x->_p = INTEGER(x->_s) - 1;
 }
@@ -122,20 +122,20 @@ extern "C" void AllocIntegerCompact1N(integer_rt* x, ptrdiff_t N)
 
 extern "C" void AllocNumeric(numeric_rt* x, ptrdiff_t size)
 {
-    x->_s = Rf_allocVector3(REALSXP, size, 0);
+    x->_s = Rf_allocVector(REALSXP, size);
     R_PreserveObject(x->_s);
     x->_p = REAL(x->_s) - 1;
 }
 
 extern "C" void AllocCharacter(character_rt* x, ptrdiff_t size)
 {
-    x->_s = Rf_allocVector3(STRSXP, size, 0);
+    x->_s = Rf_allocVector(STRSXP, size);
     R_PreserveObject(x->_s);
 }
 
 extern "C" void AllocCharacterNA(character_rt* x, ptrdiff_t size)
 {
-    x->_s = Rf_allocVector3(STRSXP, size, 0);
+    x->_s = Rf_allocVector(STRSXP, size);
     R_PreserveObject(x->_s);
     for (ptrdiff_t i = 0; i < size; ++i)
         SET_STRING_ELT(x->_s, i, NA_STRING);
@@ -143,7 +143,7 @@ extern "C" void AllocCharacterNA(character_rt* x, ptrdiff_t size)
 
 extern "C" void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v)
 {
-    x->_s = Rf_allocVector3(STRSXP, size, 0);
+    x->_s = Rf_allocVector(STRSXP, size);
     R_PreserveObject(x->_s);
     SEXP sv = PROTECT(Rf_mkChar(v));
     for (ptrdiff_t i = 0; i < size; ++i)
@@ -218,7 +218,7 @@ extern "C" void SetAttrCharacterRef(SEXP s, const char* k, character_rt* v)
 
 extern "C" void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v)
 {
-    SEXP dimnames = PROTECT(Rf_allocVector3(VECSXP, 2, NULL));
+    SEXP dimnames = PROTECT(Rf_allocVector(VECSXP, 2));
     SET_VECTOR_ELT(dimnames, 0, R_NilValue);
     SET_VECTOR_ELT(dimnames, 1, v->_s);
     Rf_dimnamesgets(s, dimnames);

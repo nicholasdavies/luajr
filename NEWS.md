@@ -1,5 +1,9 @@
 # luajr (development version)
 
+-   Replaced calls to Rf_allocVector3 with calls to Rf_allocVector, as the 
+    former is apparently not part of the API allowed in CRAN packages, as 
+    requested by CRAN.
+
 -   Added support for passing the R type "raw" to Lua, as a string potentially
     with embedded nulls, and for returning strings with embedded nulls from 
     Lua, which become "raw"s in R.
