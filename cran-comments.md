@@ -1,5 +1,6 @@
 This submission is to comply with a request from CRAN to remove uses of 
 `Rf_allocVector3` from the package code and use `Rf_allocVector` instead.
+The deadline given was 2024-05-06.
 
 ## R CMD check results
 
