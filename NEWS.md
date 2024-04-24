@@ -1,16 +1,16 @@
 # luajr (development version)
 
--   Replaced calls to Rf_allocVector3 with calls to Rf_allocVector, as the 
-    former is apparently not part of the API allowed in CRAN packages, as 
-    requested by CRAN.
-
 -   Added support for passing the R type "raw" to Lua, as a string potentially
     with embedded nulls, and for returning strings with embedded nulls from 
     Lua, which become "raw"s in R.
     
+-   Replaced calls to Rf_allocVector3 with calls to Rf_allocVector, as the 
+    former is apparently not part of the API allowed in CRAN packages, as 
+    requested by CRAN.
+
 -   @TimTaylor improved the R version of the "logistic map" example and 
-    benchmark in the main luajr vignette, so that now the Lua version is only 
-    10x faster than the R version, not 2,500x faster. This fixes issue 
+    benchmark in the main luajr vignette, so that now the R version is only 
+    10x slower than the Lua version, not 2,500x slower. This fixes issue 
     [#2](https://github.com/nicholasdavies/luajr/issues/2). Thanks Tim!
 
 -   Removed a compiler flag, `-Wformat`, that was causing errors with some 
