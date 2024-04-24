@@ -12,7 +12,7 @@ function that can be called to invoke the Lua function."><!-- mathjax --><script
     
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.7</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +90,8 @@ uses the default Lua state for <span class="pkg">luajr</span>.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The R types that can be passed to Lua are: <code>NULL</code>, logical vector,
-integer vector, numeric vector, string vector, list, and external pointer.</p>
+integer vector, numeric vector, string vector, list, external pointer, and
+raw.</p>
 <p>The parameter <code>argcode</code> is a string with one character for each argument of
 the Lua function, recycled as needed (e.g. so that a single character would
 apply to all arguments regardless of how many there are).</p>
@@ -106,12 +107,14 @@ indices starting at 1. If the code is <code>'a'</code>, the vector is always sup
 an array, even if it only has length 1. If the argcode is the digit <code>'1'</code>
 through <code>'9'</code>, this is the same as <code>'s'</code>, but the vector is required to have
 that specific length, otherwise an error message is emitted.</p>
-<p>Still focusing on vectors, if the argcode is <code>'r'</code>, then the vector is
-passed <em>by reference</em> to Lua, adopting the type <code>luajr.logical_r</code>,
+<p>Still focusing on the same vector types, if the argcode is <code>'r'</code>, then the
+vector is passed <em>by reference</em> to Lua, adopting the type <code>luajr.logical_r</code>,
 <code>luajr.integer_r</code>, <code>luajr.numeric_r</code>, or <code>luajr.character_r</code> as appropriate.
 If the argcode is <code>'v'</code>, the vector is passed <em>by value</em> to Lua,
 adopting the type <code>luajr.logical</code>, <code>luajr.integer</code>, <code>luajr.numeric</code>, or
 <code>luajr.character</code> as appropriate.</p>
+<p>For a raw vector, only the <code>'s'</code> type is accepted and the result in Lua is
+a string (potentially with embedded nulls).</p>
 <p>For lists, if the argcode is <code>'s'</code> (simplify), the list is passed as a Lua
 table. Any entries of the list with non-blank names are named in the table,
 while unnamed entries have the associated integer key in the table. Note that
@@ -125,7 +128,7 @@ passed by reference or by value, respectively.</p>
 passed to Lua as type <strong>userdata</strong>.</p>
 <p>When the function is called and Lua values are returned from the function,
 the Lua return values are converted to R values as follows.</p>
-<p>If nothing is returned, the function returns invisible() (i.e. NULL).</p>
+<p>If nothing is returned, the function returns <code><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible()</a></code> (i.e. <code>NULL</code>).</p>
 <p>If multiple arguments are returned, a list with all arguments is returned.</p>
 <p>Reference types (e.g. <code>luajr.logical_r</code>) and vector types (e.g.
 <code>luajr.logical</code>) are returned to R as such. A <code>luajr.list</code> is returned as an
@@ -138,6 +141,7 @@ Note in particular that Lua does not guarantee that it will traverse a table
 in ascending order of keys. Entries with non-number, non-string keys are
 discarded. It is probably best to avoid returning a <strong>table</strong> with anything
 other than string keys, or to use <code>luajr.list</code>.</p>
+<p>A Lua string with embedded nulls is returned as an R raw type.</p>
     </div>
 
     <div class="section level2">

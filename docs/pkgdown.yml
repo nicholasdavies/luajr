@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   luajr-module: luajr-module.html
   luajr: luajr.html
-last_built: 2024-03-15T18:19Z
+last_built: 2024-04-24T15:23Z
 urls:
   reference: https://nicholasdavies.github.io/luajr/reference
   article: https://nicholasdavies.github.io/luajr/articles
