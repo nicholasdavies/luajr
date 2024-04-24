@@ -23,7 +23,8 @@ function that can be called to invoke the Lua function.
 }
 \details{
 The R types that can be passed to Lua are: \code{NULL}, logical vector,
-integer vector, numeric vector, string vector, list, and external pointer.
+integer vector, numeric vector, string vector, list, external pointer, and
+raw.
 
 The parameter \code{argcode} is a string with one character for each argument of
 the Lua function, recycled as needed (e.g. so that a single character would
@@ -44,12 +45,15 @@ an array, even if it only has length 1. If the argcode is the digit \code{'1'}
 through \code{'9'}, this is the same as \code{'s'}, but the vector is required to have
 that specific length, otherwise an error message is emitted.
 
-Still focusing on vectors, if the argcode is \code{'r'}, then the vector is
-passed \emph{by reference} to Lua, adopting the type \code{luajr.logical_r},
+Still focusing on the same vector types, if the argcode is \code{'r'}, then the
+vector is passed \emph{by reference} to Lua, adopting the type \code{luajr.logical_r},
 \code{luajr.integer_r}, \code{luajr.numeric_r}, or \code{luajr.character_r} as appropriate.
 If the argcode is \code{'v'}, the vector is passed \emph{by value} to Lua,
 adopting the type \code{luajr.logical}, \code{luajr.integer}, \code{luajr.numeric}, or
 \code{luajr.character} as appropriate.
+
+For a raw vector, only the \code{'s'} type is accepted and the result in Lua is
+a string (potentially with embedded nulls).
 
 For lists, if the argcode is \code{'s'} (simplify), the list is passed as a Lua
 table. Any entries of the list with non-blank names are named in the table,
@@ -68,7 +72,7 @@ passed to Lua as type \strong{userdata}.
 When the function is called and Lua values are returned from the function,
 the Lua return values are converted to R values as follows.
 
-If nothing is returned, the function returns invisible() (i.e. NULL).
+If nothing is returned, the function returns \code{invisible()} (i.e. \code{NULL}).
 
 If multiple arguments are returned, a list with all arguments is returned.
 
@@ -84,6 +88,8 @@ Note in particular that Lua does not guarantee that it will traverse a table
 in ascending order of keys. Entries with non-number, non-string keys are
 discarded. It is probably best to avoid returning a \strong{table} with anything
 other than string keys, or to use \code{luajr.list}.
+
+A Lua string with embedded nulls is returned as an R raw type.
 }
 \examples{
 squared <- lua_func("function(x) return x^2 end")
