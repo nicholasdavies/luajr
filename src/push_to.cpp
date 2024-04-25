@@ -82,7 +82,9 @@ static void push_R_list(lua_State* L, SEXP x, char as)
     int len = Rf_length(x);
 
     // Get names of list elements
-    SEXP names = Rf_getAttrib(x, R_NamesSymbol);
+    // NOTE: The PROTECT call here isn't needed, except to prevent rchk from
+    // issuing a false-positive warning.
+    SEXP names = PROTECT(Rf_getAttrib(x, R_NamesSymbol));
     if (names != R_NilValue && TYPEOF(names) != STRSXP)
         Rf_error("Non-character names attribute on vector.");
 
@@ -165,6 +167,8 @@ static void push_R_list(lua_State* L, SEXP x, char as)
             Rf_error("Unrecognised args code %c for type %s.", as, Rf_type2char(TYPEOF(x)));
             break;
     }
+
+    UNPROTECT(1);
 }
 
 // Analogous to Lua's lua_pushXXX(lua_State* L, XXX x) functions, this pushes
