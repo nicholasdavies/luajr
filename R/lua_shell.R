@@ -2,6 +2,8 @@
 #'
 #' When in interactive mode, provides a basic read-eval-print loop with LuaJIT.
 #'
+#' Enter an empty line to return to R.
+#'
 #' As a convenience, lines starting with an equals sign have the `"="` replaced
 #' with `"return "`, so that e.g. entering `=x` will show the value of `x` as
 #' returned to R.
