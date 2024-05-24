@@ -38,7 +38,7 @@ local hidden = ffi.new("HIDDEN_t")
 -- 1. INTERNAL API --
 ---------------------
 
--- Load 'internal' API for interfacing with R (see ./src/lua_ffi.cpp)
+-- Load 'internal' API for interfacing with R (see ./src/lua_api.cpp)
 ffi.cdef[[
 // Forward declarations
 struct SEXPREC;
