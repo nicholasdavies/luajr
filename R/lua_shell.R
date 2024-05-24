@@ -29,10 +29,10 @@ lua_shell = function(L = NULL)
     {
         # Read a line
         if (prev_line == "") {
-            line = readline("lua > ")
+            line = .Call(luajr:::`_luajr_readline`, "lua > ")
         } else {
             # If we're building up multi-line input, show a special prompt
-            line = readline(" +    ")
+            line = .Call(luajr:::`_luajr_readline`, " +    ")
             if (line == "") {
                 # Exit multi-line if nothing entered
                 line = "."

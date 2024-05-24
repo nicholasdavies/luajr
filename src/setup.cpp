@@ -10,6 +10,8 @@ extern "C" {
 #include <R.h>
 #include <Rinternals.h>
 
+extern "C" int R_ReadConsole(const char *, unsigned char *, int, int);
+
 // Global definitions
 lua_State* L0 = 0;
 
@@ -25,6 +27,7 @@ static const R_CallMethodDef CallEntries[] =
     { "_luajr_func_create",     (DL_FUNC)&luajr_func_create,    2 },
     { "_luajr_func_call",       (DL_FUNC)&luajr_func_call,      4 },
     { "_luajr_run_parallel",    (DL_FUNC)&luajr_run_parallel,   4 },
+    { "_luajr_readline",        (DL_FUNC)&luajr_readline,       1 },
     { NULL, NULL, 0 }
 };
 
@@ -89,4 +92,21 @@ extern "C" void luajr_pcall(lua_State* L, int nargs, int nresults, const char* f
         lua_pop(L, 1);
         Rf_error("Error while calling Lua function %s: %s", funcdesc, msg.c_str());
     }
+}
+
+// Replacement for R's readline for lua_shell: this one adds lines to the history
+extern "C" SEXP luajr_readline(SEXP prompt)
+{
+    CheckSEXPLen(prompt, STRSXP, 1);
+
+    const size_t bufsize = 4096;
+    std::string buffer(bufsize, '\0');
+
+    if (!R_ReadConsole(CHAR(STRING_ELT(prompt, 0)), (unsigned char*)buffer.data(), bufsize, 1))
+        return R_BlankScalarString;
+
+    SEXP retval = PROTECT(Rf_allocVector(STRSXP, 1));
+    SET_STRING_ELT(retval, 0, Rf_mkCharLen(buffer.data(), std::strlen(buffer.data()) - 1)); // -1 to cut the newline
+    UNPROTECT(1);
+    return retval;
 }

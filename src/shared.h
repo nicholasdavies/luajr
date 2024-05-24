@@ -47,6 +47,7 @@ SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre);
 SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));
 void* luajr_getpointer(SEXP x, int tag_code);
 void luajr_pcall(lua_State* L, int nargs, int nresults, const char* funcdesc);
+SEXP luajr_readline(SEXP prompt);
 
 } // end of extern "C"
 
