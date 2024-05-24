@@ -105,12 +105,6 @@ extern "C" SEXP luajr_func_create(SEXP code, SEXP Lx)
 // Call a Lua function
 extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 {
-    // Get registry entry
-    RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(fx, LUAJR_REGFUNC_CODE));
-
-    // Check args
-    if (!re)
-        Rf_error("luajr_func_call expects a valid registry entry.");
     CheckSEXP(alist, VECSXP);
     CheckSEXPLen(acode, STRSXP, 1);
 
@@ -119,7 +113,7 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 
     // Assemble function call
     int top0 = lua_gettop(L);
-    re->Get();
+    luajr_pushfunc(fx);
     luajr_pass(L, alist, CHAR(STRING_ELT(acode, 0)));
 
     // Call function
@@ -128,4 +122,18 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 
     // Return results
     return luajr_return(L, top1 - top0);
+}
+
+// Get a luajr function on the stack of the lua_State associated with the luajr function
+extern "C" void luajr_pushfunc(SEXP fx)
+{
+    // Get registry entry
+    RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(fx, LUAJR_REGFUNC_CODE));
+
+    // Check args
+    if (!re)
+        Rf_error("luajr_pushfunc expects a valid registry entry.");
+
+    // Get function on stack
+    re->Get();
 }
