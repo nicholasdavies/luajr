@@ -1,5 +1,20 @@
 # luajr (development version)
 
+-   The Lua "io" library is now capable of getting input from the R console
+    (e.g. with io.read()) -- previously, trying this would cause R to hang
+    (at least from RStudio).
+    
+-   The Lua os.exit() function now ends Lua execution without crashing RStudio.
+
+-   lua_shell() now stores commands in the R console history.
+
+-   The luajr build process now skips making libluajit.so and the luajit 
+    executable, as these are not needed for luajr.
+    
+-   Corrected an oversight in the documentation for lua_shell(); this fixes
+    issue [#3](https://github.com/nicholasdavies/luajr/issues/3). Thanks to
+    @SugarRayLua for bringing my attention to this!
+
 # luajr 0.1.7
 
 -   Added support for passing the R type "raw" to Lua, as a string potentially

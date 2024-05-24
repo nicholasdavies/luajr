@@ -67,6 +67,11 @@ lua_shell = function(L = NULL)
                 # Or just in normal colour if not possible
                 cat(res$message, "\n")
             }
+
+            # If not a syntax error: quit lua_shell()
+            if (!grepl("^\\[.*\\]:", res$message)) {
+                break
+            }
         } else if (!is.null(res)) {
             # If line has returned a value, print it
             print(res)
