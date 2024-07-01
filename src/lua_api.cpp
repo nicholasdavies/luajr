@@ -43,11 +43,11 @@ static SEXP new_compact_intseq(R_xlen_t n, int n1, int inc)
     if (inc != 1 && inc != -1)
 	    Rf_error("compact sequences with increment %d not supported yet", inc);
 
-    // info used REALSXP to allow for long vectors
+    // info uses REALSXP to allow for long vectors
     SEXP info = Rf_allocVector(REALSXP, 3);
-    REAL0(info)[0] = (double) n;
-    REAL0(info)[1] = (double) n1;
-    REAL0(info)[2] = (double) inc;
+    REAL(info)[0] = (double) n;
+    REAL(info)[1] = (double) n1;
+    REAL(info)[2] = (double) inc;
 
     SEXP ans = R_new_altrep(R_compact_intseq_class, info, R_NilValue);
     MARK_NOT_MUTABLE(ans); // force duplicate on modify

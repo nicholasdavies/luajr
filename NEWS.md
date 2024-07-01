@@ -15,6 +15,8 @@
     issue [#3](https://github.com/nicholasdavies/luajr/issues/3). Thanks to
     @SugarRayLua for bringing my attention to this!
 
+-   Addressed some further issues turned up by CRAN checks.
+
 # luajr 0.1.7
 
 -   Added support for passing the R type "raw" to Lua, as a string potentially
