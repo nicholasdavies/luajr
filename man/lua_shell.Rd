@@ -17,6 +17,8 @@ None.
 When in interactive mode, provides a basic read-eval-print loop with LuaJIT.
 }
 \details{
+Enter an empty line to return to R.
+
 As a convenience, lines starting with an equals sign have the \code{"="} replaced
 with \code{"return "}, so that e.g. entering \verb{=x} will show the value of \code{x} as
 returned to R.
