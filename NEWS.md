@@ -1,4 +1,4 @@
-# luajr (development version)
+# luajr 0.1.8
 
 -   The Lua "io" library is now capable of getting input from the R console
     (e.g. with io.read()) -- previously, trying this would cause R to hang
