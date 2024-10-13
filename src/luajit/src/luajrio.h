@@ -11,7 +11,8 @@
 extern int R_ReadConsole(const char *, unsigned char *, int, int);
 extern void Rf_warning(const char * format, ...);
 
-#define RCONSOLE_BUFSIZE 4096
+// R does not allow reading lines of more than 1024 characters (including terminating \n\0).
+#define RCONSOLE_BUFSIZE 1024
 
 static unsigned char RConsoleBuf[RCONSOLE_BUFSIZE];
 static int RConsoleBufCnt = 0;
