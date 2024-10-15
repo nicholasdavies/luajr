@@ -29,8 +29,10 @@ authors:
   before: >
     The luajr package bundles the [LuaJIT](https://luajit.org) compiler by Mike
     Pall (with portions by the authors of [Lua](https://www.lua.org)) and an R
-    package wrapper by Nick Davies. Therefore, in order of contribution, the
-    authors of luajr are:
+    package wrapper by Nick Davies. It also bundles the debugger.lua Lua
+    debugger by Scott Lembcke and Howling Moon Software. Therefore, in order of
+    contribution, the authors of luajr are:
   after: >
-    Please give credit to Mike Pall and the Lua authors, but direct all your
-    luajr questions to the package maintainer!
+    Please give credit to Mike Pall and the Lua authors, and to Scott Lembcke
+    and Howling Moon Software for the debugger, but direct all your luajr
+    questions to the package maintainer!
