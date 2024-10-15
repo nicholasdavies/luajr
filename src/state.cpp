@@ -41,7 +41,10 @@ static std::string luajr_dylib_path;
 static std::string luajr_module_path;
 
 // Bytecode for luajr module
-static std::string luajr_bytecode;
+static std::string luajr_module_bytecode;
+
+// Path to debugger.lua
+static std::string luajr_debugger_path;
 
 // Provide path to luajr dylib
 extern "C" SEXP luajr_locate_dylib(SEXP path)
@@ -56,6 +59,14 @@ extern "C" SEXP luajr_locate_module(SEXP path)
 {
     CheckSEXPLen(path, STRSXP, 1);
     luajr_module_path = CHAR(STRING_ELT(path, 0));
+    return R_NilValue;
+}
+
+// Provide path to luajr module source
+extern "C" SEXP luajr_locate_debugger(SEXP path)
+{
+    CheckSEXPLen(path, STRSXP, 1);
+    luajr_debugger_path = CHAR(STRING_ELT(path, 0));
     return R_NilValue;
 }
 
@@ -96,33 +107,33 @@ extern "C" lua_State* luajr_newstate()
     luaL_openlibs(l);
 
     // Get bytecode for luajr Lua module
-    if (luajr_bytecode.empty())
+    if (luajr_module_bytecode.empty())
     {
         // Call string.dump(luajr_module_source, true)
         lua_getglobal(l, "string");
         lua_getfield(l, -1, "dump");
-        luaL_loadfile(l, luajr_module_path.c_str());
+        luajr_loadfile(l, luajr_module_path.c_str());
         lua_pushboolean(l, true);
-        luajr_pcall(l, 2, 1, "(precompile luajr module)");
+        luajr_pcall(l, 2, 1, "string.dump() to precompile luajr Lua module", LUAJR_TOOLING_NONE);
 
         // Save results of string.dump
         size_t bytecode_len;
         const char* bytecode = lua_tolstring(l, -1, &bytecode_len);
-        luajr_bytecode.assign(bytecode, bytecode_len);
+        luajr_module_bytecode.assign(bytecode, bytecode_len);
         lua_pop(l, 2); // results of string.dump and "string"
     }
 
     // Load luajr bytecode
-    if (luaL_loadbuffer(l, luajr_bytecode.data(), luajr_bytecode.size(), "luajr Lua module"))
-        Rf_error("Could not preload luajr Lua module.");
+    luajr_loadbuffer(l, luajr_module_bytecode.data(), luajr_module_bytecode.size(), "luajr Lua module");
 
-    // Run script: takes as argument the full path to the luajr dylib.
+    // Run script: takes as arguments the full path to the luajr dylib and the
+    // path to debugger.lua.
     lua_pushstring(l, luajr_dylib_path.c_str());
-    luajr_pcall(l, 1, 0, "(luajr Lua module from luajr_newstate())");
+    lua_pushstring(l, luajr_debugger_path.c_str());
+    luajr_pcall(l, 2, 0, "luajr Lua module from luajr_newstate()", LUAJR_TOOLING_NONE);
 
     // Open luajr module
-    luaL_loadstring(l, "luajr = require 'luajr'");
-    luajr_pcall(l, 0, 0, "(require luajr module)");
+    luajr_dostring(l, "luajr = require 'luajr'", LUAJR_TOOLING_NONE);
 
     // Save a few key luajr functions to the registry
     lua_getglobal(l, "luajr");

@@ -34,12 +34,7 @@ extern "C" SEXP luajr_run_code(SEXP code, SEXP Lx)
 
     // Run code, counting number of returned values
     int top0 = lua_gettop(L);
-    if (luaL_dostring(L, CHAR(STRING_ELT(code, 0))))
-    {
-        std::string err = lua_tostring(L, -1);
-        lua_pop(L, 1);
-        Rf_error("%s", err.c_str());
-    }
+    luajr_dostring(L, CHAR(STRING_ELT(code, 0)), LUAJR_TOOLING_ALL);
     int top1 = lua_gettop(L);
 
     // Return results
@@ -56,12 +51,7 @@ extern "C" SEXP luajr_run_file(SEXP filename, SEXP Lx)
 
     // Run code, counting number of returned values
     int top0 = lua_gettop(L);
-    if (luaL_dofile(L, CHAR(STRING_ELT(filename, 0))))
-    {
-        std::string err = lua_tostring(L, -1);
-        lua_pop(L, 1);
-        Rf_error("%s", err.c_str());
-    }
+    luajr_dofile(L, CHAR(STRING_ELT(filename, 0)), LUAJR_TOOLING_ALL);
     int top1 = lua_gettop(L);
 
     // Return results
@@ -80,12 +70,7 @@ extern "C" SEXP luajr_func_create(SEXP code, SEXP Lx)
     std::string cmd = "return ";
     cmd += CHAR(STRING_ELT(code, 0));
     int top0 = lua_gettop(L);
-    if (luaL_dostring(L, cmd.c_str()))
-    {
-        std::string err = lua_tostring(L, -1);
-        lua_pop(L, 1);
-        Rf_error("%s", err.c_str());
-    }
+    luajr_dostring(L, cmd.c_str(), LUAJR_TOOLING_ALL);
     int top1 = lua_gettop(L);
     int nret = top1 - top0;
 
@@ -117,7 +102,7 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
     luajr_pass(L, alist, CHAR(STRING_ELT(acode, 0)));
 
     // Call function
-    luajr_pcall(L, Rf_length(alist), LUA_MULTRET, "(user function from luajr_func_call())");
+    luajr_pcall(L, Rf_length(alist), LUA_MULTRET, "user function from luajr_func_call()", LUAJR_TOOLING_ALL);
     int top1 = lua_gettop(L);
 
     // Return results

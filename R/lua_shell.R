@@ -60,6 +60,9 @@ lua_shell = function(L = NULL)
                 # Unexpected end of input: try to gather more input
                 prev_line = line
                 next
+            } else if (res$message == "Quit debugger.") {
+                # Quit debugger: continue
+                next
             } else if (crayon_available) {
                 # Other error: show error message in red if possible
                 cat(crayon::red(res$message), "\n")

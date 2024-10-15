@@ -4,6 +4,8 @@
     .Call(`_luajr_locate_dylib`, getLoadedDLLs()[["luajr"]][["path"]])
     # Provide path to luajr module
     .Call(`_luajr_locate_module`, system.file("module", "luajr.lua", package = "luajr"))
+    # Provide path to debugger.lua
+    .Call(`_luajr_locate_debugger`, system.file("module", "debugger.lua", package = "luajr"))
     invisible()
 }
 

@@ -1,5 +1,10 @@
 # luajr (development version)
 
+-   Added debugging and profiling for Lua code. The debugger is Scott Lembcke's
+    debugger.lua, and the profiler is LuaJIT's built-in sampling profiler. Also
+    added the option of turning off JIT compilation. This is all accessed 
+    through a new function, lua_mode().
+
 # luajr 0.1.8
 
 -   The Lua "io" library is now capable of getting input from the R console

@@ -31,7 +31,7 @@ static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
             // Call it with arguments x as userdata, type code as integer
             lua_pushlightuserdata(L, x);
             lua_pushinteger(L, type | REFERENCE_T);
-            luajr_pcall(L, 2, 1, "luajr.construct_ref() from push_R_vector()");
+            luajr_pcall(L, 2, 1, "luajr.construct_ref() from push_R_vector()", LUAJR_TOOLING_ALL);
             break;
 
         case 'v':
@@ -41,7 +41,7 @@ static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
             // Call it with arguments x as userdata, type code as integer
             lua_pushlightuserdata(L, x);
             lua_pushinteger(L, type | VECTOR_T);
-            luajr_pcall(L, 2, 1, "luajr.construct_vec() from push_R_vector()");
+            luajr_pcall(L, 2, 1, "luajr.construct_vec() from push_R_vector()", LUAJR_TOOLING_ALL);
             break;
 
         case 's':
@@ -134,7 +134,7 @@ static void push_R_list(lua_State* L, SEXP x, char as)
             }
 
             // Call luajr.construct_list
-            luajr_pcall(L, 2, 1, "luajr.construct_list() from push_R_list()");
+            luajr_pcall(L, 2, 1, "luajr.construct_list() from push_R_list()", LUAJR_TOOLING_ALL);
 
             break;
 
@@ -187,7 +187,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
             {
                 lua_pushlightuserdata(L, (void*)&luajr_construct_null);
                 lua_rawget(L, LUA_REGISTRYINDEX);
-                luajr_pcall(L, 0, 1, "luajr.construct_null() from luajr_pushsexp()");
+                luajr_pcall(L, 0, 1, "luajr.construct_null() from luajr_pushsexp()", LUAJR_TOOLING_ALL);
             }
             else
                 lua_pushnil(L);
@@ -274,7 +274,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
 
             // Call it with table arg
             lua_pushvalue(L, index);
-            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [1]");
+            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [1]", LUAJR_TOOLING_ALL);
 
             // If not a known table type, return normal table
             if (lua_isnil(L, -2))
@@ -416,7 +416,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             // Call it with cdata arg and pointer
             lua_pushvalue(L, index);
             lua_pushlightuserdata(L, ret);
-            luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [1]");
+            luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [1]", LUAJR_TOOLING_ALL);
             // Return SEXP
             UNPROTECT(1);
             return ret;
@@ -434,7 +434,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             lua_rawget(L, LUA_REGISTRYINDEX);
             // Call it with cdata arg
             lua_pushvalue(L, index);
-            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [2]");
+            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [2]", LUAJR_TOOLING_ALL);
 
             // If not a known cdata type, return external pointer
             if (lua_isnil(L, -2))
@@ -454,7 +454,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 // Call it with cdata arg and sexp
                 lua_pushvalue(L, index);
                 lua_pushlightuserdata(L, &ret);
-                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [2]");
+                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [2]", LUAJR_TOOLING_ALL);
                 // Return SEXP
                 return ret;
             }
@@ -482,7 +482,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 // Call it with cdata arg and pointer
                 lua_pushvalue(L, index);
                 lua_pushlightuserdata(L, DATAPTR(ret));
-                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [3]");
+                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [3]", LUAJR_TOOLING_ALL);
                 // Return SEXP
                 UNPROTECT(1);
                 return ret;

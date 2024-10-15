@@ -2,8 +2,10 @@
 
 export(lua)
 export(lua_func)
+export(lua_mode)
 export(lua_open)
 export(lua_parallel)
+export(lua_profile)
 export(lua_reset)
 export(lua_shell)
 useDynLib(luajr, .registration = TRUE)

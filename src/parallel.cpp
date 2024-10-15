@@ -20,6 +20,9 @@ extern "C" {
 // Open [threads] new Lua states (or use [threads] if a list of states), run
 // code [pre] in each one, then run "return [func]" to get a function. Call the
 // func(i) with i in 1 to n.
+// TODO there are several problems here -- one, this doesn't handle errors prop
+// erly in the case of non-string errors (see e.g. run_func.cpp); two, this doe
+// sn't account for profile / debug mode.
 extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 {
     CheckSEXPLen(func, STRSXP, 1);
@@ -78,12 +81,15 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         // Run pre-code
         if (pre_code != 0)
         {
-            if (luaL_dostring(l[t], pre_code))
+            int pre_code_error = luaL_loadstring(l[t], pre_code);
+            if (!pre_code_error)
+                pre_code_error = lua_pcall(l[t], 0, 0, 0); // Discard any return values
+            if (pre_code_error)
             {
                 std::lock_guard<std::mutex> lock { pm };
-                error_msg = lua_tostring(l[t], -1);
+                error_msg.assign(1024, ' ');
+                luajr_handle_lua_error(l[t], pre_code_error, "lua_parallel 'pre' execution", error_msg.data());
             }
-            lua_settop(l[t], 0); // Discard any return values
         }
 
         // Has any thread produced an error?
@@ -92,7 +98,9 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 
         // Run command to get function on stack
         int top0 = lua_gettop(l[t]);
-        int err = luaL_dostring(l[t], cmd.c_str());
+        int err = luaL_loadstring(l[t], cmd.c_str());
+        if (!err)
+            err = lua_pcall(l[t], 0, LUA_MULTRET, 0);
         int nret = lua_gettop(l[t]) - top0;
 
         // Handle errors
@@ -100,7 +108,8 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
             // This and similar mutex locks are used to avoid writing
             // to error_message in multiple threads simultaneously.
             std::lock_guard<std::mutex> lock { pm };
-            error_msg = lua_tostring(l[t], -1);
+            error_msg.assign(1024, ' ');
+            luajr_handle_lua_error(l[t], err, "lua_parallel 'func' construction", error_msg.data());
         } else if (nret != 1) {
             std::lock_guard<std::mutex> lock { pm };
             error_msg = "lua_parallel expects `func' to evaluate to one value, not " +
@@ -131,7 +140,8 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
             if (err)
             {
                 std::lock_guard<std::mutex> lock { pm };
-                error_msg = lua_tostring(l[t], -1);
+                error_msg.assign(1024, ' ');
+                luajr_handle_lua_error(l[t], err, "lua_parallel 'func' execution", error_msg.data());
             }
             if (!error_msg.empty())
                 return;
@@ -169,7 +179,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
             for (unsigned int t = 0; t < l.size(); ++t)
                 lua_settop(l[t], 0);
         // Stop with error
-        Rf_error("Error running parallel task: %s", error_msg.c_str());
+        Rf_error("%s", error_msg.c_str());
     }
 
     // Assign computed values to list

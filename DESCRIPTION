@@ -9,7 +9,9 @@ Authors@R: c(
         comment = "Copyright holders over portions of Lua source code included in LuaJIT"),
     person("Nicholas", "Davies", email = "nicholas.davies@lshtm.ac.uk", 
         role = c("cre", "ctb", "cph"), 
-        comment = c("Author of the R package wrapper", ORCID = "0000-0002-1740-1412")))
+        comment = c("Author of the R package wrapper", ORCID = "0000-0002-1740-1412")),
+    person("Scott Lembcke, Howling Moon Software", role = c("ctb", "cph"),
+        comment = "Authors of the embedded debugger.lua debugger"))
 Description: An interface to 'LuaJIT' <https://luajit.org>, a just-in-time 
     compiler for the 'Lua' scripting language <https://www.lua.org>. Allows 
     users to run 'Lua' code from 'R'.
@@ -27,6 +29,6 @@ Suggests:
     testthat (>= 3.0.0)
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 VignetteBuilder: knitr
 Config/testthat/edition: 3

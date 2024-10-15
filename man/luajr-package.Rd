@@ -47,6 +47,7 @@ Authors:
 Other contributors:
 \itemize{
   \item Lua.org, PUC-Rio (Copyright holders over portions of Lua source code included in LuaJIT) [copyright holder]
+  \item Scott Lembcke, Howling Moon Software (Authors of the embedded debugger.lua debugger) [contributor, copyright holder]
 }
 
 }

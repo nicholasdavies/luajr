@@ -10,6 +10,7 @@
 -- 6. PASS TO LUA --
 -- 7. RETURN TO R --
 -- 8. EXTRA TYPES --
+-- 9. DEBUGGER --
 
 
 ----------------------
@@ -25,6 +26,9 @@ table.clear = require("table.clear")
 
 -- Script receives the path to the luajr R package dylib as argument
 local luajr_dylib_path = ({...})[1]
+
+-- Script also receives the path to debugger.lua as argument
+local debugger_lua_path = ({...})[2]
 
 -- Null pointer object
 local nullptr = ffi.cast("void*", 0)
@@ -120,9 +124,16 @@ void SetPtr(void** ptr, void* val);
 // but still compatible with Lua's single number type.
 double SEXP_length(SEXP s);
 
+// Read line from R console
+int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
+void R_FlushConsole();
+
 // For vector types' manual memory management
 void* malloc(size_t size);
 void free(void* ptr);
+
+// Other C functions
+size_t strlen(const char* str);
 ]]
 local internal = ffi.load(luajr_dylib_path)
 
@@ -152,6 +163,19 @@ luajr.NULL          = ffi.new("NULL_t")
 local sexp_get_attr
 local sexp_set_attr
 local vectorish
+
+-- Buffer for luajr.readline
+local buf = nil
+
+-- Readline utility
+function luajr.readline(prompt)
+    if buf == nil then
+        buf = ffi.new("unsigned char[1024]")
+    end
+    internal.R_FlushConsole() -- flush any pending output to console
+    internal.R_ReadConsole(prompt or "", buf, 1024, 0)
+    return ffi.string(buf, ffi.C.strlen(buf) - 1)
+end
 
 
 ------------------------
@@ -1090,4 +1114,74 @@ function luajr.datamatrix_r(nrow, ncol, names)
     m("/matrix/colnames", colnames)
 
     return m
+end
+
+
+-----------------
+-- 9. DEBUGGER --
+-----------------
+
+-- Debugger module
+local dbg = nil
+local dbg_queue = {}
+local dbg_xmsg = "~!#DBGEXIT#!~"
+
+-- Custom dbg.read function
+-- Allows running commands "invisibly" from a queue.
+local function dbg_read(prompt)
+    if #dbg_queue > 0 then
+        return table.remove(dbg_queue)
+    end
+    return luajr.readline(prompt)
+end
+
+-- Custom dbg.write function
+-- Allows 'q' to trigger a graceful exit.
+-- Allows running commands "invisibly" from a queue.
+local function dbg_write(str)
+    if string.find(str, dbg_xmsg, 1, true) then
+        error(dbg_xmsg)
+    end
+    if #dbg_queue == 0 then
+        io.write(str)
+    end
+end
+
+-- Custom dbg.exit function
+-- Allows 'q' to trigger a graceful exit.
+local function dbg_exit()
+    error(dbg_xmsg)
+end
+
+-- Ensure debugger.lua is loaded
+local function check_dbg()
+    if dbg == nil then
+        local errmsg
+        dbg, errmsg = loadfile(debugger_lua_path)
+        if dbg == nil then error(errmsg) end
+        dbg = dbg() -- loadfile returns a function of the file's contents
+        dbg.read = dbg_read
+        dbg.write = dbg_write
+        dbg.exit = dbg_exit
+        dbg.auto_where = 1
+    end
+end
+
+-- Debugger message handler access
+function luajr.dbg_msgh()
+    check_dbg()
+    return dbg.msgh
+end
+
+-- Debugger access
+function luajr.dbg(...)
+    check_dbg()
+    return dbg(...)
+end
+
+-- Trigger debugger for stepping into a call
+function luajr.dbg_step_into(...)
+    check_dbg()
+    dbg_queue = { "s", "n" }
+    return dbg(...)
 end

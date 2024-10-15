@@ -1,5 +1,12 @@
 Feature plan
 ------------
+- lua_parallel needs to work with tooling
+- debug and shell don't mix well
+- wall clock time too?
+- ReadConsole - size??
+- Finish documenting profiler (e.g. profiler object in lua_profile) and
+  add flame graph thing
+- Dump bytecode from debugger?
 - Add lua_load(code, file, L) to turn code/file into bytecode using LuaJIT,
   which I guess could use lua_dump...
 - Improve and document using Lua C API from an R package
