@@ -87,7 +87,7 @@ Instead of \code{"on"}, you can pass a string containing any of these options:
 
 For example, the default options correspond to the string \code{"li1"}.
 
-You must use \verb{[luajr_profile()]} to recover the generated profiling data.
+You must use \code{\link[=lua_profile]{lua_profile()}} to recover the generated profiling data.
 }
 
 \section{JIT options}{

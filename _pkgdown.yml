@@ -16,6 +16,10 @@ reference:
 - title: Parallel processing
   contents:
   - lua_parallel
+- title: Tools and options
+  contents:
+  - lua_mode
+  - lua_profile
 authors:
   footer:
     roles: [cre]

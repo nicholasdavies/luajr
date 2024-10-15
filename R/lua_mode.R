@@ -59,7 +59,7 @@
 #'
 #' For example, the default options correspond to the string `"li1"`.
 #'
-#' You must use `[luajr_profile()]` to recover the generated profiling data.
+#' You must use [lua_profile()] to recover the generated profiling data.
 #'
 #' # JIT options
 #'
