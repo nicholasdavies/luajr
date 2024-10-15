@@ -12,7 +12,9 @@
 #' thread is launched for each state. Within each thread, the code in `pre` is
 #' run in the corresponding Lua state. Then, `func(i)` is called for each `i`
 #' in `1:n`, with the calls spread across the states. Finally, the Lua states
-#' are closed and the results are returned in a list.
+#' are closed and the results are returned in a list. The list elements are
+#' returned in the correct order, i.e. the ordering of the returned list does
+#' not depend on the actual execution order of each call to `func`.
 #'
 #' Instead of an integer, `threads` can be a list of Lua states, e.g. `NULL`
 #' for the default Lua state or a state returned by [lua_open()]. This saves
@@ -46,7 +48,8 @@
 #' @examples
 #' lua_parallel("function(i) return i end", n = 4, threads = 2)
 #' @export
-lua_parallel = function(func, n, threads, pre = NA_character_) {
+lua_parallel = function(func, n, threads, pre = NA_character_)
+{
     if (is.double(threads)) threads = as.integer(threads);
     .Call(`_luajr_run_parallel`, func, as.integer(n), threads, pre)
 }

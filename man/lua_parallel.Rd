@@ -33,7 +33,9 @@ each (i.e. as though the states were created using \code{\link[=lua_open]{lua_op
 thread is launched for each state. Within each thread, the code in \code{pre} is
 run in the corresponding Lua state. Then, \code{func(i)} is called for each \code{i}
 in \code{1:n}, with the calls spread across the states. Finally, the Lua states
-are closed and the results are returned in a list.
+are closed and the results are returned in a list. The list elements are
+returned in the correct order, i.e. the ordering of the returned list does
+not depend on the actual execution order of each call to \code{func}.
 
 Instead of an integer, \code{threads} can be a list of Lua states, e.g. \code{NULL}
 for the default Lua state or a state returned by \code{\link[=lua_open]{lua_open()}}. This saves
