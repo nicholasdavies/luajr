@@ -2,6 +2,7 @@
 
 #include "shared.h"
 #include <map>
+#include <vector>
 #include <string>
 #include <algorithm>
 extern "C" {
