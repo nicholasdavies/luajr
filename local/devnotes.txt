@@ -1,6 +1,5 @@
 Feature plan
 ------------
-- lua_parallel needs to work with tooling
 - debug and shell don't mix well
 - wall clock time too?
 - ReadConsole seems to have a hard limit in the number of characters that can
