@@ -3,7 +3,11 @@ Feature plan
 - lua_parallel needs to work with tooling
 - debug and shell don't mix well
 - wall clock time too?
-- ReadConsole - size??
+- ReadConsole seems to have a hard limit in the number of characters that can
+  be read (1022). The warning and truncation happens when a line is longer than
+  1022 characters, not when the bufsize is longer than 1024. This is being fixed
+  in R 4.4.2. Once that has happened, I will need to make the bufsize larger to
+  accommodate this.
 - Finish documenting profiler (e.g. profiler object in lua_profile) and
   add flame graph thing
 - Dump bytecode from debugger?

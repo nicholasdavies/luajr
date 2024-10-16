@@ -172,9 +172,13 @@ function luajr.readline(prompt)
     if buf == nil then
         buf = ffi.new("unsigned char[1024]")
     end
-    internal.R_FlushConsole() -- flush any pending output to console
+
+    internal.R_FlushConsole()
     internal.R_ReadConsole(prompt or "", buf, 1024, 0)
-    return ffi.string(buf, ffi.C.strlen(buf) - 1)
+
+    -- remove terminating newline, but guard against 0-length string
+    local len = ffi.C.strlen(buf)
+    return ffi.string(buf, len == 0 and 0 or len - 1)
 end
 
 

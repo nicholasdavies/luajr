@@ -20,25 +20,38 @@ extern "C" {
 // Open [threads] new Lua states (or use [threads] if a list of states), run
 // code [pre] in each one, then run "return [func]" to get a function. Call the
 // func(i) with i in 1 to n.
-// TODO there are several problems here -- one, this doesn't handle errors prop
-// erly in the case of non-string errors (see e.g. run_func.cpp); two, this doe
-// sn't account for profile / debug mode.
 extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 {
     CheckSEXPLen(func, STRSXP, 1);
     CheckSEXPLen(n, INTSXP, 1);
     CheckSEXPLen(pre, STRSXP, 1);
 
+    // For any call to luajr_pcall
+    static const int tflags = LUAJR_NO_PROFILE_COLLECT | LUAJR_NO_ERROR_HANDLING | LUAJR_TOOLING_ALL;
+
     // Ensure n is sensible
     int n_iter = INTEGER(n)[0];
     if (n_iter < 0) // also covers NA_INTEGER
         Rf_error("Invalid number of iterations.");
 
+    // Don't multi-thread in debug mode
+    bool single_thread = false;
+    if (luajr_debug_mode())
+    {
+        single_thread = true;
+        Rf_warningcall_immediate(R_NilValue, "luajr debugger is active, so lua_parallel will only use one thread.");
+    }
+    else if (luajr_profile_mode())
+    {
+        single_thread = true;
+        Rf_warningcall_immediate(R_NilValue, "luajr profiler is active, so lua_parallel will only use one thread.");
+    }
+
     // Create or get Lua states for each thread
     std::vector<lua_State*> l;
     if (TYPEOF(threads) == INTSXP && Rf_length(threads) == 1)
     {
-        int n_threads = INTEGER(threads)[0];
+        int n_threads = single_thread ? 1 : INTEGER(threads)[0];
         if (n_threads <= 0) // also covers NA_INTEGER
             Rf_error("Invalid number of threads.");
         l.assign(n_threads, 0);
@@ -47,7 +60,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
     }
     else if (TYPEOF(threads) == VECSXP && Rf_length(threads) > 0)
     {
-        l.assign(Rf_length(threads), 0);
+        l.assign(single_thread ? 1 : Rf_length(threads), 0);
         for (unsigned int t = 0; t < l.size(); ++t)
         {
             l[t] = luajr_getstate(VECTOR_ELT(threads, t));
@@ -83,7 +96,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         {
             int pre_code_error = luaL_loadstring(l[t], pre_code);
             if (!pre_code_error)
-                pre_code_error = lua_pcall(l[t], 0, 0, 0); // Discard any return values
+                pre_code_error = luajr_pcall(l[t], 0, 0, 0, tflags); // Discard any return values
             if (pre_code_error)
             {
                 std::lock_guard<std::mutex> lock { pm };
@@ -100,7 +113,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         int top0 = lua_gettop(l[t]);
         int err = luaL_loadstring(l[t], cmd.c_str());
         if (!err)
-            err = lua_pcall(l[t], 0, LUA_MULTRET, 0);
+            err = luajr_pcall(l[t], 0, LUA_MULTRET, 0, tflags);
         int nret = lua_gettop(l[t]) - top0;
 
         // Handle errors
@@ -134,7 +147,7 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
             int top1 = lua_gettop(l[t]);
             lua_pushvalue(l[t], top0);
             lua_pushinteger(l[t], i);
-            err = lua_pcall(l[t], 1, LUA_MULTRET, 0);
+            err = luajr_pcall(l[t], 1, LUA_MULTRET, 0, tflags);
 
             // Check for errors
             if (err)
@@ -158,14 +171,29 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
         }
     };
 
-    // Create and assign work to the threads
-    std::vector<std::thread> thr;
-    for (unsigned int t = 0; t < l.size(); ++t)
-        thr.emplace_back(work, t);
+    // During parallel execution, it seems that input from the console is
+    // not available, even if there is only one thread going. So, don't drop
+    // into parallel execution if the number of threads is just one.
+    // (This allows the debugger to carry on working.)
+    if (l.size() > 1)
+    {
+        // Create and assign work to the threads
+        std::vector<std::thread> thr;
+        for (unsigned int t = 0; t < l.size(); ++t)
+            thr.emplace_back(work, t);
 
-    // Wait for threads to finish
-    for (unsigned int t = 0; t < thr.size(); ++t)
-        thr[t].join();
+        // Wait for threads to finish
+        for (unsigned int t = 0; t < thr.size(); ++t)
+            thr[t].join();
+    }
+    else
+    {
+        work(0);
+    }
+
+    // Collect any profiler data
+    for (unsigned int t = 0; t < l.size(); ++t)
+        luajr_profile_collect(l[t]);
 
     // Handle errors
     if (!error_msg.empty())

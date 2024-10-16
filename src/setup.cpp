@@ -88,38 +88,6 @@ extern "C" void* luajr_getpointer(SEXP x, int tag_code)
     return 0;
 }
 
-// Like luaL_loadstring, but produce an R error on failure
-extern "C" void luajr_loadstring(lua_State* L, const char* str)
-{
-    luajr_handle_lua_error(L, luaL_loadstring(L, str), "string", 0);
-}
-
-// Like luaL_dostring, but produce an R error on failure, and with support for luajr tooling
-extern "C" void luajr_dostring(lua_State* L, const char* str, int tooling)
-{
-    luajr_loadstring(L, str);
-    luajr_pcall(L, 0, LUA_MULTRET, "string", tooling);
-}
-
-// Like luaL_loadfile, but produce an R error on failure
-extern "C" void luajr_loadfile(lua_State* L, const char* filename)
-{
-    luajr_handle_lua_error(L, luaL_loadfile(L, filename), "file", 0);
-}
-
-// Like luaL_dofile, but produce an R error on failure, and with support for luajr tooling
-extern "C" void luajr_dofile(lua_State* L, const char* filename, int tooling)
-{
-    luajr_loadfile(L, filename);
-    luajr_pcall(L, 0, LUA_MULTRET, "file", tooling);
-}
-
-// Like luaL_loadbuffer, but produce an R error on failure
-extern "C" void luajr_loadbuffer(lua_State *L, const char *buff, unsigned int sz, const char *name)
-{
-    luajr_handle_lua_error(L, luaL_loadbuffer(L, buff, sz, name), "buffer", 0);
-}
-
 // Error handling: translate 'err' from Lua error code to string
 static const char* luajr_lua_errtype(int err)
 {
@@ -150,12 +118,16 @@ static const char* luajr_lua_errtype(int err)
     } while (0)
 
 // Raise an R error for Lua error 'err', which can be 0 for no error
+// The error object must be at the top of the stack
 extern "C" int luajr_handle_lua_error(lua_State* L, int err, const char* what, char* buf)
 {
     if (err != 0)
     {
         const char* errtype = luajr_lua_errtype(err);
         const char* msg_p = lua_tostring(L, -1);
+        if (!what)
+            what = "(unknown)";
+
         if (msg_p)
         {
             std::string msg = msg_p;

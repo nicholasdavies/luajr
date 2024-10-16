@@ -47,20 +47,23 @@ void luajr_pushfunc(SEXP fx);
 // Run Lua code in parallel (parallel.cpp)
 SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre);
 
-// Debugger, profiler, and JIT options (tools.cpp)
-void luajr_pcall(lua_State* L, int nargs, int nresults, const char* what, int tooling);
-SEXP luajr_profile_data(SEXP flush);
-SEXP luajr_set_mode(SEXP debug, SEXP profile, SEXP jit);
-SEXP luajr_get_mode();
-
-// Miscellaneous functions (setup.cpp)
-SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));
-void* luajr_getpointer(SEXP x, int tag_code);
+// Load and call Lua code, and control tooling (tools.cpp)
 void luajr_loadstring(lua_State* L, const char* str);
 void luajr_dostring(lua_State* L, const char* str, int tooling);
 void luajr_loadfile(lua_State* L, const char* filename);
 void luajr_dofile(lua_State* L, const char* filename, int tooling);
 void luajr_loadbuffer(lua_State *L, const char *buff, unsigned int sz, const char *name);
+int luajr_pcall(lua_State* L, int nargs, int nresults, const char* what, int tooling);
+SEXP luajr_set_mode(SEXP debug, SEXP profile, SEXP jit);
+SEXP luajr_get_mode();
+int luajr_debug_mode();
+int luajr_profile_mode();
+void luajr_profile_collect(lua_State* L);
+SEXP luajr_profile_data(SEXP flush);
+
+// Miscellaneous functions (setup.cpp)
+SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));
+void* luajr_getpointer(SEXP x, int tag_code);
 int luajr_handle_lua_error(lua_State* L, int err, const char* what, char* buf); // Not in public API
 SEXP luajr_readline(SEXP prompt);   // Not in public API
 

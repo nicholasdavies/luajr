@@ -36,48 +36,172 @@ static const char* profile_start =
 "end \n"
 "profile.start(({...})[1], cb)";
 
-
-// Extract profiler data.
-extern "C" SEXP luajr_profile_data(SEXP flush)
+// Like luaL_loadstring, but produce an R error on failure
+extern "C" void luajr_loadstring(lua_State* L, const char* str)
 {
-    CheckSEXPLen(flush, LGLSXP, 1);
+    luajr_handle_lua_error(L, luaL_loadstring(L, str), "string", 0);
+}
 
-    SEXP ret = PROTECT(Rf_allocVector(VECSXP, profile_data.size()));
-    size_t j = 0;
-    for (auto& l : profile_data)
+// Like luaL_dostring, but produce an R error on failure, and with support for luajr tooling
+extern "C" void luajr_dostring(lua_State* L, const char* str, int tooling)
+{
+    luajr_loadstring(L, str);
+    luajr_pcall(L, 0, LUA_MULTRET, "string", tooling);
+}
+
+// Like luaL_loadfile, but produce an R error on failure
+extern "C" void luajr_loadfile(lua_State* L, const char* filename)
+{
+    luajr_handle_lua_error(L, luaL_loadfile(L, filename), "file", 0);
+}
+
+// Like luaL_dofile, but produce an R error on failure, and with support for luajr tooling
+extern "C" void luajr_dofile(lua_State* L, const char* filename, int tooling)
+{
+    luajr_loadfile(L, filename);
+    luajr_pcall(L, 0, LUA_MULTRET, "file", tooling);
+}
+
+// Like luaL_loadbuffer, but produce an R error on failure
+extern "C" void luajr_loadbuffer(lua_State *L, const char *buff, unsigned int sz, const char *name)
+{
+    luajr_handle_lua_error(L, luaL_loadbuffer(L, buff, sz, name), "buffer", 0);
+}
+
+// Buffer for error messages from luajr_handle_lua_error
+// The use of this is what makes this function non-thread-safe unless
+// LUAJR_NO_ERROR_HANDLING is set.
+static char errbuf[1024];
+
+// Like lua_pcall, but produce an R error on failure (unless the flag
+// LUAJR_NO_ERROR_HANDLING is set), and with support for luajr tooling.
+// Note: this function is only thread-safe with LUAJR_NO_ERROR_HANDLING
+// and LUAJR_NO_PROFILE_COLLECT set.
+extern "C" int luajr_pcall(lua_State* L, int nargs, int nresults, const char* what, int tooling)
+{
+    // Note: this currently assumes that there will be no errors in any Lua
+    // code or commands run here, except for potentially in the pcall itself.
+
+    // Stack index of debugger.lua's error handler (zero if inactive)
+    int errfunc = 0;
+
+    // Pre run: Activate debugger, profiler, JIT setttings.
+    if (tooling & LUAJR_TOOLING_ALL)
     {
-        SEXP ptr;
-        if (l.first == L0) {
-            ptr = PROTECT(Rf_mkString("default"));
-        } else {
-            char buffer[40];
-            snprintf(buffer, 39, "%p", (void*)l.first);
-            ptr = PROTECT(Rf_mkString(buffer));
-        }
-        SEXP names = PROTECT(Rf_allocVector(STRSXP, l.second.size()));
-        SEXP times = PROTECT(Rf_allocVector(INTSXP, l.second.size()));
-
-        size_t i = 0;
-        for (auto& x : l.second)
+        if (debug_mode == "error")
         {
-            SET_STRING_ELT(names, i, Rf_mkChar(x.first.c_str()));
-            INTEGER(times)[i] = x.second;
-            ++i;
+            // Activate debugger on error.
+    	    // Grab the error handler (dbg.msgh function)
+    	    // The use of tooling & ~LUAJR_TOOLING_ALL is to turn off debugging
+    	    // and profiling, but keep LUAJR_NO_ERROR_HANDLING as is.
+	        luajr_dostring(L, "return luajr.dbg_msgh()", tooling & ~LUAJR_TOOLING_ALL);
+
+	        // Move the error handler just below the function
+	        errfunc = lua_gettop(L) - (1 + nargs);
+	        lua_insert(L, errfunc);
         }
-        SEXP entry = PROTECT(Rf_allocVector(VECSXP, 3));
-        SET_VECTOR_ELT(entry, 0, ptr);
-        SET_VECTOR_ELT(entry, 1, names);
-        SET_VECTOR_ELT(entry, 2, times);
-        SET_VECTOR_ELT(ret, j, entry);
-        UNPROTECT(4);
-        ++j;
+        else if (debug_mode == "step")
+        {
+            // Step through each line of code.
+
+            // When this function (luajr_pcall) is called, the function to call
+            // and the arguments to pass are on the top of the stack. The trick
+            // is to reinterpret the function + arguments at the top of the
+            // stack themselves as arguments to another function to be pcalled;
+            // that new function first activates the debugger, then calls the
+            // original function with the original arguments. The debugger is
+            // activated via a special luajr.dbg_step_into() which "preloads"
+            // the debugger.lua commands with an "n" and an "s", which step
+            // into the original function (rather than starting the debugger
+            // in the "outer" function).
+            luajr_loadstring(L, "luajr.dbg_step_into() return ({...})[1](select(2, ...))");
+            lua_insert(L, -(nargs + 2)); // Put "outer" function below "original" function
+            ++nargs; // The "original" function is the new 1st argument
+        }
+
+        if (profile_mode != "off")
+        {
+            // Any profiling mode: Start the profiler, with profile_mode an
+            // argument to the code in profile_start (defined above).
+            luajr_loadstring(L, profile_start);
+            lua_pushstring(L, profile_mode.c_str());
+            luajr_pcall(L, 1, LUA_MULTRET, "profile start", tooling & ~LUAJR_TOOLING_ALL);
+        }
+
+        if (jit_mode == "off")
+        {
+            // JIT mode off: turn off JIT compiler.
+            luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_OFF);
+        }
     }
 
-    if (LOGICAL(flush)[0] == TRUE)
-        profile_data.clear();
+    // Do the call, keeping track if there was an error
+    int lua_err = lua_pcall(L, nargs, nresults, errfunc);
 
-    UNPROTECT(1);
-    return ret;
+    // Post run
+    if (tooling & LUAJR_TOOLING_ALL)
+    {
+        if (debug_mode == "error")
+        {
+            // Debug on error: remove the error handler from the stack.
+	        lua_remove(L, errfunc);
+        }
+
+        if (debug_mode != "off")
+        {
+            // Any debug mode: clear debugger.lua's hook.
+            // This is a call to debug.sethook(). We don't want to actually
+            // load this as a string and run it, as that itself could get
+            // caught in the debugger.
+            lua_getglobal(L, "debug");
+            lua_getfield(L, -1, "sethook");
+            lua_call(L, 0, 0);
+            lua_pop(L, 1); // debug
+        }
+
+        if (profile_mode != "off")
+        {
+            // Any profiling mode: collect the profiling data in profile_data
+
+            // Stop the profiler
+            luajr_dostring(L, "require 'jit.profile'.stop()", tooling & ~LUAJR_TOOLING_ALL);
+
+            // Profile collection is not thread-safe, so make this optional
+            if (!(tooling & LUAJR_NO_PROFILE_COLLECT))
+                luajr_profile_collect(L);
+        }
+
+        if (jit_mode == "off")
+        {
+            // JIT mode off: turn JIT back on.
+            luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON);
+        }
+    }
+
+    // Handle any error that arose during the pcall.
+    if (tooling & LUAJR_NO_ERROR_HANDLING)
+    {
+        return lua_err;
+    }
+
+    // Get the error using our static errbuf
+    int errcode = luajr_handle_lua_error(L, lua_err, what, errbuf);
+
+    // Propagate error
+    if (errcode == 1) {
+        if (errfunc != 0 && lua_err == LUA_ERRERR) {
+            // If this function has set an errfunc, then the break-on-error
+            // debug mode is active. Therefore, if an error has occurred within
+            // the error handler (LUA_ERRERR), and hasn't been caught by
+            // debugger.lua, then that is very likely to be the user quit command.
+            Rf_errorcall(R_NilValue, "Quit debugger.");
+        }
+        Rf_error("%s", errbuf);
+    } else if (errcode == 2) {
+        Rf_errorcall(R_NilValue, "%s", errbuf);
+    }
+
+    return LUA_OK;
 }
 
 // Set mode for calls to luajr_pcall().
@@ -137,143 +261,107 @@ extern "C" SEXP luajr_get_mode()
     return ret;
 }
 
-// Like lua_pcall, but produce an R error on failure, and with support for luajr tooling
-extern "C" void luajr_pcall(lua_State* L, int nargs, int nresults, const char* what, int tooling)
+// Is debugger on?
+extern "C" int luajr_debug_mode()
 {
-    // Buffer for error messages from luajr_handle_lua_error
-    static char errbuf[1024];
+    if (debug_mode == "off")
+        return LUAJR_DEBUG_MODE_OFF;
+    else if (debug_mode == "error")
+        return LUAJR_DEBUG_MODE_ERROR;
+    else if (debug_mode == "step")
+        return LUAJR_DEBUG_MODE_STEP;
+    else
+        Rf_error("Invalid debug mode \"%s\" set.", debug_mode.c_str());
+}
 
-    // Stack index of debugger.lua's error handler (zero if inactive)
-    int errfunc = 0;
+// Is profiler on?
+extern "C" int luajr_profile_mode()
+{
+    if (profile_mode == "off")
+        return LUAJR_PROFILE_MODE_OFF;
+    else
+        return LUAJR_PROFILE_MODE_ON;
+}
 
-    // Pre run: Activate debugger, profiler, JIT setttings.
-    if (tooling)
+// Collect profiler data from state L
+extern "C" void luajr_profile_collect(lua_State* L)
+{
+    // Get luajr profile data on stack
+    lua_getfield(L, LUA_REGISTRYINDEX, "luajr_profile_data");
+
+    // Quit if no profile data to collect
+    if (lua_isnil(L, -1))
     {
-        if (debug_mode == "error")
-        {
-            // Activate debugger on error.
-    	    // Grab the error handler (dbg.msgh function)
-	        luajr_dostring(L, "return luajr.dbg_msgh()", LUAJR_TOOLING_NONE);
-
-	        // Move the error handler just below the function
-	        errfunc = lua_gettop(L) - (1 + nargs);
-	        lua_insert(L, errfunc);
-        }
-        else if (debug_mode == "step")
-        {
-            // Step through each line of code.
-
-            // When this function (luajr_pcall) is called, the function to call
-            // and the arguments to pass are on the top of the stack. The trick
-            // is to reinterpret the function + arguments at the top of the
-            // stack themselves as arguments to another function to be pcalled;
-            // that new function first activates the debugger, then calls the
-            // original function with the original arguments. The debugger is
-            // activated via a special luajr.dbg_step_into() which "preloads"
-            // the debugger.lua commands with an "n" and an "s", which step
-            // into the original function (rather than starting the debugger
-            // in the "outer" function).
-            luajr_loadstring(L, "luajr.dbg_step_into() return ({...})[1](select(2, ...))");
-            lua_insert(L, -(nargs + 2)); // Put "outer" function below "original" function
-            ++nargs; // The "original" function is the new 1st argument
-        }
-
-        if (profile_mode != "off")
-        {
-            // Any profiling mode: Start the profiler, with profile_mode an
-            // argument to the code in profile_start (defined above).
-            luajr_loadstring(L, profile_start);
-            lua_pushstring(L, profile_mode.c_str());
-            luajr_pcall(L, 1, LUA_MULTRET, "profile start", LUAJR_TOOLING_NONE);
-        }
-
-        if (jit_mode == "off")
-        {
-            // JIT mode off: turn off JIT compiler.
-            luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_OFF);
-        }
+        lua_pop(L, 1); // luajr_profile_data
+        return;
     }
 
-    // Do the call, saving any errors in *errbuf for later (after cleanup)
-    int lua_err = lua_pcall(L, nargs, nresults, errfunc);
-    int errcode = luajr_handle_lua_error(L, lua_err, what, errbuf);
+    // Focus on the part of profile_data for lua_State L
+    auto profile_data_entry = profile_data.find(L);
+    if (profile_data_entry == profile_data.end()) {
+        // first is iterator, second is status code
+        profile_data_entry = profile_data.emplace(L,
+            std::map<std::string, unsigned int>()).first;
+    }
 
-    // Post run
-    if (tooling)
+    // Iterate through each entry and add samples
+    lua_pushnil(L);
+    while (lua_next(L, -2) != 0) {
+        auto samples = profile_data_entry->second.find(lua_tostring(L, -2));
+        if (samples == profile_data_entry->second.end()) {
+            profile_data_entry->second.emplace(lua_tostring(L, -2), lua_tointeger(L, -1));
+        } else {
+            samples->second += lua_tointeger(L, -1);
+        }
+        lua_pop(L, 1);
+    }
+
+    lua_pop(L, 1); // luajr_profile_data
+
+    // Reset profile data in Lua registry
+    lua_newtable(L);
+    lua_setfield(L, LUA_REGISTRYINDEX, "luajr_profile_data");
+}
+
+// Extract profiler data.
+extern "C" SEXP luajr_profile_data(SEXP flush)
+{
+    CheckSEXPLen(flush, LGLSXP, 1);
+
+    SEXP ret = PROTECT(Rf_allocVector(VECSXP, profile_data.size()));
+    size_t j = 0;
+    for (auto& l : profile_data)
     {
-        if (debug_mode == "error")
-        {
-            // Debug on error: remove the error handler from the stack.
-	        lua_remove(L, errfunc);
+        SEXP ptr;
+        if (l.first == L0) {
+            ptr = PROTECT(Rf_mkString("default"));
+        } else {
+            char buffer[40];
+            snprintf(buffer, 39, "%p", (void*)l.first);
+            ptr = PROTECT(Rf_mkString(buffer));
         }
+        SEXP names = PROTECT(Rf_allocVector(STRSXP, l.second.size()));
+        SEXP times = PROTECT(Rf_allocVector(INTSXP, l.second.size()));
 
-        if (debug_mode != "off")
+        size_t i = 0;
+        for (auto& x : l.second)
         {
-            // Any debug mode: clear debugger.lua's hook.
-            // This is a call to debug.sethook(). We don't want to actually
-            // load this as a string and run it, as that itself could get
-            // caught in the debugger.
-            lua_getglobal(L, "debug");
-            lua_getfield(L, -1, "sethook");
-            lua_call(L, 0, 0);
-            lua_pop(L, 1); // debug
+            SET_STRING_ELT(names, i, Rf_mkChar(x.first.c_str()));
+            INTEGER(times)[i] = x.second;
+            ++i;
         }
-
-        if (profile_mode != "off")
-        {
-            // Any profiling mode: collect the profiling data in profile_data
-
-            // Stop the profiler. Possible this could error, but it shouldn't.
-            luajr_dostring(L, "require 'jit.profile'.stop()", LUAJR_TOOLING_NONE);
-
-            // Get luajr profile data on stack
-            lua_getfield(L, LUA_REGISTRYINDEX, "luajr_profile_data");
-
-            // Focus on the part of profile_data for lua_State L
-            auto profile_data_entry = profile_data.find(L);
-            if (profile_data_entry == profile_data.end()) {
-                // first is iterator, second is status code
-                profile_data_entry = profile_data.emplace(L,
-                    std::map<std::string, unsigned int>()).first;
-            }
-
-            // Iterate through each entry and add samples
-            lua_pushnil(L);
-            while (lua_next(L, -2) != 0) {
-                auto samples = profile_data_entry->second.find(lua_tostring(L, -2));
-                if (samples == profile_data_entry->second.end()) {
-                    profile_data_entry->second.emplace(lua_tostring(L, -2), lua_tointeger(L, -1));
-                } else {
-                    samples->second += lua_tointeger(L, -1);
-                }
-                lua_pop(L, 1);
-            }
-
-            lua_pop(L, 1); // luajr_profile_data
-
-            // Reset profile data in Lua registry
-            lua_newtable(L);
-            lua_setfield(L, LUA_REGISTRYINDEX, "luajr_profile_data");
-        }
-
-        if (jit_mode == "off")
-        {
-            // JIT mode off: turn JIT back on.
-            luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON);
-        }
+        SEXP entry = PROTECT(Rf_allocVector(VECSXP, 3));
+        SET_VECTOR_ELT(entry, 0, ptr);
+        SET_VECTOR_ELT(entry, 1, names);
+        SET_VECTOR_ELT(entry, 2, times);
+        SET_VECTOR_ELT(ret, j, entry);
+        UNPROTECT(4);
+        ++j;
     }
 
-    // Propagate error
-    if (errcode == 1) {
-        if (errfunc != 0 && lua_err == LUA_ERRERR) {
-            // If this function has set an errfunc, then the break-on-error
-            // debug mode is active. Therefore, if an error has occurred within
-            // the error handler (LUA_ERRERR), and hasn't been caught by
-            // debugger.lua, then that is very likely to be the user quit command.
-            Rf_errorcall(R_NilValue, "Quit debugger.");
-        }
-        Rf_error("%s", errbuf);
-    } else if (errcode == 2) {
-        Rf_errorcall(R_NilValue, "%s", errbuf);
-    }
+    if (LOGICAL(flush)[0] == TRUE)
+        profile_data.clear();
+
+    UNPROTECT(1);
+    return ret;
 }
