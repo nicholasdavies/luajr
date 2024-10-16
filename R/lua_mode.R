@@ -85,7 +85,9 @@
 #' @param jit Control LuaJIT's just-in-time compiler: `"on"` / `TRUE` to use
 #' the JIT, `"off"` / `FALSE` to use the LuaJIT interpreter only.
 #'
-#' @return Nothing.
+#' @return When called with no arguments, returns the current settings. When
+#' called with `expr`, calls the value returned by `expr`. Otherwise, returns
+#' nothing.
 #'
 #' @seealso [lua_profile()] for extracting the generated profiling data.
 #'
@@ -136,9 +138,10 @@ lua_mode = function(expr, debug, profile, jit)
     } else {
         saved = .Call(`_luajr_get_mode`)
         .Call(`_luajr_set_mode`, ms(debug), ms(profile), ms(jit))
-        eval(expr, -2)
-        .Call(`_luajr_set_mode`, saved[["debug"]], saved[["profile"]], saved[["jit"]])
-        return (invisible())
+        ret = tryCatch(eval(expr, -2),
+            finally = .Call(`_luajr_set_mode`, saved[["debug"]], saved[["profile"]], saved[["jit"]]))
+        if (is.null(ret)) return (invisible())
+        return (ret)
     }
 }
 
@@ -187,10 +190,11 @@ lua_profile = function(flush = TRUE)
             return (structure(integer(0), class = "luajr_profile"))
         }
         return (structure(unlist(lapply(pd, function(x) {
-            structure(
-                x[[3]], # samples (integer vector)
-                names = paste(x[[1]], x[[2]], sep = "/") # lua_State / trace
-            )
+            samples = x[[3]] # integer vector
+            if (length(samples)) {
+                names(samples) = paste(x[[1]], x[[2]], sep = "/") # lua_State / trace
+            }
+            return (samples)
         })), class = "luajr_profile"))
     }
     return (invisible())

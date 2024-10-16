@@ -25,7 +25,9 @@ profiler off.}
 the JIT, \code{"off"} / \code{FALSE} to use the LuaJIT interpreter only.}
 }
 \value{
-Nothing.
+When called with no arguments, returns the current settings. When
+called with \code{expr}, calls the value returned by \code{expr}. Otherwise, returns
+nothing.
 }
 \description{
 Run Lua code with the debugger or profiler activated, and control whether
