@@ -1,3 +1,10 @@
+This submission addresses issues raised by CRAN checks on the compiled code.
+Previously, the bundled LuaJIT library had some calls to exit() and some calls
+to standard C I/O on stdin, stdout, or stderr. In this submission I have 
+redirected all of these calls. Calls to exit() now redirect to Rf_error() and 
+calls to standard I/O now redirect to R_ReadConsole() and R_WriteConsoleEx() 
+as appropriate.
+
 ## R CMD check results
 
 0 errors \| 0 warnings \| 1 note
