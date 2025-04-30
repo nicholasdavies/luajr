@@ -481,7 +481,10 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 lua_rawget(L, LUA_REGISTRYINDEX);
                 // Call it with cdata arg and pointer
                 lua_pushvalue(L, index);
-                lua_pushlightuserdata(L, DATAPTR(ret));
+                if      (rtype == LGLSXP)   lua_pushlightuserdata(L, LOGICAL(ret));
+                else if (rtype == INTSXP)   lua_pushlightuserdata(L, INTEGER(ret));
+                else if (rtype == REALSXP)  lua_pushlightuserdata(L, REAL(ret));
+                else Rf_error("Unknown type");
                 luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [3]", LUAJR_TOOLING_ALL);
                 // Return SEXP
                 UNPROTECT(1);
