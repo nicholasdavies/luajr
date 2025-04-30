@@ -22,7 +22,6 @@ sum_v = lua_func("sum", "v")
 x = rnorm(10000, 10)
 
 # something as simple as this would be nice
-# TODO convert types
 system.time(
 lua_parallel(
     "function(i) local s = 0  for j = 1,1000000+i do s = s + 1 end  return s end",
@@ -56,10 +55,6 @@ bench::mark(
     noopC(),
     check = FALSE
 )
-
-# TODO document, including vignettes
-# TODO work through all of the r packages guide (1x2x3x4x5x 6x7x8x 9x10x11x12x 13x14x15x 16_17_18_19_)
-# TODO there could be a 'debug mode' which does bounds checking?
 
 # checking args passing 'r'
 lua("ffi = require('ffi')")

@@ -1,7 +1,7 @@
-Feature plan
-------------
+Feature plan / to do
+--------------------
 - debug and shell don't mix well
-- wall clock time too?
+- wall clock time too in profiler?
 - ReadConsole seems to have a hard limit in the number of characters that can
   be read (1022). The warning and truncation happens when a line is longer than
   1022 characters, not when the bufsize is longer than 1024. This is being fixed
@@ -23,6 +23,7 @@ a preprocessor with specified types? (meaning, can declare a lua func as
 function(x:integer, y:numeric_r) etc)
 - Once there is something to cite, usethis::use_citation()
 - Do typedefs for underlying R logical, integer, numeric types?
+- There could be a 'debug mode' which does bounds checking on luajr types?
 
 
 luajit as subfolder in src/luajit
