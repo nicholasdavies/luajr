@@ -5,6 +5,10 @@
     added the option of turning off JIT compilation. This is all accessed 
     through a new function, lua_mode().
 
+-   Added further code to ensure that LuaJIT never calls exit() directly and
+    never tries to read from or write to standard input or output streams, 
+    instead redirecting this to the R console.
+
 # luajr 0.1.8
 
 -   The Lua "io" library is now capable of getting input from the R console
