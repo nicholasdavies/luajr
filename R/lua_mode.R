@@ -15,12 +15,17 @@
 #' `profile`, and `jit` settings.
 #'
 #' When called without an `expr` argument, but with at least one of `debug`,
-#' `profile`, or `jit`, the settings apply for any subsequent executions of Lua
-#' code until the settings are changed by another call to [lua_mode()].
+#' `profile`, or `jit`, the specified settings apply for any subsequent
+#' executions of Lua code until the next call to [lua_mode()].
 #'
-#' When called with an `expr` argument, the settings for `debug`, `profile`,
-#' and `jit` are applied temporarily just for the evaluation of `expr` in the
-#' calling frame.
+#' When called with an `expr` argument, the specified settings for `debug`,
+#' `profile`, and `jit` are applied temporarily just for the evaluation of
+#' `expr` in the calling frame.
+#'
+#' Note that if you provide some but not all of the `debug`, `profile`, and
+#' `jit` arguments, the "missing" settings are retained at their current
+#' values, not reset to some default or "off" state. In other words, you can
+#' temporarily change one setting without affecting the others.
 #'
 #' # The debugger
 #'
@@ -32,9 +37,10 @@
 #' turn off the debugger with `debug = "off"` (or `FALSE`).
 #'
 #' To trigger the debugger from a specific place within your Lua code, you can
-#' also call `luajr.dbg()` from your Lua code. Within Lua, use
+#' also call `luajr.dbg()` from your Lua code. Within Lua, you can also use
 #' `luajr.dbg(CONDITION)` to trigger debugging only if `CONDITION` evaluates to
-#' `false` or `nil`.
+#' `false` or `nil`. (In this way, `luajr.dbg(CONDITION)` is sort of like an
+#' `assert(CONDITION)` call that triggers the debugger when the assert fails.)
 #'
 #' `debugger.lua` is more fully documented at its
 #' [github repo page](https://github.com/slembcke/debugger.lua), but briefly,

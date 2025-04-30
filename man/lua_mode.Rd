@@ -44,12 +44,17 @@ When called with no arguments, \code{\link[=lua_mode]{lua_mode()}} returns the c
 \code{profile}, and \code{jit} settings.
 
 When called without an \code{expr} argument, but with at least one of \code{debug},
-\code{profile}, or \code{jit}, the settings apply for any subsequent executions of Lua
-code until the settings are changed by another call to \code{\link[=lua_mode]{lua_mode()}}.
+\code{profile}, or \code{jit}, the specified settings apply for any subsequent
+executions of Lua code until the next call to \code{\link[=lua_mode]{lua_mode()}}.
 
-When called with an \code{expr} argument, the settings for \code{debug}, \code{profile},
-and \code{jit} are applied temporarily just for the evaluation of \code{expr} in the
-calling frame.
+When called with an \code{expr} argument, the specified settings for \code{debug},
+\code{profile}, and \code{jit} are applied temporarily just for the evaluation of
+\code{expr} in the calling frame.
+
+Note that if you provide some but not all of the \code{debug}, \code{profile}, and
+\code{jit} arguments, the "missing" settings are retained at their current
+values, not reset to some default or "off" state. In other words, you can
+temporarily change one setting without affecting the others.
 }
 
 \section{The debugger}{
@@ -61,9 +66,10 @@ code; use \code{debug = "error"} to trigger the debugger on any Lua error; and
 turn off the debugger with \code{debug = "off"} (or \code{FALSE}).
 
 To trigger the debugger from a specific place within your Lua code, you can
-also call \code{luajr.dbg()} from your Lua code. Within Lua, use
+also call \code{luajr.dbg()} from your Lua code. Within Lua, you can also use
 \code{luajr.dbg(CONDITION)} to trigger debugging only if \code{CONDITION} evaluates to
-\code{false} or \code{nil}.
+\code{false} or \code{nil}. (In this way, \code{luajr.dbg(CONDITION)} is sort of like an
+\code{assert(CONDITION)} call that triggers the debugger when the assert fails.)
 
 \code{debugger.lua} is more fully documented at its
 \href{https://github.com/slembcke/debugger.lua}{github repo page}, but briefly,
