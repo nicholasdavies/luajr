@@ -1,4 +1,4 @@
-# luajr (development version)
+# luajr 0.1.9
 
 -   Added debugging and profiling for Lua code. The debugger is Scott Lembcke's
     debugger.lua, and the profiler is LuaJIT's built-in sampling profiler. Also
