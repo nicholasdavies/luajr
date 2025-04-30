@@ -1,6 +1,6 @@
 |// Low-level VM code for ARM CPUs.
 |// Bytecode interpreter, fast functions and helper functions.
-|// Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
+|// Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
 |
 |.arch arm
 |.section code_op, code_sub
@@ -1717,8 +1717,8 @@ static void build_subroutines(BuildCtx *ctx)
   |.endif
   |.endmacro
   |
-  |  math_minmax math_min, gt, pl
-  |  math_minmax math_max, lt, le
+  |  math_minmax math_min, gt, hs
+  |  math_minmax math_max, lt, ls
   |
   |//-- String library -----------------------------------------------------
   |

@@ -3,7 +3,7 @@
 ** AA: Alias Analysis using high-level semantic disambiguation.
 ** FWD: Load Forwarding (L2L) + Store Forwarding (S2L).
 ** DSE: Dead-Store Elimination.
-** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #define lj_opt_mem_c
@@ -233,7 +233,9 @@ static TRef fwd_ahload(jit_State *J, IRRef xref)
 	  return lj_ir_knum_u64(J, tv->u64);
 	else if (tvisint(tv))
 	  return lj_ir_kint(J, intV(tv));
-	else if (tvisgcv(tv))
+	else if (tvistab(tv)) /* Template table nil value marker. */
+	  return TREF_NIL;
+	else if (tvisstr(tv))
 	  return lj_ir_kstr(J, strV(tv));
       }
       /* Othwerwise: don't intern as a constant. */

@@ -1,6 +1,6 @@
 /*
 ** LuaJIT common internal definitions.
-** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_DEF_H
@@ -44,6 +44,7 @@ typedef unsigned int uintptr_t;
 /* Needed everywhere. */
 #include <string.h>
 #include <stdlib.h>
+#include "luajrstdr.h"
 
 /* Various VM limits. */
 #define LJ_MAX_MEM32	0x7fffff00	/* Max. 32 bit memory allocation. */
