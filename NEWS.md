@@ -1,5 +1,11 @@
 # luajr (development version)
 
+-   lua_func() can now accept an external pointer to a Lua function. This 
+    simplifies the process of adding Lua code to your R package, which is now
+    explained in a new vignette. This addresses issue 
+    [#4](https://github.com/nicholasdavies/luajr/issues/4). Thanks to 
+    @al-obrien for asking about this!
+
 # luajr 0.1.9
 
 -   Added debugging and profiling for Lua code. The debugger is Scott Lembcke's
