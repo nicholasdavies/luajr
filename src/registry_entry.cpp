@@ -2,6 +2,9 @@
 extern "C" {
 #include "lua.h"
 }
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
 
 // Disarm all RegistryEntries within Lua state L.
 void RegistryEntry::DisarmAll(lua_State* L)
@@ -17,6 +20,14 @@ void RegistryEntry::DisarmAll(lua_State* L)
         re->l = 0;
         lua_pop(L, 1);
     }
+}
+
+// Destroy a registry entry pointed to by an R external pointer when it is no
+// longer needed (i.e. at program exit or garbage collection of the R pointer).
+void RegistryEntry::Finalize(SEXP xptr)
+{
+    delete reinterpret_cast<RegistryEntry*>(R_ExternalPtrAddr(xptr));
+    R_ClearExternalPtr(xptr);
 }
 
 // Create a registry entry, registering and popping the value at the top of the stack.
@@ -50,5 +61,11 @@ void RegistryEntry::Get()
     lua_pushlightuserdata(l, (void*)this);          // Push registry key to stack
     lua_rawget(l, -2);                              // Get value on stack
     lua_remove(l, -2);                              // Remove luajrx table from stack
+}
+
+// Is the internal state equal to this one?
+bool RegistryEntry::CheckState(lua_State* L)
+{
+    return (l != 0) && (l == L);
 }
 

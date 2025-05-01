@@ -7,7 +7,8 @@
 lua_func(func, argcode = "s", L = NULL)
 }
 \arguments{
-\item{func}{Lua expression evaluating to a function.}
+\item{func}{A character string with a Lua expression evaluating to a
+function, or an external pointer to a Lua function.}
 
 \item{argcode}{How to wrap R arguments for the Lua function.}
 
@@ -18,8 +19,11 @@ uses the default Lua state for \pkg{luajr}.}
 An R function which can be called to invoke the Lua function.
 }
 \description{
-Takes any Lua expression that evaluates to a function and provides an R
-function that can be called to invoke the Lua function.
+Takes any Lua expression (as a character string) that evaluates to a
+function and provides an R function that can be called to invoke the Lua
+function. Instead of a character string, you can also provide an external
+pointer to a Lua function (see examples and the "packages" vignette for more
+information).
 }
 \details{
 The R types that can be passed to Lua are: \code{NULL}, logical vector,
@@ -90,8 +94,19 @@ discarded. It is probably best to avoid returning a \strong{table} with anything
 other than string keys, or to use \code{luajr.list}.
 
 A Lua string with embedded nulls is returned as an R raw type.
+
+A function is returned as an external pointer, which itself can be converted
+into a function that can be called from R, by passing it through \code{lua_func()}
+as the \code{func} argument.
 }
 \examples{
+# use with a character string
 squared <- lua_func("function(x) return x^2 end")
 print(squared(7))
+
+# use with an external pointer to a Lua function
+times2ptr <- lua("return function(x) return 2 * x end")
+print(times2ptr)
+times2 <- lua_func(times2ptr)
+print(times2(14))
 }

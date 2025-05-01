@@ -1,6 +1,7 @@
 // push_to.cpp: Move values between R and Lua
 
 #include "shared.h"
+#include "registry_entry.h"
 #include <vector>
 #include <string>
 #include <cstring>
@@ -422,11 +423,19 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             return ret;
         }
         case LUA_TLIGHTUSERDATA:
-        case LUA_TFUNCTION:
         case LUA_TUSERDATA:
         case LUA_TTHREAD:
         case LUA_TPROTO:
             return R_MakeExternalPtr(const_cast<void*>(lua_topointer(L, index)), R_NilValue, R_NilValue);
+        case LUA_TFUNCTION:
+        {
+            // Create a copy of the function at stack top
+            lua_pushvalue(L, index);
+            // Create the registry entry (pops top of stack)
+            RegistryEntry* re = new RegistryEntry(L);
+            // Send back external pointer to the registry entry
+            return luajr_makepointer(re, LUAJR_REGFUNC_CODE, RegistryEntry::Finalize);
+        }
         case LUA_TCDATA:
         {
             // Get luajr.return_info() on the stack

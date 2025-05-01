@@ -1,7 +1,10 @@
 #' Make a Lua function callable from R
 #'
-#' Takes any Lua expression that evaluates to a function and provides an R
-#' function that can be called to invoke the Lua function.
+#' Takes any Lua expression (as a character string) that evaluates to a
+#' function and provides an R function that can be called to invoke the Lua
+#' function. Instead of a character string, you can also provide an external
+#' pointer to a Lua function (see examples and the "packages" vignette for more
+#' information).
 #'
 #' The R types that can be passed to Lua are: `NULL`, logical vector,
 #' integer vector, numeric vector, string vector, list, external pointer, and
@@ -72,13 +75,25 @@
 #'
 #' A Lua string with embedded nulls is returned as an R raw type.
 #'
+#' A function is returned as an external pointer, which itself can be converted
+#' into a function that can be called from R, by passing it through `lua_func()`
+#' as the `func` argument.
+#'
 #' @inheritParams lua
-#' @param func Lua expression evaluating to a function.
+#' @param func A character string with a Lua expression evaluating to a
+#'   function, or an external pointer to a Lua function.
 #' @param argcode How to wrap R arguments for the Lua function.
 #' @return An R function which can be called to invoke the Lua function.
 #' @examples
+#' # use with a character string
 #' squared <- lua_func("function(x) return x^2 end")
 #' print(squared(7))
+#'
+#' # use with an external pointer to a Lua function
+#' times2ptr <- lua("return function(x) return 2 * x end")
+#' print(times2ptr)
+#' times2 <- lua_func(times2ptr)
+#' print(times2(14))
 #' @export
 lua_func = function(func, argcode = "s", L = NULL)
 {

@@ -1,8 +1,8 @@
 ---
-title: "Interface with R from Lua"
+title: "R objects in Lua code"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Interface with R from Lua}
+  %\VignetteIndexEntry{R objects in Lua code}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,13 +14,39 @@ knitr::opts_chunk$set(
 )
 ```
 
+The [Introduction to `luajr`](luajr.html) vignette shows you how to get started
+with calling Lua code from R. This vignette gives more details on how to create
+and manipulate R objects -- such as vectors, lists, and data.frames -- in your
+Lua code.
+
+## The `luajr` Lua module
+
 Whenever the `luajr` R package opens a new Lua state, it opens all the 
 [standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) in that 
-state, as well as the `luajr` module, which is designed to provide some key
-capabilities for your Lua code to interface well with R code. This vignette
-documents the `luajr` module.
+state, as well as the `luajr` Lua module.
 
-# Vector types
+The `luajr` module provides some key capabilities for your Lua code to 
+interface well with R code, particularly around passing R objects to and from 
+Lua code. This vignette documents those capabilities of the `luajr` module.
+
+Specifically, this vignette describes:
+
+- [Vector types](#vector), which can represent basic R logical vectors, integer 
+  vectors, numeric vectors, and character vectors, and are passed to and from
+  Lua code by value. In other words, when you pass in a vector by value to Lua,
+  and alter its contents in your Lua code, this does not affect your vector in
+  R (same as how it works when you pass a vector to an R function).
+- [Reference types](#reference), another way of working with basic R logical 
+  vectors, integer vectors, numeric vectors, and character vectors, which are
+  passed to and from Lua code by reference. In other words, when you pass in a 
+  vector by reference to Lua, and alter its contents in your Lua code, the 
+  changes **are** reflected directly in the R object you passed in.
+- [List type](#list), which allow you to work with R `list`s in Lua.
+- [Data frame and matrix types](#dfm), which simplify working with R 
+  `data.frame` and `matrix` types.
+- Certain [constants](#constants) defined by the `luajr` module.
+
+## Vector types {#vector}
 
 The vector types are modelled after C++'s `std::vector` class. A vector type is
 what you end up with if you pass an argument into a Lua function using
@@ -38,7 +64,7 @@ careful not to access or write out of these bounds, as the `luajr` module does
 undefined behaviour. Unlike Lua tables, vector types can only be indexed with 
 integers from 1 to the vector length, not with strings or any other types.
 
-## Creating and testing vector types {#vcreate}
+### Creating and testing vector types {#vcreate}
 
 **`luajr.logical(a, b)`, `luajr.integer(a, b)`, `luajr.numeric(a, b)`, `luajr.character(a, b)`**
 
@@ -65,7 +91,7 @@ values are set to the empty string).
 Check whether a value `obj` is one of the corresponding vector types. These 
 return `true` if `obj` is of the corresponding type, and `false` otherwise.
 
-## Vector type methods
+### Vector type methods
 
 All the vector types have the following methods:
 
@@ -169,7 +195,7 @@ Removes elements from position `first` to position `last`, inclusive (e.g. so
 that `v:erase(1, #v)` erases the whole vector). If `last` is `nil` or missing,
 just erases the single element at position `first`.
 
-# Reference types
+## Reference types {#reference}
 
 The reference types are similar to the vector types, but they are more 
 "low-level" and hence are missing much of the functionality of the vector 
@@ -191,7 +217,7 @@ careful not to access or write out of these bounds.
 Finally, because reference types depend upon R, they are not completely 
 thread safe and therefore they cannot safely be used with `lua_parallel()`.
 
-## Creating and testing reference types
+### Creating and testing reference types
 
 **`luajr.logical_r(a, b)`, `luajr.integer_r(a, b)`, `luajr.numeric_r(a, b)`, `luajr.character_r(a, b)`**
 
@@ -212,7 +238,7 @@ reference type.
 Check whether a value `obj` is one of the corresponding reference types. These 
 return `true` if `obj` is of the corresponding type, and `false` otherwise.
 
-## Reference type methods
+### Reference type methods
 
 All the reference types have the following methods:
 
@@ -235,13 +261,13 @@ sets the attribute to `x`. Note that even though you can get and manipulate
 the `names` attribute, you cannot access a reference vector's elements by their 
 names.
 
-# List type
+## List type {#list}
 
 A list is a special kind of Lua table that can be indexed either with positive
 integers or with strings. Unlike a Lua table, a list remembers the order in 
 which you have added elements to it, like an R list does. 
 
-## Creating and testing lists
+### Creating and testing lists
 
 **`luajr.list()`**
 
@@ -252,7 +278,7 @@ Creates a new, empty list.
 Check whether a value `obj` is a list. Returns `true` if `obj` is a list, and
 `false` otherwise.
 
-## List methods
+### List methods
 
 Lists have the following methods:
 
@@ -290,12 +316,12 @@ unlike the reference types (which also have this capability), they are not
 internally managed by R. This means that they are safe to use with 
 `lua_parallel()`, as long as they don't contain any reference types.
 
-# Data frame and matrix types
+## Data frame and matrix types {#dfm}
 
 There are a handful of additional types based on the above types, but which
 have some special behaviour when returned to R.
 
-## Data frame
+### Data frame
 
 A data frame can be created with
 
@@ -307,7 +333,7 @@ This is just a `luajr.list` with the `"class"` attribute set to `"data.frame"`.
 However, when a list with this class gets returned to R, it gets turned into a
 data frame.
 
-## Matrix
+### Matrix
 
 A matrix can be created with
 
@@ -324,7 +350,7 @@ and bottom-right has index 4.
 
 Note that it is a reference type.
 
-## Data matrix
+### Data matrix
 
 A data matrix can be created with
 
@@ -345,7 +371,7 @@ advantage. So don't worry about it too much.
 The column names can be get and set within Lua using the special attribute name 
 `"/matrix/colnames"`.
 
-# Constants
+## Constants {#constants}
 
 The following constants are defined in the `luajr` table:
 

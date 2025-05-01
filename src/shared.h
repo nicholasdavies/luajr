@@ -40,7 +40,7 @@ SEXP luajr_return(lua_State* L, int nret);
 // Run Lua code and functions (run_func.cpp)
 SEXP luajr_run_code(SEXP code, SEXP Lx);
 SEXP luajr_run_file(SEXP filename, SEXP Lx);
-SEXP luajr_func_create(SEXP code, SEXP Lx);
+SEXP luajr_func_create(SEXP func, SEXP Lx);
 SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
 void luajr_pushfunc(SEXP fx);
 
@@ -78,6 +78,17 @@ enum
     LOGICAL_T = 0, INTEGER_T = 1, NUMERIC_T = 2, CHARACTER_T = 3,
     REFERENCE_T = 0, VECTOR_T = 4, LIST_T = 8, NULL_T = 16,
 };
+
+// External pointer code tags, for use with luajr_makepointer and luajr_getpointer
+enum
+{
+    // For luajr_func_create, luajr_pushfunc, and luajr_tosexp with functions
+    LUAJR_REGFUNC_CODE = 0x7CA12E6F,
+
+    // For luajr_open and luajr_getstate's use of external pointers
+    LUAJR_STATE_CODE = 0x7CA57A7E
+};
+
 
 #define CheckSEXP(x, type)         if (TYPEOF(x) != type)                        { Rf_error("%s expects %s to be of type %s", __func__, #x, Rf_type2char(type)); }
 #define CheckSEXPLen(x, type, len) if (TYPEOF(x) != type || Rf_length(x) != len) { Rf_error("%s expects %s to be of length %d and type %s", __func__, #x, len, Rf_type2char(type)); }

@@ -13,17 +13,6 @@ extern "C" {
 #include <R.h>
 #include <Rinternals.h>
 
-// For luajr_func_create and luajr_func_call's use of external pointers
-static const int LUAJR_REGFUNC_CODE = 0x7CA12E6F;
-
-// Destroy a registry entry pointed to by an R external pointer when it is no
-// longer needed (i.e. at program exit or garbage collection of the R pointer).
-static void finalize_registry_entry(SEXP xptr)
-{
-    delete reinterpret_cast<RegistryEntry*>(R_ExternalPtrAddr(xptr));
-    R_ClearExternalPtr(xptr);
-}
-
 // Run the specified Lua code.
 extern "C" SEXP luajr_run_code(SEXP code, SEXP Lx)
 {
@@ -59,32 +48,49 @@ extern "C" SEXP luajr_run_file(SEXP filename, SEXP Lx)
 }
 
 // Create a Lua function
-extern "C" SEXP luajr_func_create(SEXP code, SEXP Lx)
+extern "C" SEXP luajr_func_create(SEXP func, SEXP Lx)
 {
-    CheckSEXPLen(code, STRSXP, 1);
+    if (TYPEOF(func) == EXTPTRSXP)
+    {
+        // Get registry entry
+        RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(func, LUAJR_REGFUNC_CODE));
 
-    // Get Lua state
-    lua_State* L = luajr_getstate(Lx);
+        // Check this was a valid registry entry to func
+        if (re)
+        {
+            // Make sure func has same state as Lx
+            if (!re->CheckState(luajr_getstate(Lx)))
+                Rf_error("lua_func expects func to have been created in Lua state L.");
+            return func;
+        }
+    }
+    else if (TYPEOF(func) == STRSXP && Rf_length(func) == 1)
+    {
+        // Get Lua state
+        lua_State* L = luajr_getstate(Lx);
 
-    // Run code, counting number of returned values
-    std::string cmd = "return ";
-    cmd += CHAR(STRING_ELT(code, 0));
-    int top0 = lua_gettop(L);
-    luajr_dostring(L, cmd.c_str(), LUAJR_TOOLING_ALL);
-    int top1 = lua_gettop(L);
-    int nret = top1 - top0;
+        // Run code, counting number of returned values
+        std::string cmd = "return ";
+        cmd += CHAR(STRING_ELT(func, 0));
+        int top0 = lua_gettop(L);
+        luajr_dostring(L, cmd.c_str(), LUAJR_TOOLING_ALL);
+        int top1 = lua_gettop(L);
+        int nret = top1 - top0;
 
-    // Handle mistakes
-    if (nret != 1)
-        Rf_error("lua_func expects `func' to evaluate to one value, not %d.", nret);
-    if (lua_type(L, -1) != LUA_TFUNCTION)
-        Rf_error("lua_func expects `func' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
+        // Handle mistakes
+        if (nret != 1)
+            Rf_error("lua_func expects `func' to evaluate to one value, not %d.", nret);
+        if (lua_type(L, -1) != LUA_TFUNCTION)
+            Rf_error("lua_func expects `func' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
 
-    // Create the registry entry with the value on the top of the stack
-    RegistryEntry* re = new RegistryEntry(L);
+        // Create the registry entry with the value on the top of the stack
+        RegistryEntry* re = new RegistryEntry(L);
 
-    // Send back external pointer to the registry entry
-    return luajr_makepointer(re, LUAJR_REGFUNC_CODE, finalize_registry_entry);
+        // Send back external pointer to the registry entry
+        return luajr_makepointer(re, LUAJR_REGFUNC_CODE, RegistryEntry::Finalize);
+    }
+
+    Rf_error("lua_func expects func to be an external pointer to a Lua function, or a character string.");
 }
 
 // Call a Lua function

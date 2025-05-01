@@ -31,9 +31,6 @@ static const RegistryFunc luajr_registry_funcs[] =
     { 0, 0 }
 };
 
-// For luajr_open and luajr_getstate's use of external pointers
-static const int LUAJR_STATE_CODE = 0x7CA57A7E;
-
 // Path to luajr dylib
 static std::string luajr_dylib_path;
 

@@ -25,7 +25,7 @@ This is **not** a guide to Lua or LuaJIT; it is a quick-start guide to luajr for
 people who already know how to program in Lua. See the 
 [Lua web site](https://www.lua.org) for resources related to coding in Lua.
 
-# Running Lua code: `lua()` and `lua_shell()`
+## Running Lua code: `lua()` and `lua_shell()`
 
 ```{r setup}
 library(luajr)
@@ -76,7 +76,7 @@ source file, instead of running the contents of a string.
 Call `lua_shell()` to open an interactive Lua shell at the R prompt. This can 
 can be helpful for debugging or for testing Lua statements.
 
-# Calling Lua functions from R: `lua_func()`
+## Calling Lua functions from R: `lua_func()`
 
 The key piece of functionality for luajr is probably `lua_func()`. This allows 
 you to call Lua functions from R.
@@ -217,7 +217,7 @@ print(x)
 Here, because we are returning a modified value, we can add elements to the list
 (`f3`) and change whole entries of the list (`f4`).
 
-# Benchmarking
+## Benchmarking
 
 In the same way that using R packages 
 [cpp11](https://CRAN.R-project.org/package=cpp11) or 
@@ -242,7 +242,7 @@ example, we compare different ways of passing vectors to Lua functions relative
 to R. In the second example, we compare more fundamentally the difference in
 running a whole algorithm in Lua versus R. 
 
-## Parameter passing example: sum of squares
+### Parameter passing example: sum of squares
 
 For reasonably long vectors, passing by reference (`'r'`) is faster than passing 
 by value (`'v'`), which is faster than passing by simplify (`'s'`, `'a'`, or 
@@ -305,7 +305,7 @@ is relatively short, and there is a certain amount of overhead in invoking it,
 while the R function doesn't have the overhead of transferring control between 
 languages.
 
-## Processing time example: logistic map
+### Processing time example: logistic map
 
 Consider the following:
 
@@ -380,7 +380,7 @@ created the data frame and then performed the iteration, i.e. with the line
 version was two orders of magnitude slower; the extra overhead associated with
 `data.frame` methods was pointed out by Tim Taylor.
 
-# Working with Lua States: `lua_open()`, `lua_reset()` {#states}
+## Working with Lua States: `lua_open()`, `lua_reset()` {#states}
 
 All the functions mentioned above (`lua()`, `lua_shell()`, and `lua_func()`)
 can also take an argument `L` that specifies a particular Lua state that the
@@ -417,8 +417,9 @@ To reset a non-default Lua state `L` returned by `lua_open()`, just do
 `L = lua_open()` again. The memory previously used by `L` will be cleaned up at 
 the next garbage collection.
 
-# Further reading
+## Further reading
 
-For notes on the `luajr` Lua module -- which contains functions and types for
-interacting with R from Lua code -- see `vignette("luajr-module")`.
+For notes on how to create and manipulate R objects -- such as vectors, lists, 
+and data.frames -- in your Lua code, see the 
+[R objects in Lua code](objects.html) vignette.
 
