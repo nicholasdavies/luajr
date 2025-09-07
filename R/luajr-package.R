@@ -13,10 +13,6 @@ inlineCxxPlugin = function(...)
 
 #' luajr: LuaJIT Scripting
 #'
-#' 'luajr' provides an interface to [LuaJIT](https://luajit.org), a
-#' just-in-time compiler for the [Lua scripting language](https://www.lua.org).
-#' It allows users to run Lua code from R.
-#'
 #' @section The R API:
 #' * [lua()]: run Lua code
 #' * [lua_func()]: make a Lua function callable from R
@@ -27,4 +23,6 @@ inlineCxxPlugin = function(...)
 #'
 #' @section Further reading:
 #' For an introduction to 'luajr', see `vignette("luajr")`
+#'
+#' @keywords internal
 "_PACKAGE"

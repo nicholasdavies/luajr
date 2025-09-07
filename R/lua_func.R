@@ -99,15 +99,8 @@ lua_func = function(func, argcode = "s", L = NULL)
 {
     fx = .Call(`_luajr_func_create`, func, L);
     return (function(...) {
-        # Call the function.
         ret = .Call(`_luajr_func_call`, fx, list(...), argcode, L);
 
-        # If ret is NULL, return it invisibly.
-        if (is.null(ret)) {
-            return (invisible())
-        } else {
-            return (ret)
-        }
+        if (is.null(ret)) invisible() else ret
     })
 }
-
