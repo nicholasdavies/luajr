@@ -1,5 +1,7 @@
+library(luajr)
+
 bench::mark(
-    luajr:::luajr_run_code("return nil", NULL),
+    lua("return nil", NULL, NULL),
     .Call(luajr:::`_luajr_run_code`, "return nil", NULL),
     min_time = 5
 )
@@ -170,8 +172,70 @@ logistic_map_L = lua_func(
     return result
 end", "sssr")
 
+logistic_map_Rcpp_src = '
+DataFrame logistic_map(double x0, unsigned int burn, unsigned int iter, NumericVector A) {
+    unsigned int dflen = A.length() * iter;
+    NumericVector da(dflen, 0);
+    NumericVector dx(dflen, 0);
+
+    unsigned int j = 0;
+    for (auto a : A)
+    {
+        double x = x0;
+        for (unsigned int i = 0; i < burn; ++i)
+            x = a * x * (1 - x);
+        for (unsigned int i = 0; i < iter; ++i, ++j)
+        {
+            dx[j] = x;
+            da[j] = a;
+            x = a * x * (1 - x);
+        }
+    }
+
+    return DataFrame::create(Named("a") = da, Named("x") = dx);
+}'
+
+logistic_map_cpp11_src = '
+writable::data_frame logistic_map_D(double x0, unsigned int burn, unsigned int iter, doubles A) {
+    unsigned int dflen = A.size() * iter;
+    writable::doubles da(dflen);
+    writable::doubles dx(dflen);
+
+    size_t j = 0;
+    for (auto a : A)
+    {
+        double x = x0;
+        for (unsigned int i = 0; i < burn; ++i)
+            x = a * x * (1 - x);
+        for (unsigned int i = 0; i < iter; ++i, ++j)
+        {
+            dx[j] = x;
+            da[j] = a;
+            x = a * x * (1 - x);
+        }
+    }
+
+    writable::data_frame df({"a"_nm = da, "x"_nm = dx});
+
+    return df;
+}'
+
+logistic_map_C = Rcpp::cppFunction(logistic_map_Rcpp_src)
+cpp11::cpp_function(logistic_map_cpp11_src)
 
 microbenchmark::microbenchmark(
     logistic_map_R(0.5, 50, 100, 200:385/100),
-    logistic_map_L(0.5, 50, 100, 200:385/100)
+    logistic_map_L(0.5, 50, 100, 200:385/100),
+    logistic_map_C(0.5, 50, 100, 200:385/100),
+    logistic_map_D(0.5, 50, 100, 200:385/100)
 )
+
+bench::mark(
+    logistic_map_R(0.5, 50, 100, 200:385/100),
+    logistic_map_L(0.5, 50, 100, 200:385/100),
+    logistic_map_C(0.5, 50, 100, 200:385/100),
+    logistic_map_D(0.5, 50, 100, 200:385/100)
+)
+
+cr = logistic_map_C(0.5, 50, 100, 200:385/100)
+plot(cr, pch = ".")
