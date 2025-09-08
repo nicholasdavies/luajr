@@ -63,7 +63,13 @@ void RegistryEntry::Get()
     lua_remove(l, -2);                              // Remove luajrx table from stack
 }
 
-// Is the internal state equal to this one?
+// Get the associated Lua state.
+lua_State* RegistryEntry::GetState()
+{
+    return l;
+}
+
+// Is the associated state equal to this one?
 bool RegistryEntry::CheckState(lua_State* L)
 {
     return (l != 0) && (l == L);

@@ -36,7 +36,10 @@ public:
     // Put the registered value at the top of the stack.
     void Get();
 
-    // Is the internal state equal to this one?
+    // Get the associated Lua state.
+    lua_State* GetState();
+
+    // Is the associated state equal to this one?
     bool CheckState(lua_State* L);
 
 private:

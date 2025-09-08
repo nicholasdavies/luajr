@@ -13,6 +13,7 @@ typedef struct SEXPREC* SEXP;
 
 // luajr API functions
 // Declare luajr API functions in src/shared.h, inst/include/luajr.h, and inst/include/luajr_funcs.h.
+// Also, if the function should be available to the R package, keep current in setup.cpp.
 extern SEXP (*luajr_open)();
 extern SEXP (*luajr_reset)();
 extern lua_State* (*luajr_newstate)();
@@ -26,6 +27,9 @@ extern SEXP (*luajr_run_file)(SEXP filename, SEXP Lx);
 extern SEXP (*luajr_func_create)(SEXP func, SEXP Lx);
 extern SEXP (*luajr_func_call)(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
 extern void (*luajr_pushfunc)(SEXP fx);
+extern SEXP (*luajr_module_load)(SEXP filename, SEXP Lx);
+extern SEXP (*luajr_module_get)(SEXP module, SEXP keys, SEXP typecheck);
+extern SEXP (*luajr_module_set)(SEXP module, SEXP keys, SEXP as, SEXP value);
 extern SEXP (*luajr_run_parallel)(SEXP func, SEXP n, SEXP threads, SEXP pre);
 extern void (*luajr_loadstring)(lua_State* L, const char* str);
 extern void (*luajr_dostring)(lua_State* L, const char* str, int tooling);

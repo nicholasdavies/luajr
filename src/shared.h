@@ -44,6 +44,11 @@ SEXP luajr_func_create(SEXP func, SEXP Lx);
 SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
 void luajr_pushfunc(SEXP fx);
 
+// Load and access Lua modules (module.cpp)
+SEXP luajr_module_load(SEXP filename, SEXP Lx);
+SEXP luajr_module_get(SEXP module, SEXP keys, SEXP typecheck);
+SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value);
+
 // Run Lua code in parallel (parallel.cpp)
 SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre);
 
@@ -86,7 +91,10 @@ enum
     LUAJR_REGFUNC_CODE = 0x7CA12E6F,
 
     // For luajr_open and luajr_getstate's use of external pointers
-    LUAJR_STATE_CODE = 0x7CA57A7E
+    LUAJR_STATE_CODE = 0x7CA57A7E,
+
+    // For luajr_module
+    LUAJR_MODULE_CODE = 0x7CA1110D
 };
 
 
