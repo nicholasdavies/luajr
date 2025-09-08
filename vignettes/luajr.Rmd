@@ -382,11 +382,16 @@ logistic_map_C =
 
 Here we are comparing three different versions (R, Lua, C++) of running a 
 parameter sweep of the logistic map, a chaotic dynamical system popularized by 
-Bob May in a [1976 Nature article](https://sites.ifi.unicamp.br/aguiar/files/2014/10/May-Nature-1976.pdf).
+Bob May in a [1976 Nature article](https://abel.math.harvard.edu/archive/118r_spring_05/docs/may.pdf).
 The output looks like this:
 
 ```{r}
-logistic_map = logistic_map_L(0.5, 50, 100, 200:385/100)
+#| fig.alt: >
+#|   Plot of fixed points of the logistic map chaotic dynamical system.
+#|   The input x-axis value a ranges from 2.0 to 3.85. Between 2.0 and 
+#|   3.0 there is a single fixed point; above 3.0 the fixed points exhibit
+#|   bifurcations and chaotic behaviour.
+logistic_map = logistic_map_L(0.5, 100, 100, 200:385/100)
 plot(logistic_map$a, logistic_map$x, pch = ".")
 ```
 
@@ -398,18 +403,18 @@ the code in this article because I didn't want to have `luajr` depend on
 
 The times taken by each function on a 2025-era MacBook Pro are as follows:
 
-|Call                                         | Method            | Median runtime |
-|---------------------------------------------|-------------------|---------------:|
-|`logistic_map_R(0.5, 50, 100, 200:385/100))` | R function        |       750 µs   |
-|`logistic_map_L(0.5, 50, 100, 200:385/100))` | Lua function      |      **70 µs** |
-|`logistic_map_C(0.5, 50, 100, 200:385/100))` | C++ function      |        90 µs   |
+|Call                                          | Method       | Median runtime |
+|----------------------------------------------|--------------|---------------:|
+|`logistic_map_R(0.5, 100, 100, 200:385/100))` | R function   |       850 µs   |
+|`logistic_map_L(0.5, 100, 100, 200:385/100))` | Lua function |      **80 µs** |
+|`logistic_map_C(0.5, 100, 100, 200:385/100))` | C++ function |       100 µs   |
 
 The version written in Lua is around 10 times faster than the version in R, 
-and even somewhat outperforms `Rcpp`. Note that you could probably get the 
-C++ version to go faster by not using `Rcpp`, as there is some overhead 
-associated with parameter passing under `Rcpp`, but that is more advanced 
-stuff. For example, I rewrote the C++ function above using `cpp11` instead
-and it ran just marginally slower than the Lua version.
+and even somewhat outperforms `Rcpp`. Note that the relative speed of Lua 
+versus C++ depends on the number of iterations, and whether you use `Rcpp` or
+`cpp11`, which each seem to have marginal advantages in different cases. 
+Nonetheless, the Lua version seems to execute about as quickly as the C++ 
+version, within plus or minus 20%.
 
 The speedup of the Lua function relative to R was much more notable in an 
 earlier test where the R version first created the data frame and then 

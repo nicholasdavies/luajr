@@ -14,9 +14,11 @@ An interface to 'LuaJIT' \url{https://luajit.org}, a just-in-time compiler for t
 \item \code{\link[=lua]{lua()}}: run Lua code
 \item \code{\link[=lua_func]{lua_func()}}: make a Lua function callable from R
 \item \code{\link[=lua_shell]{lua_shell()}}: run an interactive Lua shell
+\item \code{\link[=lua_module]{lua_module()}}, \code{\link[=lua_import]{lua_import()}}: load Lua modules
 \item \code{\link[=lua_open]{lua_open()}}: create a new Lua state
 \item \code{\link[=lua_reset]{lua_reset()}}: reset the default Lua state
 \item \code{\link[=lua_parallel]{lua_parallel()}}: run Lua code in parallel
+\item \code{\link[=lua_mode]{lua_mode()}}, \code{\link[=lua_profile]{lua_profile()}}: debugger, profiler, and JIT options
 }
 }
 

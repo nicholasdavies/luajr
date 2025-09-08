@@ -197,7 +197,7 @@ lua_import = function(module, name, argcode)
     })
     # Reassign _luajr_func_call through L above
     R_body[[2]][[3]][2:6] = list(
-        luajr:::`_luajr_func_call`$address,
+        `_luajr_func_call`$address,
         fx,
         as.call(lapply(c("list", names(formals(R_func))), as.name)),
         argcode,

@@ -9,6 +9,10 @@ reference:
   - lua
   - lua_func
   - lua_shell
+- title: Lua modules
+  contents:
+  - lua_module
+  - lua_import
 - title: Lua states
   contents:
   - lua_open

@@ -1,36 +1,40 @@
 # luajr (development version)
 
--   lua_func() can now accept an external pointer to a Lua function. This 
+-   Added support for Lua modules using `lua_module()` and `lua_import()`. This 
     simplifies the process of adding Lua code to your R package, which is now
     explained in a new vignette. This addresses issue 
     [#4](https://github.com/nicholasdavies/luajr/issues/4). Thanks to 
     @al-obrien for asking about this!
+    
+-   Added a speed comparison for luajr / Lua versus Rcpp / C++.
+
+-   `lua_func()` can now accept an external pointer to a Lua function. 
 
 # luajr 0.1.9
 
 -   Added debugging and profiling for Lua code. The debugger is Scott Lembcke's
     debugger.lua, and the profiler is LuaJIT's built-in sampling profiler. Also
     added the option of turning off JIT compilation. This is all accessed 
-    through a new function, lua_mode().
+    through a new function, `lua_mode()`.
 
--   Added further code to ensure that LuaJIT never calls exit() directly and
+-   Added further code to ensure that LuaJIT never calls `exit()` directly and
     never tries to read from or write to standard input or output streams, 
     instead redirecting this to the R console.
 
 # luajr 0.1.8
 
 -   The Lua "io" library is now capable of getting input from the R console
-    (e.g. with io.read()) -- previously, trying this would cause R to hang
+    (e.g. with `io.read()`) -- previously, trying this would cause R to hang
     (at least from RStudio).
     
--   The Lua os.exit() function now ends Lua execution without crashing RStudio.
+-   The Lua `os.exit()` function now ends Lua execution without crashing RStudio.
 
--   lua_shell() now stores commands in the R console history.
+-   `lua_shell()` now stores commands in the R console history.
 
 -   The luajr build process now skips making libluajit.so and the luajit 
     executable, as these are not needed for luajr.
     
--   Corrected an oversight in the documentation for lua_shell(); this fixes
+-   Corrected an oversight in the documentation for `lua_shell()`; this fixes
     issue [#3](https://github.com/nicholasdavies/luajr/issues/3). Thanks to
     @SugarRayLua for bringing my attention to this!
 
@@ -42,7 +46,7 @@
     with embedded nulls, and for returning strings with embedded nulls from 
     Lua, which become "raw"s in R.
     
--   Replaced calls to Rf_allocVector3 with calls to Rf_allocVector, as the 
+-   Replaced calls to `Rf_allocVector3` with calls to `Rf_allocVector`, as the 
     former is apparently not part of the API allowed in CRAN packages, as 
     requested by CRAN.
 
@@ -69,7 +73,7 @@
 
 # luajr 0.1.4
 
--   Added luajr.NULL, to allow working with NULL in Lua.
+-   Added `luajr.NULL`, to allow working with NULL in Lua.
 -   Fixed some problems for CRAN.
 
 # luajr 0.1.3

@@ -5,6 +5,7 @@
 <url><loc>https://nicholasdavies.github.io/luajr/articles/index.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/articles/luajr-module.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/articles/luajr.html</loc></url>
+<url><loc>https://nicholasdavies.github.io/luajr/articles/modules.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/articles/objects.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/articles/packages.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/authors.html</loc></url>
@@ -14,6 +15,7 @@
 <url><loc>https://nicholasdavies.github.io/luajr/reference/lua.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/reference/lua_func.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/reference/lua_mode.html</loc></url>
+<url><loc>https://nicholasdavies.github.io/luajr/reference/lua_module.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/reference/lua_open.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/reference/lua_parallel.html</loc></url>
 <url><loc>https://nicholasdavies.github.io/luajr/reference/lua_profile.html</loc></url>

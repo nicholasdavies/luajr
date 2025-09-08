@@ -19,8 +19,8 @@
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
-    <li><a class="dropdown-item" href="../articles/packages.html">R packages with Lua code</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
+    <li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -40,26 +40,28 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="luajr-development-version">luajr (development version)<a class="anchor" aria-label="anchor" href="#luajr-development-version"></a></h2>
-<ul><li>lua_func() can now accept an external pointer to a Lua function. This simplifies the process of adding Lua code to your R package, which is now explained in a new vignette. This addresses issue <a href="https://github.com/nicholasdavies/luajr/issues/4" class="external-link">#4</a>. Thanks to <a href="https://github.com/al-obrien" class="external-link">@al-obrien</a> for asking about this!</li>
+<ul><li><p>Added support for Lua modules using <code><a href="../reference/lua_module.html">lua_module()</a></code> and <code><a href="../reference/lua_module.html">lua_import()</a></code>. This simplifies the process of adding Lua code to your R package, which is now explained in a new vignette. This addresses issue <a href="https://github.com/nicholasdavies/luajr/issues/4" class="external-link">#4</a>. Thanks to <a href="https://github.com/al-obrien" class="external-link">@al-obrien</a> for asking about this!</p></li>
+<li><p>Added a speed comparison for luajr / Lua versus Rcpp / C++.</p></li>
+<li><p><code><a href="../reference/lua_func.html">lua_func()</a></code> can now accept an external pointer to a Lua function.</p></li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.9" id="luajr-019">luajr 0.1.9<a class="anchor" aria-label="anchor" href="#luajr-019"></a></h2><p class="text-muted">CRAN release: 2025-04-30</p>
-<ul><li><p>Added debugging and profiling for Lua code. The debugger is Scott Lembcke’s debugger.lua, and the profiler is LuaJIT’s built-in sampling profiler. Also added the option of turning off JIT compilation. This is all accessed through a new function, lua_mode().</p></li>
-<li><p>Added further code to ensure that LuaJIT never calls exit() directly and never tries to read from or write to standard input or output streams, instead redirecting this to the R console.</p></li>
+<ul><li><p>Added debugging and profiling for Lua code. The debugger is Scott Lembcke’s debugger.lua, and the profiler is LuaJIT’s built-in sampling profiler. Also added the option of turning off JIT compilation. This is all accessed through a new function, <code><a href="../reference/lua_mode.html">lua_mode()</a></code>.</p></li>
+<li><p>Added further code to ensure that LuaJIT never calls <code>exit()</code> directly and never tries to read from or write to standard input or output streams, instead redirecting this to the R console.</p></li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.8" id="luajr-018">luajr 0.1.8<a class="anchor" aria-label="anchor" href="#luajr-018"></a></h2><p class="text-muted">CRAN release: 2024-07-01</p>
-<ul><li><p>The Lua “io” library is now capable of getting input from the R console (e.g. with io.read()) – previously, trying this would cause R to hang (at least from RStudio).</p></li>
-<li><p>The Lua os.exit() function now ends Lua execution without crashing RStudio.</p></li>
-<li><p>lua_shell() now stores commands in the R console history.</p></li>
+<ul><li><p>The Lua “io” library is now capable of getting input from the R console (e.g. with <code>io.read()</code>) – previously, trying this would cause R to hang (at least from RStudio).</p></li>
+<li><p>The Lua <code>os.exit()</code> function now ends Lua execution without crashing RStudio.</p></li>
+<li><p><code><a href="../reference/lua_shell.html">lua_shell()</a></code> now stores commands in the R console history.</p></li>
 <li><p>The luajr build process now skips making libluajit.so and the luajit executable, as these are not needed for luajr.</p></li>
-<li><p>Corrected an oversight in the documentation for lua_shell(); this fixes issue <a href="https://github.com/nicholasdavies/luajr/issues/3" class="external-link">#3</a>. Thanks to <a href="https://github.com/SugarRayLua" class="external-link">@SugarRayLua</a> for bringing my attention to this!</p></li>
+<li><p>Corrected an oversight in the documentation for <code><a href="../reference/lua_shell.html">lua_shell()</a></code>; this fixes issue <a href="https://github.com/nicholasdavies/luajr/issues/3" class="external-link">#3</a>. Thanks to <a href="https://github.com/SugarRayLua" class="external-link">@SugarRayLua</a> for bringing my attention to this!</p></li>
 <li><p>Addressed some further issues turned up by CRAN checks.</p></li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.7" id="luajr-017">luajr 0.1.7<a class="anchor" aria-label="anchor" href="#luajr-017"></a></h2><p class="text-muted">CRAN release: 2024-04-24</p>
 <ul><li><p>Added support for passing the R type “raw” to Lua, as a string potentially with embedded nulls, and for returning strings with embedded nulls from Lua, which become “raw”s in R.</p></li>
-<li><p>Replaced calls to Rf_allocVector3 with calls to Rf_allocVector, as the former is apparently not part of the API allowed in CRAN packages, as requested by CRAN.</p></li>
+<li><p>Replaced calls to <code>Rf_allocVector3</code> with calls to <code>Rf_allocVector</code>, as the former is apparently not part of the API allowed in CRAN packages, as requested by CRAN.</p></li>
 <li><p><a href="https://github.com/TimTaylor" class="external-link">@TimTaylor</a> improved the R version of the “logistic map” example and benchmark in the main luajr vignette, so that now the R version is only 10x slower than the Lua version, not 2,500x slower. This fixes issue <a href="https://github.com/nicholasdavies/luajr/issues/2" class="external-link">#2</a>. Thanks Tim!</p></li>
 <li><p>Removed a compiler flag, <code>-Wformat</code>, that was causing errors with some standard R environments, most notably the <code>rocker/r-base</code> Docker environment. This fixes issue <a href="https://github.com/nicholasdavies/luajr/issues/1" class="external-link">#1</a>. Thanks <a href="https://github.com/jonocarroll" class="external-link">@jonocarroll</a> for reporting and helping to fix luajr’s first official bug! :-)</p></li>
 </ul></div>
@@ -73,7 +75,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.4" id="luajr-014">luajr 0.1.4<a class="anchor" aria-label="anchor" href="#luajr-014"></a></h2>
-<ul><li>Added luajr.NULL, to allow working with NULL in Lua.</li>
+<ul><li>Added <code>luajr.NULL</code>, to allow working with NULL in Lua.</li>
 <li>Fixed some problems for CRAN.</li>
 </ul></div>
     <div class="section level2">
@@ -95,7 +97,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.2.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
     </footer></div>

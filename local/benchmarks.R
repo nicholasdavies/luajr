@@ -224,18 +224,18 @@ logistic_map_C = Rcpp::cppFunction(logistic_map_Rcpp_src)
 cpp11::cpp_function(logistic_map_cpp11_src)
 
 microbenchmark::microbenchmark(
-    logistic_map_R(0.5, 50, 100, 200:385/100),
-    logistic_map_L(0.5, 50, 100, 200:385/100),
-    logistic_map_C(0.5, 50, 100, 200:385/100),
-    logistic_map_D(0.5, 50, 100, 200:385/100)
+    logistic_map_R(0.5, 100, 100, 200:385/100),
+    logistic_map_L(0.5, 100, 100, 200:385/100),
+    logistic_map_C(0.5, 100, 100, 200:385/100),
+    logistic_map_D(0.5, 100, 100, 200:385/100)
 )
 
 bench::mark(
-    logistic_map_R(0.5, 50, 100, 200:385/100),
-    logistic_map_L(0.5, 50, 100, 200:385/100),
-    logistic_map_C(0.5, 50, 100, 200:385/100),
-    logistic_map_D(0.5, 50, 100, 200:385/100)
+    logistic_map_R(0.5, 100, 100, 200:385/100),
+    logistic_map_L(0.5, 100, 100, 200:385/100),
+    logistic_map_C(0.5, 100, 100, 200:385/100),
+    logistic_map_D(0.5, 100, 100, 200:385/100)
 )
 
-cr = logistic_map_C(0.5, 50, 100, 200:385/100)
+cr = logistic_map_C(0.5, 100, 100, 200:385/100)
 plot(cr, pch = ".")
