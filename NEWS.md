@@ -1,4 +1,4 @@
-# luajr (development version)
+# luajr 0.2.0
 
 -   Added support for Lua modules using `lua_module()` and `lua_import()`. This 
     simplifies the process of adding Lua code to your R package, which is now
