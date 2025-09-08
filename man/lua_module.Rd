@@ -3,7 +3,7 @@
 \name{lua_module}
 \alias{lua_module}
 \alias{lua_import}
-\title{Load functions from Lua modules}
+\title{Load Lua modules}
 \usage{
 lua_module(filename = NULL, package = NULL)
 
@@ -31,8 +31,7 @@ documentation for \code{\link[=lua_func]{lua_func()}}.}
 module in an external file. You can then use \code{\link[=lua_import]{lua_import()}} to access the
 functions within the module, or provide access to those functions to your
 package users. The object returned by \code{\link[=lua_module]{lua_module()}} can also be used to
-set and get other (non-function) values stored in the Lua module table
-(see "Setting and getting" below).
+set and get other (non-function) values stored in the Lua module table.
 }
 \section{Typical usage}{
 

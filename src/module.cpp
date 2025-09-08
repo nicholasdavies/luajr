@@ -52,8 +52,6 @@ extern "C" SEXP luajr_module_get(SEXP module, SEXP keys, SEXP typecheck)
 {
     CheckSEXP(keys, VECSXP);
     size_t klen = Rf_length(keys);
-    if (klen < 1)
-        Rf_error("Must provide at least one index to get value.");
 
     // Get registry entry
     RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(module, LUAJR_MODULE_CODE));
@@ -65,8 +63,12 @@ extern "C" SEXP luajr_module_get(SEXP module, SEXP keys, SEXP typecheck)
     // Get module table on stack
     re->Get();
 
-    // Iterate through keys
+    // No index: return entire module as table.
     lua_State* L = re->GetState();
+    if (klen == 0)
+        return luajr_return(L, 1);
+
+    // Iterate through keys
     for (size_t k = 0; k < klen; ++k)
     {
         // Put safe getter below table

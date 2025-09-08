@@ -1,11 +1,10 @@
-#' Load functions from Lua modules
+#' Load Lua modules
 #'
 #' [lua_module()] can be used in an R project or package to declare a Lua
 #' module in an external file. You can then use [lua_import()] to access the
 #' functions within the module, or provide access to those functions to your
 #' package users. The object returned by [lua_module()] can also be used to
-#' set and get other (non-function) values stored in the Lua module table
-#' (see "Setting and getting" below).
+#' set and get other (non-function) values stored in the Lua module table.
 #'
 #' @section Typical usage:
 #'

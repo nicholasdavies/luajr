@@ -3,6 +3,8 @@ library(luajr)
 mymod = lua_module(file = "Lua/example.lua", package = "luajr")
 greet = function(name) lua_import(mymod, "greet", "s")
 
+mymod[]
+
 meh = function() { greet("Hi") }
 mah = function() { greet = function(...) cat("Sorry!\n"); meh() }
 meh()
