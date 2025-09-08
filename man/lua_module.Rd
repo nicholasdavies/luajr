@@ -7,7 +7,7 @@
 \usage{
 lua_module(filename = NULL, package = NULL)
 
-f <- function(x, y) lua_import(module, name, argcode)
+lua_import(module, name, argcode)
 }
 \arguments{
 \item{filename}{Name of file from which to load the module. If this is a
@@ -30,8 +30,20 @@ documentation for \code{\link[=lua_func]{lua_func()}}.}
 \code{\link[=lua_module]{lua_module()}} can be used in an R project or package to declare a Lua
 module in an external file. You can then use \code{\link[=lua_import]{lua_import()}} to access the
 functions within the module, or provide access to those functions to your
-package users.
+package users. The object returned by \code{\link[=lua_module]{lua_module()}} can also be used to
+set and get other (non-function) values stored in the Lua module table
+(see "Setting and getting" below).
 }
+\section{Typical usage}{
+
+
+\verb{# To load a Lua module containing myfunc(x,y)}
+
+\code{mymod <- lua_module("Lua/mymodule.lua", package = "mypackage")}
+
+\code{func <- function(x, y) lua_import(mymod, "myfunc", "s")}
+}
+
 \section{Module files}{
 
 
@@ -42,12 +54,16 @@ is probably to place these in the subdirectory \code{inst/Lua} of your package.
 The module file itself should follow standard practice for
 \href{http://lua-users.org/wiki/ModulesTutorial}{Lua modules}. In other words,
 the module file should return a Lua table containing the module's functions.
-A minimal example would be:
+A relatively minimal example would be:
 
 \if{html}{\out{<div class="sourceCode Lua">}}\preformatted{local mymodule = \{\}
+mymodule.fave_name = "Nick"
 
 function mymodule.greet(name)
     print("Hello, " .. name .. "!")
+    if name == mymodule.fave_name then
+        print("Incidentally, that's a great name. Nice one.")
+    end
 end
 
 return mymodule
@@ -120,6 +136,31 @@ greet <- function(name) \{
 
 In a package, you can document and export a function that uses \code{\link[=lua_import]{lua_import()}}
 just like any other function.
+}
+
+\section{Setting and getting}{
+
+
+Lua modules can contain more than just functions; they can also hold other
+values, as shown in the example module above (under "Module files"). In this
+example, the module also contains a string called \code{fave_name} which alters
+the behaviour of the \code{greet} function.
+
+You can get a value from a module by using e.g. \code{module["fave_name"]} and
+set it using e.g. \code{module["fave_name"] <- "Janet"}. You must use single
+brackets \verb{[]} and not double brackets \verb{[[]]} or the dollar sign \code{$} for
+this, and you cannot change a function at the top level of the module. If
+your module contains a table \code{x} which contains a value \code{y}, you can get or
+set \code{y} by using multiple indices, e.g. \code{module["x", "y"]} or
+\code{module["x", "y"] <- 1}. Using empty brackets, e.g. \code{module[]}, will return
+all the contents of the module, but you cannot set the entire contents of
+the module with e.g. \code{module[] = foo}.
+
+By default, when setting a module value using \code{module[i] <- value}, the
+value is passed to Lua "by simplify" (e.g. with \link[=lua_func]{argcode}
+\code{"s"}). You can change this behaviour with the \code{as} argument. For example,
+\code{module[i, as = "a"] <- 2} will set element \code{i} of the module to a Lua
+table \code{{2}} instead of the plain value \code{2}.
 }
 
 \examples{

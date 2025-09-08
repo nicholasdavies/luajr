@@ -7,6 +7,14 @@
 #' set and get other (non-function) values stored in the Lua module table
 #' (see "Setting and getting" below).
 #'
+#' @section Typical usage:
+#'
+#' `# To load a Lua module containing myfunc(x,y)`
+#'
+#' `mymod <- lua_module("Lua/mymodule.lua", package = "mypackage")`
+#'
+#' `func <- function(x, y) lua_import(mymod, "myfunc", "s")`
+#'
 #' @section Module files:
 #'
 #' Module files should have the file extension `.lua` and be placed somewhere
@@ -122,7 +130,6 @@
 #' `module[i, as = "a"] <- 2` will set element `i` of the module to a Lua
 #' table `{2}` instead of the plain value `2`.
 #'
-#' @usage lua_module(filename = NULL, package = NULL)
 #' @param filename Name of file from which to load the module. If this is a
 #'     character vector, the elements are concatenated together with
 #'     [file.path()].
@@ -151,7 +158,6 @@ lua_module = function(filename = NULL, package = NULL)
 }
 
 #' @rdname lua_module
-#' @usage f <- function(x, y) lua_import(module, name, argcode)
 #' @export
 lua_import = function(module, name, argcode)
 {
@@ -187,12 +193,11 @@ lua_import = function(module, name, argcode)
 
     # Create new body for R function which directly calls the Lua function
     R_body = quote({
-        ret = .Call(LUAJR_FUNC_CALL, FX, ARGS, ARGCODE, L);
+        ret = .Call(`_luajr_func_call`, FX, ARGS, ARGCODE, L);
         if (is.null(ret)) invisible() else ret
     })
-    # Reassign LUAJR_FUNC_CALL through L above
-    R_body[[2]][[3]][2:6] = list(
-        luajr:::`_luajr_func_call`$address,
+    # Reassign FX through L above
+    R_body[[2]][[3]][3:6] = list(
         fx,
         as.call(lapply(c("list", names(formals(R_func))), as.name)),
         argcode,
@@ -243,9 +248,9 @@ print.luajr_module = function(x, ...)
 
     # This seems to be needed for the [ method.
     if (missing(..1)) {
-        .Call(luajr:::`_luajr_module_get`, x[["mod"]], list(), NULL)
+        .Call(`_luajr_module_get`, x[["mod"]], list(), NULL)
     } else {
-        .Call(luajr:::`_luajr_module_get`, x[["mod"]], list(...), NULL)
+        .Call(`_luajr_module_get`, x[["mod"]], list(...), NULL)
     }
 }
 
@@ -260,9 +265,9 @@ print.luajr_module = function(x, ...)
 
     # This seems to be needed for the [ method.
     if (missing(..1)) {
-        .Call(luajr:::`_luajr_module_set`, x[["mod"]], list(), as, value)
+        .Call(`_luajr_module_set`, x[["mod"]], list(), as, value)
     } else {
-        .Call(luajr:::`_luajr_module_set`, x[["mod"]], list(...), as, value)
+        .Call(`_luajr_module_set`, x[["mod"]], list(...), as, value)
     }
 
     return (x)
