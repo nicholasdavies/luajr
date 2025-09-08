@@ -164,7 +164,7 @@ lua_mode = function(expr, debug, profile, jit)
 #' data collected so far, but you want to collect more data to add to this
 #' later.)
 #'
-#' @return An object of class `"lua_profile"`.
+#' @return An object of class `"luajr_profile"`.
 #'
 #' @seealso [lua_mode()] for generating the profiling data.
 #'
