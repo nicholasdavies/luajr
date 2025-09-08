@@ -52,6 +52,7 @@ devtools::check_win_devel()
 usethis::use_version('minor') # patch, minor, or major
 
 # CRAN
+# Revise cran-comments.md!
 devtools::submit_cran()
 
 # After accepted
