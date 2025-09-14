@@ -46,6 +46,8 @@ devtools::install(build_vignettes = TRUE)
 
 
 # RELEASE CYCLE
+# update LuaJIT
+# update debugger.lua
 devtools::check(remote = TRUE, manual = TRUE)
 devtools::check_win_devel()
 
@@ -62,6 +64,3 @@ usethis::use_dev_version()
 git push
 Finish blog post, share on social media, etc.
 Add link to blog post in pkgdown news menu
-
-# What else is missing from here?
-# Rcpp

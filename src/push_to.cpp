@@ -5,8 +5,10 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <limits>
 extern "C" {
 #include "lua.h"
+#include "luajit/src/lj_def.h"
 }
 #define R_NO_REMAP
 #include <R.h>
@@ -21,7 +23,7 @@ template <typename Push>
 static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
 {
     // Get length of vector
-    int len = Rf_length(x);
+    R_xlen_t xlen = Rf_xlength(x);
 
     switch (as)
     {
@@ -47,27 +49,30 @@ static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
 
         case 's':
         case 'a':
-            if (len == 0)
+            if (xlen == 0)
                 lua_pushnil(L); // Length 0: push nil
-            else if (len == 1 && as == 's')
+            else if (xlen == 1 && as == 's')
                 push(L, x, 0);  // Length 1 and 's': push scalar
-            else
+            else if (xlen < LJ_MAX_ASIZE) // Strict < needed here.
             {                   // Length >1 or 'a': push table
-                lua_createtable(L, len, 0);
-                for (int i = 0; i < len; ++i)
+                lua_createtable(L, xlen, 0);
+                for (R_xlen_t i = 0; i < xlen; ++i)
                 {
                     push(L, x, i);
                     lua_rawseti(L, -2, i + 1);
                 }
             }
+            else
+                Rf_error("Cannot create Lua table with more than %d elements. Requested size: %.0f. Use 'r' or 'v' argcode instead.",
+                    LJ_MAX_ASIZE, (double)xlen);
             break;
 
         default:
             if (as >= '1' && as <= '9')
             {
                 int reqn = as - '0';
-                if (len != reqn)
-                    Rf_error("Vector of length %d requested, but passed vector of length %d.", reqn, len);
+                if (xlen != reqn)
+                    Rf_error("Vector of length %d requested, but passed vector of length %.0f.", reqn, (double)xlen);
                 push_R_vector(L, x, 's', type, push);
                 break;
             }
@@ -80,6 +85,10 @@ static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
 static void push_R_list(lua_State* L, SEXP x, char as)
 {
     // Get length of vector
+    R_xlen_t xlen = Rf_xlength(x);
+    if (xlen >= LJ_MAX_ASIZE || xlen >= std::numeric_limits<int>::max())
+        Rf_error("List is too large to be passed to Lua. Cannot create Lua table with more than %d elements. Requested size: %.0f.",
+            LJ_MAX_ASIZE, (double)xlen);
     int len = Rf_length(x);
 
     // Get names of list elements
@@ -172,6 +181,14 @@ static void push_R_list(lua_State* L, SEXP x, char as)
     UNPROTECT(1);
 }
 
+// Stop if length of chr exceeds LuaJIT limits.
+void CheckStringLength(SEXP chr)
+{
+    R_xlen_t xlen = Rf_xlength(chr);
+    if (xlen >= LJ_MAX_STR)
+        Rf_error("Cannot pass string with more than %d bytes. Requested size: %.0f.", LJ_MAX_STR, (double)xlen);
+}
+
 // Analogous to Lua's lua_pushXXX(lua_State* L, XXX x) functions, this pushes
 // the R object [x] onto Lua's stack.
 // Supported: NILSXP, LGLSXP, INTSXP, REALSXP, STRSXP, VECSXP, EXTPTRSXP,
@@ -211,7 +228,8 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
         case STRSXP: // character vector: r, v, s, a, 1-9
             push_R_vector(L, x, as, CHARACTER_T,
                 [](lua_State* L, SEXP x, unsigned int i)
-                    { lua_pushstring(L, CHAR(STRING_ELT(x, i))); });
+                    { CheckStringLength(STRING_ELT(x, i));
+                      lua_pushstring(L, CHAR(STRING_ELT(x, i))); });
             break;
         case VECSXP: // list (generic vector): r, v, s
             push_R_list(L, x, as);
@@ -220,6 +238,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
             lua_pushlightuserdata(L, R_ExternalPtrAddr(x));
             break;
         case RAWSXP: // raw bytes
+            CheckStringLength(x);
             lua_pushlstring(L, (const char*)RAW(x), Rf_length(x));
             break;
         default:
@@ -284,15 +303,23 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 lua_pop(L, 2); // clear two return values
 
                 // First pass: count table entries of each type.
-                int narr = 0, nrec = 0;
+                size_t narr = 0, nrec = 0;
                 lua_pushnil(L);
                 while (lua_next(L, index) != 0)
                 {
                     if      (lua_type(L, -2) == LUA_TNUMBER) ++narr;
                     else if (lua_type(L, -2) == LUA_TSTRING) ++nrec;
-                    else    Rf_error("Lua type %s keys cannot be represented in an R list.", lua_typename(L, lua_type(L, -2)));
+                    else
+                    {
+                        lua_pop(L, 2);
+                        Rf_error("Lua type %s keys cannot be represented in an R list.",
+                            lua_typename(L, lua_type(L, -2)));
+                    }
                     lua_pop(L, 1);
                 }
+
+                if (narr + nrec >= LJ_MAX_ASIZE)
+                    Rf_error("Table is too large to be returned to R. Requested size: %.0f.", (double)(narr + nrec));
 
                 // Create list and names
                 SEXP retval = PROTECT(Rf_allocVector(VECSXP, narr + nrec));
@@ -334,6 +361,9 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             // List type
             if (type == LIST_T)
             {
+                if (size >= LJ_MAX_ASIZE)
+                    Rf_error("List is too large to be returned to R. Requested size: %.0f.", (double)size);
+
                 // Add each entry to a list
                 SEXP retval = PROTECT(Rf_allocVector(VECSXP, size));
                 int nprotect = 1;
@@ -384,12 +414,12 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
 
                 // Special check: ensure data.frame has rownames attribute
                 // If retval is data.frame with at least one column, but no row names:
-                if (Rf_inherits(retval, "data.frame") && Rf_length(retval) > 0 &&
+                if (Rf_inherits(retval, "data.frame") && size > 0 &&
                     Rf_getAttrib(retval, R_RowNamesSymbol) == R_NilValue)
                 {
                     // R has a special shorthand for "short" rownames: c(NA_integer_, nrow) (see attrib.c)
                     // TODO This will fail if the number of rows is 2^31 or higher. However, it also seems
-                    // that R itself cannot really handle such long data.frames (at least as of R 4.3.2).
+                    // that R itself cannot handle such long data.frames either (as of R 4.5.1).
                     SEXP rownames = PROTECT(Rf_allocVector(INTSXP, 2));
                     ++nprotect;
                     INTEGER(rownames)[0] = NA_INTEGER;

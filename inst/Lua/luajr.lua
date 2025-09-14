@@ -181,6 +181,13 @@ function luajr.readline(prompt)
     return ffi.string(buf, len == 0 and 0 or len - 1)
 end
 
+-- Sizeof helper
+-- ffi.sizeof() can fail if the calculated size is larger than 2^31 bytes.
+-- (see lj_ctype_vlsize in lj_ctype.c)
+local sizeof2 = function(vtype, nelem)
+    return ffi.sizeof(vtype, 1) * nelem
+end
+
 
 ------------------------
 -- 3. REFERENCE TYPES --
@@ -350,7 +357,7 @@ local vec_realloc = function(p, vtype, ptype, nelem, init1, init2)
     end
 
     -- allocate new memory (with array indexing starting at 1)
-    local new_p = ffi.cast(ptype, ffi.C.malloc(ffi.sizeof(vtype, nelem)))
+    local new_p = ffi.cast(ptype, ffi.C.malloc(sizeof2(vtype, nelem)))
     if new_p == nullptr then
         error("Could not allocate memory in vec_realloc.")
     else
@@ -369,13 +376,13 @@ local vec_realloc = function(p, vtype, ptype, nelem, init1, init2)
     elseif ffi.istype(ptype, init1) then
         -- ptr to data of same type, any: fill, only the first init2 entries if provided
         if init1 ~= nullptr then
-            ffi.copy(new_p + 1, init1 + 1, ffi.sizeof(vtype, init2 or nelem))
+            ffi.copy(new_p + 1, init1 + 1, sizeof2(vtype, init2 or nelem))
         end
     elseif type(init1) == "number" and type(init2) == "number" then
         -- gapped copy: copy old p to new p, skipping over init2 elements at position init1
         if p ~= nullptr then
-            ffi.copy(new_p + 1, p + 1, ffi.sizeof(vtype, init1 - 1))
-            ffi.copy(new_p + init1 + init2, p + init1, ffi.sizeof(vtype, nelem - init1 - init2 + 1))
+            ffi.copy(new_p + 1, p + 1, sizeof2(vtype, init1 - 1))
+            ffi.copy(new_p + init1 + init2, p + init1, sizeof2(vtype, nelem - init1 - init2 + 1))
         end
     else
         error(string.format("Could not interpret initializers to vec_realloc: [%s] %s, [%s] %s",
@@ -416,7 +423,7 @@ local mt_basic_v = function(ct)
             elseif ffi.istype(self, a) and b == nil then
                 -- from vector
                 if a.n <= self.c then
-                    ffi.copy(self.p + 1, a.p + 1, ffi.sizeof(vtype, a.n))
+                    ffi.copy(self.p + 1, a.p + 1, sizeof2(vtype, a.n))
                     self.n = a.n
                 else
                     self.p = vec_realloc(self.p, vtype, ptype, a.n, a.p)
@@ -550,11 +557,11 @@ local mt_basic_v = function(ct)
                 -- from vector
                 if self.n + #a <= self.c then
                     for j = self.n,i,-1 do self.p[j + #a] = self.p[j] end
-                    ffi.copy(self.p + i, a.p + 1, ffi.sizeof(vtype, #a))
+                    ffi.copy(self.p + i, a.p + 1, sizeof2(vtype, #a))
                     self.n = self.n + #a
                 else
                     self.p = vec_realloc(self.p, vtype, ptype, self.n + #a, i, #a)
-                    ffi.copy(self.p + i, a.p + 1, ffi.sizeof(vtype, #a))
+                    ffi.copy(self.p + i, a.p + 1, sizeof2(vtype, #a))
                     self.c = self.n + #a
                     self.n = self.n + #a
                 end
@@ -1031,11 +1038,11 @@ function luajr.return_copy(obj, ptr)
        luajr.is_numeric_r(obj) or luajr.is_character_r(obj) then
         internal.SetPtr(ptr, obj._s)
     elseif luajr.is_logical(obj) then
-        ffi.copy(ffi.cast("int*", ptr), obj.p + 1, ffi.sizeof("int[?]", obj.n))
+        ffi.copy(ffi.cast("int*", ptr), obj.p + 1, sizeof2("int[?]", obj.n))
     elseif luajr.is_integer(obj) then
-        ffi.copy(ffi.cast("int*", ptr), obj.p + 1, ffi.sizeof("int[?]", obj.n))
+        ffi.copy(ffi.cast("int*", ptr), obj.p + 1, sizeof2("int[?]", obj.n))
     elseif luajr.is_numeric(obj) then
-        ffi.copy(ffi.cast("double*", ptr), obj.p + 1, ffi.sizeof("double[?]", obj.n))
+        ffi.copy(ffi.cast("double*", ptr), obj.p + 1, sizeof2("double[?]", obj.n))
     elseif luajr.is_character(obj) then
         for k,v in ipairs(obj) do
             if v == luajr.NA_character_ then

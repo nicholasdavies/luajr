@@ -1,5 +1,10 @@
 # luajr (development version)
 
+-   luajr now supports long vectors (i.e. vectors with 2^31 elements or more).
+    You should pass these into Lua using the 'r' argcode for efficiency. This 
+    addresses issue [#5](https://github.com/nicholasdavies/luajr/issues/5). 
+    Thanks to @waynelapierre for asking about long vectors!
+
 # luajr 0.2.0
 
 -   Added support for Lua modules using `lua_module()` and `lua_import()`. This 
