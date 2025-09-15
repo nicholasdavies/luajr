@@ -64,7 +64,7 @@ static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
             }
             else
                 Rf_error("Cannot create Lua table with more than %d elements. Requested size: %.0f. Use 'r' or 'v' arg code instead.",
-                    LJ_MAX_ASIZE, (double)xlen);
+                    LJ_MAX_ASIZE - 1, (double)xlen);
             break;
 
         default:
@@ -88,7 +88,7 @@ static void push_R_list(lua_State* L, SEXP x, char as)
     R_xlen_t xlen = Rf_xlength(x);
     if (xlen >= LJ_MAX_ASIZE || xlen >= std::numeric_limits<int>::max())
         Rf_error("List is too large to be passed to Lua. Cannot create Lua table with more than %d elements. Requested size: %.0f.",
-            LJ_MAX_ASIZE, (double)xlen);
+            LJ_MAX_ASIZE - 1, (double)xlen);
     int len = Rf_length(x);
 
     // Get names of list elements
@@ -319,7 +319,8 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 }
 
                 if (narr + nrec >= LJ_MAX_ASIZE)
-                    Rf_error("Table is too large to be returned to R. Requested size: %.0f.", (double)(narr + nrec));
+                    Rf_error("Table is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
+                        LJ_MAX_ASIZE - 1, (double)(narr + nrec));
 
                 // Create list and names
                 SEXP retval = PROTECT(Rf_allocVector(VECSXP, narr + nrec));
@@ -362,7 +363,8 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             if (type == LIST_T)
             {
                 if (size >= LJ_MAX_ASIZE)
-                    Rf_error("List is too large to be returned to R. Requested size: %.0f.", (double)size);
+                    Rf_error("List is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
+                        LJ_MAX_ASIZE - 1, (double)size);
 
                 // Add each entry to a list
                 SEXP retval = PROTECT(Rf_allocVector(VECSXP, size));
