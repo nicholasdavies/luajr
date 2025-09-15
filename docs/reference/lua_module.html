@@ -15,7 +15,7 @@ set and get other (non-function) values stored in the Lua module table."></head>
 
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -161,7 +161,7 @@ specific Lua state, you will need to create that state and assign it to
 <p></p><div class="sourceCode R"><pre><code><span><span class="va">myfunc</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="fu"><a href="../reference/lua_module.html">lua_import</a></span><span class="op">(</span><span class="va">mymod</span>, <span class="st">"funcname"</span>, <span class="st">"s"</span><span class="op">)</span></span></code></pre><p></p></div>
 <p>where <code>mymod</code> is the previously-declared module object, <code>"funcname"</code> is the
 function name within the Lua module, and <code>"s"</code> is whatever
-<a href="lua_func.html">argcode</a> you want to use. Note that <code>lua_import()</code> must be used
+<a href="lua_func.html">arg code</a> you want to use. Note that <code>lua_import()</code> must be used
 as the only statement in your function body and you should <strong>not</strong> enclose
 it in braces (<code><a href="https://rdrr.io/r/base/Paren.html" class="external-link">{}</a></code>). The arguments of <code>myfunc</code> will be passed to the
 imported function in the same order as they are declared in the function
@@ -203,7 +203,7 @@ set <code>y</code> by using multiple indices, e.g. <code>module["x", "y"]</code>
 all the contents of the module, but you cannot set the entire contents of
 the module with e.g. <code>module[] = foo</code>.</p>
 <p>By default, when setting a module value using <code>module[i] &lt;- value</code>, the
-value is passed to Lua "by simplify" (e.g. with <a href="lua_func.html">argcode</a>
+value is passed to Lua "by simplify" (e.g. with <a href="lua_func.html">arg code</a>
 <code>"s"</code>). You can change this behaviour with the <code>as</code> argument. For example,
 <code>module[i, as = "a"] &lt;- 2</code> will set element <code>i</code> of the module to a Lua
 table <code>{2}</code> instead of the plain value <code>2</code>.</p>

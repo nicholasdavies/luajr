@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,8 +129,8 @@ can document and export the function as normal, e.g. with
 comprising the function body. Within the call to
 <code><a href="../reference/lua_module.html">lua_import()</a></code>, we are supplying (1) the previously-declared
 module, (2) the name of the Lua function within the module, and (3) an
-argcode to define how the function parameters will be interpreted as Lua
-variables.</p>
+arg code to define how the function parameters will be interpreted as
+Lua variables.</p>
 <p>With the example above, the first time your package user calls
 <code>greet()</code>, the call to <code><a href="../reference/lua_module.html">lua_import()</a></code> will first
 make sure the module is properly loaded and then call the Lua function.

@@ -15,7 +15,7 @@ information).'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,35 +91,35 @@ raw.</p>
 the Lua function, recycled as needed (e.g. so that a single character would
 apply to all arguments regardless of how many there are).</p>
 <p>In the following, the corresponding character of <code>argcode</code> for a specific
-argument is referred to as its argcode.</p>
+argument is referred to as its arg code.</p>
 <p>For <code>NULL</code> or any argument with length 0, the result in Lua is <strong>nil</strong>
-regardless of the corresponding argcode.</p>
+regardless of the corresponding arg code.</p>
 <p>For logical, integer, double, and character vectors, if the corresponding
-argcode is <code>'s'</code> (simplify), then if the R vector has length one, it is
+arg code is <code>'s'</code> (simplify), then if the R vector has length one, it is
 supplied as a Lua primitive (boolean, number, number, or string,
 respectively), and if length &gt; 1, as an array, i.e. a table with integer
 indices starting at 1. If the code is <code>'a'</code>, the vector is always supplied as
-an array, even if it only has length 1. If the argcode is the digit <code>'1'</code>
+an array, even if it only has length 1. If the arg code is the digit <code>'1'</code>
 through <code>'9'</code>, this is the same as <code>'s'</code>, but the vector is required to have
 that specific length, otherwise an error message is emitted.</p>
-<p>Still focusing on the same vector types, if the argcode is <code>'r'</code>, then the
+<p>Still focusing on the same vector types, if the arg code is <code>'r'</code>, then the
 vector is passed <em>by reference</em> to Lua, adopting the type <code>luajr.logical_r</code>,
 <code>luajr.integer_r</code>, <code>luajr.numeric_r</code>, or <code>luajr.character_r</code> as appropriate.
-If the argcode is <code>'v'</code>, the vector is passed <em>by value</em> to Lua,
+If the arg code is <code>'v'</code>, the vector is passed <em>by value</em> to Lua,
 adopting the type <code>luajr.logical</code>, <code>luajr.integer</code>, <code>luajr.numeric</code>, or
 <code>luajr.character</code> as appropriate.</p>
 <p>For a raw vector, only the <code>'s'</code> type is accepted and the result in Lua is
 a string (potentially with embedded nulls).</p>
-<p>For lists, if the argcode is <code>'s'</code> (simplify), the list is passed as a Lua
+<p>For lists, if the arg code is <code>'s'</code> (simplify), the list is passed as a Lua
 table. Any entries of the list with non-blank names are named in the table,
 while unnamed entries have the associated integer key in the table. Note that
 Lua does not preserve the order of entries in tables. This means that an R
 list with names will often go "out of order" when passed into Lua with <code>'s'</code>
-and then returned back to R. This is avoided with argcode <code>'r'</code> or <code>'v'</code>.</p>
-<p>If a list is passed in with the argcode <code>'r'</code> or <code>'v'</code>, the list is
+and then returned back to R. This is avoided with arg code <code>'r'</code> or <code>'v'</code>.</p>
+<p>If a list is passed in with the arg code <code>'r'</code> or <code>'v'</code>, the list is
 passed to Lua as type <code>luajr.list</code>, and all vector elements of the list are
 passed by reference or by value, respectively.</p>
-<p>For external pointers, the argcode is ignored and the external pointer is
+<p>For external pointers, the arg code is ignored and the external pointer is
 passed to Lua as type <strong>userdata</strong>.</p>
 <p>When the function is called and Lua values are returned from the function,
 the Lua return values are converted to R values as follows.</p>
@@ -152,7 +152,7 @@ as the <code>func</code> argument.</p>
 <span class="r-in"><span><span class="co"># use with an external pointer to a Lua function</span></span></span>
 <span class="r-in"><span><span class="va">times2ptr</span> <span class="op">&lt;-</span> <span class="fu"><a href="lua.html">lua</a></span><span class="op">(</span><span class="st">"return function(x) return 2 * x end"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">times2ptr</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;pointer: 0x11014e610&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;pointer: 0x13c6da8a0&gt;</span>
 <span class="r-in"><span><span class="va">times2</span> <span class="op">&lt;-</span> <span class="fu">lua_func</span><span class="op">(</span><span class="va">times2ptr</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu">times2</span><span class="op">(</span><span class="fl">14</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 28</span>
