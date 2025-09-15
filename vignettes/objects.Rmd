@@ -45,6 +45,7 @@ Specifically, this vignette describes:
 - [Data frame and matrix types](#dfm), which simplify working with R 
   `data.frame` and `matrix` types.
 - Certain [constants](#constants) defined by the `luajr` module.
+- Considerations when using [long vectors](#longvec) in Lua.
 
 ## Vector types {#vector}
 
@@ -439,3 +440,39 @@ Finally, `luajr.NULL` can be used to represent a `NULL` value, either on its
 own or as part of a table or `luajr.list` that gets returned to R. If you pass
 NULL in to Lua through arg code `"s"`, it will come out as `nil` in Lua; but if
 you use arg code `"r"` or `"v"`, it will come out as `luajr.NULL`.
+
+## Long vectors {#longvec}
+
+`luajr` can handle what are called "long vectors" in R (i.e., vectors with 2^31 
+elements or more), but there are some restrictions.
+
+Vector types are allocated in Lua, and they are limited to a maximum size of
+`luajr.max_alloc`, which is currently set to 2^37 (i.e., 128 GiB). You can 
+change `luajr.max_alloc` if you need to work with a larger vector. Note that if 
+your vector is larger than R's vector memory limit, you will not be able to 
+return such a large vector back to R.
+
+Reference types are allocated by R, so their size is limited by R's vector 
+memory limit. This limit can be set and queried using the R function 
+`mem.maxVSize()`.
+
+Long vectors can be passed from R into Lua using the `"v"` or `"r"` arg codes.
+Passing by reference will be much more efficient for large vectors, as this 
+avoids making a copy of the data.
+
+There are limits on how large of a table you can create in Lua when using the
+`lua_createtable()` function, which is what `luajr` uses to allocate space for
+tables. This means that if you try to pass a large vector into Lua as an array 
+(arg code `"a"` or `"s"`), the operation will fail if there are too many 
+elements in the vector. The maximum number of elements is currently set by 
+LuaJIT to 2^27, or just over 134 million elements. This is also the maximum 
+length of an R `list` that can be passed into Lua.
+
+As of R 4.5.1, a `data.frame` cannot hold long vectors; nor can a 
+`data.table` or `tibble`. However, a `list` can hold long vectors.
+
+If you are working with lots of data, you may want to keep it on the hard drive
+rather than trying to load it all into working memory. You could use something
+like C's [`mmap`](https://man7.org/linux/man-pages/man2/mmap.2.html) for this, 
+an R package like [`arrow`](https://arrow.apache.org/docs/r/index.html), or
+something else.

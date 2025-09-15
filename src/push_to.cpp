@@ -63,7 +63,7 @@ static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
                 }
             }
             else
-                Rf_error("Cannot create Lua table with more than %d elements. Requested size: %.0f. Use 'r' or 'v' argcode instead.",
+                Rf_error("Cannot create Lua table with more than %d elements. Requested size: %.0f. Use 'r' or 'v' arg code instead.",
                     LJ_MAX_ASIZE, (double)xlen);
             break;
 
