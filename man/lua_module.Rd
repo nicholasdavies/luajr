@@ -108,7 +108,7 @@ To import a function from a module, declare it like this:
 
 where \code{mymod} is the previously-declared module object, \code{"funcname"} is the
 function name within the Lua module, and \code{"s"} is whatever
-\link[=lua_func]{argcode} you want to use. Note that \code{lua_import()} must be used
+\link[=lua_func]{arg code} you want to use. Note that \code{lua_import()} must be used
 as the only statement in your function body and you should \strong{not} enclose
 it in braces (\code{{}}). The arguments of \code{myfunc} will be passed to the
 imported function in the same order as they are declared in the function
@@ -156,7 +156,7 @@ all the contents of the module, but you cannot set the entire contents of
 the module with e.g. \code{module[] = foo}.
 
 By default, when setting a module value using \code{module[i] <- value}, the
-value is passed to Lua "by simplify" (e.g. with \link[=lua_func]{argcode}
+value is passed to Lua "by simplify" (e.g. with \link[=lua_func]{arg code}
 \code{"s"}). You can change this behaviour with the \code{as} argument. For example,
 \code{module[i, as = "a"] <- 2} will set element \code{i} of the module to a Lua
 table \code{{2}} instead of the plain value \code{2}.

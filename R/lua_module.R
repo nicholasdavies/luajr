@@ -77,7 +77,7 @@
 #'
 #' where `mymod` is the previously-declared module object, `"funcname"` is the
 #' function name within the Lua module, and `"s"` is whatever
-#' [argcode][lua_func()] you want to use. Note that `lua_import()` must be used
+#' [arg code][lua_func()] you want to use. Note that `lua_import()` must be used
 #' as the only statement in your function body and you should **not** enclose
 #' it in braces (`{}`). The arguments of `myfunc` will be passed to the
 #' imported function in the same order as they are declared in the function
@@ -124,7 +124,7 @@
 #' the module with e.g. `module[] = foo`.
 #'
 #' By default, when setting a module value using `module[i] <- value`, the
-#' value is passed to Lua "by simplify" (e.g. with [argcode][lua_func()]
+#' value is passed to Lua "by simplify" (e.g. with [arg code][lua_func()]
 #' `"s"`). You can change this behaviour with the `as` argument. For example,
 #' `module[i, as = "a"] <- 2` will set element `i` of the module to a Lua
 #' table `{2}` instead of the plain value `2`.

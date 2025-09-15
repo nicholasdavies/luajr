@@ -87,7 +87,7 @@ greet <- function(name) lua_import(module, "greet", "s")
 Note that `lua_import(...)` must be the only statement comprising the function
 body. Within the call to `lua_import()`, we are supplying (1) the 
 previously-declared module, (2) the name of the Lua function within the module, 
-and (3) an argcode to define how the function parameters will be interpreted as 
+and (3) an arg code to define how the function parameters will be interpreted as 
 Lua variables.
 
 With the example above, the first time your package user calls `greet()`, the 
