@@ -22,8 +22,7 @@ An R function which can be called to invoke the Lua function.
 Takes any Lua expression (as a character string) that evaluates to a
 function and provides an R function that can be called to invoke the Lua
 function. Instead of a character string, you can also provide an external
-pointer to a Lua function (see examples and the "packages" vignette for more
-information).
+pointer to a Lua function (see examples).
 }
 \details{
 The R types that can be passed to Lua are: \code{NULL}, logical vector,
