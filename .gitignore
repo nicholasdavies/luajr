@@ -9,9 +9,8 @@ inst/doc
 .quarto
 /doc/
 /Meta/
+local/LuaJIT
 
 # Generated files
-local/LuaJIT
 src/Makevars
-src/luajit/.relver
 CRAN-SUBMISSION
