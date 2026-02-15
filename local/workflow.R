@@ -48,6 +48,7 @@ devtools::install(build_vignettes = TRUE)
 # RELEASE CYCLE
 # update LuaJIT
 # update debugger.lua
+# update copyright year
 devtools::check(remote = TRUE, manual = TRUE)
 devtools::check_win_devel()
 
