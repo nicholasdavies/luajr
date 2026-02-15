@@ -2,6 +2,7 @@
 
 #include "shared.h"
 #include <map>
+#include <unordered_set>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -18,23 +19,85 @@ static std::string debug_mode = "off";
 static std::string profile_mode = "off";
 static std::string jit_mode = "on";
 
-static std::map<lua_State*, std::map<std::string, unsigned int>> profile_data;
+static std::unordered_set<std::string> profile_pool;
+typedef std::unordered_set<std::string>::iterator pool_it;
+static std::map<lua_State*, std::vector<pool_it>> profile_data;
 
 static std::vector<std::string> debug_modes { "step", "error", "off" };
 static std::vector<std::string> profile_modes;
 static std::vector<std::string> jit_modes { "on", "off" };
 
-static const char* profile_start =
-"local registry = debug.getregistry() \n"
-"if registry.luajr_profile_data == nil then \n"
-"    registry.luajr_profile_data = {} \n"
-"end \n"
-"local profile = require 'jit.profile' \n"
-"local cb = function(thread, samples, vmstate) \n"
-"    local pkey = profile.dumpstack(thread, 'l|fZ;', 1) \n"
-"    registry.luajr_profile_data[pkey] = (registry.luajr_profile_data[pkey] or 0) + samples \n"
-"end \n"
-"profile.start(({...})[1], cb)";
+static const char* profile_start = R"(
+local registry = debug.getregistry()
+registry.luajr_pd = registry.luajr_pd or {}
+local luajr_pd = registry.luajr_pd
+local chunk_size = 1024
+local good = true
+
+local mode = tostring(({...})[1])
+local max_depth = 200
+mode = mode:gsub('d([%d]+)', function(n)
+    max_depth = math.floor(tonumber(n))
+    return "" -- remove the match
+end)
+
+local max_chunks = math.ceil(128 * 1024^2 / (8 * chunk_size))
+mode = mode:gsub('z([%d%.]+)', function(n)
+    max_chunks = math.ceil(tonumber(n) * 1024^2 / (8 * chunk_size))
+    max_chunks = math.max(max_chunks, 1)
+    return "" -- remove the match
+end)
+
+local profcheck = function(slots)
+    local c = #luajr_pd
+    if c == 0 or #luajr_pd[c] + slots > chunk_size then
+        if c >= max_chunks then
+            good = false
+            luajr_pd[c][#luajr_pd[c]] = "%%%"
+        else
+            table.insert(luajr_pd, table.new(chunk_size, 0))
+        end
+    end
+end
+
+local profstore = function(val)
+    if good then
+        table.insert(luajr_pd[#luajr_pd], val or "")
+    end
+end
+
+local profile = require 'jit.profile'
+local util = require 'jit.util'
+
+local cb = function(thread, samples, vmstate)
+    local level = 0
+
+    profcheck(2)
+    profstore(vmstate)
+    profstore(samples)
+
+    while true do
+        if level >= max_depth then break end
+
+        local info = debug.getinfo(thread, level, "Sln")
+        if not info then break end
+
+        profcheck(5)
+        profstore(info.source)
+        profstore(info.what)
+        profstore(info.currentline)
+        profstore(info.name)
+        profstore(info.namewhat)
+
+        level = level + 1
+    end
+
+    profcheck(1)
+    profstore("%%")
+end
+
+profile.start(mode, cb)
+)";
 
 // Like luaL_loadstring, but produce an R error on failure
 extern "C" void luajr_loadstring(lua_State* L, const char* str)
@@ -233,7 +296,7 @@ extern "C" SEXP luajr_set_mode(SEXP debug, SEXP profile, SEXP jit)
 
     // Get settings
     const char* debug_str = arg(debug, "debug", debug_mode, "step", debug_modes);
-    const char* profile_str = arg(profile, "profile", profile_mode, "li1", profile_modes);
+    const char* profile_str = arg(profile, "profile", profile_mode, "li10", profile_modes);
     const char* jit_str = arg(jit, "jit", jit_mode, "on", jit_modes);
 
     debug_mode = debug_str;
@@ -283,44 +346,44 @@ extern "C" int luajr_profile_mode()
         return LUAJR_PROFILE_MODE_ON;
 }
 
-// Collect profiler data from state L
-extern "C" void luajr_profile_collect(lua_State* L)
+// Internalize profiler data from state L.
+void luajr_profile_collect(lua_State* L)
 {
     // Get luajr profile data on stack
-    lua_getfield(L, LUA_REGISTRYINDEX, "luajr_profile_data");
+    lua_getfield(L, LUA_REGISTRYINDEX, "luajr_pd");
 
     // Quit if no profile data to collect
-    if (lua_isnil(L, -1))
-    {
-        lua_pop(L, 1); // luajr_profile_data
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1); // luajr_pd
         return;
     }
 
-    // Focus on the part of profile_data for lua_State L
-    auto profile_data_entry = profile_data.find(L);
-    if (profile_data_entry == profile_data.end()) {
+    // Find profile data string vector
+    auto pd = profile_data.find(L);
+    if (pd == profile_data.end()) {
         // first is iterator, second is status code
-        profile_data_entry = profile_data.emplace(L,
-            std::map<std::string, unsigned int>()).first;
+        pd = profile_data.emplace(L, std::vector<pool_it>()).first;
     }
 
-    // Iterate through each entry and add samples
+    // Iterate through profile data
     lua_pushnil(L);
-    while (lua_next(L, -2) != 0) {
-        auto samples = profile_data_entry->second.find(lua_tostring(L, -2));
-        if (samples == profile_data_entry->second.end()) {
-            profile_data_entry->second.emplace(lua_tostring(L, -2), lua_tointeger(L, -1));
-        } else {
-            samples->second += lua_tointeger(L, -1);
+    while (lua_next(L, -2) != 0)
+    {
+        lua_pushnil(L);
+        while (lua_next(L, -2) != 0)
+        {
+            auto [it, inserted] = profile_pool.insert(lua_tostring(L, -1));
+            pd->second.push_back(it);
+            lua_pop(L, 1);
         }
         lua_pop(L, 1);
     }
 
-    lua_pop(L, 1); // luajr_profile_data
-
-    // Reset profile data in Lua registry
+    // Clear profile data in Lua registry
     lua_newtable(L);
-    lua_setfield(L, LUA_REGISTRYINDEX, "luajr_profile_data");
+    lua_setfield(L, LUA_REGISTRYINDEX, "luajr_pd");
+
+    lua_pop(L, 1); // luajr_pd
 }
 
 // Extract profiler data.
@@ -340,22 +403,20 @@ extern "C" SEXP luajr_profile_data(SEXP flush)
             snprintf(buffer, 39, "%p", (void*)l.first);
             ptr = PROTECT(Rf_mkString(buffer));
         }
-        SEXP names = PROTECT(Rf_allocVector(STRSXP, l.second.size()));
-        SEXP times = PROTECT(Rf_allocVector(INTSXP, l.second.size()));
+        SEXP data = PROTECT(Rf_allocVector(STRSXP, l.second.size()));
 
         size_t i = 0;
         for (auto& x : l.second)
         {
-            SET_STRING_ELT(names, i, Rf_mkChar(x.first.c_str()));
-            INTEGER(times)[i] = x.second;
+            SET_STRING_ELT(data, i, Rf_mkChar(x->c_str()));
             ++i;
         }
-        SEXP entry = PROTECT(Rf_allocVector(VECSXP, 3));
+
+        SEXP entry = PROTECT(Rf_allocVector(VECSXP, 2));
         SET_VECTOR_ELT(entry, 0, ptr);
-        SET_VECTOR_ELT(entry, 1, names);
-        SET_VECTOR_ELT(entry, 2, times);
+        SET_VECTOR_ELT(entry, 1, data);
         SET_VECTOR_ELT(ret, j, entry);
-        UNPROTECT(4);
+        UNPROTECT(3);
         ++j;
     }
 
@@ -363,5 +424,6 @@ extern "C" SEXP luajr_profile_data(SEXP flush)
         profile_data.clear();
 
     UNPROTECT(1);
+
     return ret;
 }

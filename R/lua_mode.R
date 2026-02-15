@@ -54,16 +54,30 @@
 #' information useful for optimising its execution speed.
 #'
 #' Use `profile = "on"` (or `TRUE`) to turn on the profiler with default
-#' settings (namely, profile at the line level and sample at 1-millisecond
+#' settings (namely, profile at the line level and sample at 10-millisecond
 #' intervals).
 #'
 #' Instead of `"on"`, you can pass a string containing any of these options:
 #'
 #' * `f`: enable profiling to the function level.
 #' * `l`: enable profiling to the line level.
-#' * `i<integer>`: set the sampling interval, in milliseconds (default: 1ms).
+#' * `i<integer>`: set the sampling interval, in milliseconds (default: 10ms).
+#' * `d<integer>`: set the maximum stack depth (default: 200).
+#' * `z<real>`: set the maximum profile size, in megabytes (default: 128 Mb).
 #'
-#' For example, the default options correspond to the string `"li1"`.
+#' For example, the default options correspond to the string `"li10d200z128"`
+#' or just `"l"`.
+#'
+#' If the internal buffer gets full (surpasses the limit in megabytes set by
+#' the `z` option), the profiler will stop recording profiles but Lua code
+#' will continue executing as normal. The truncation will be reported as a
+#' warning by [lua_profile()]. The default size, 128 Mb, is sufficient for
+#' about an hour of profiling at 10ms intervals, assuming the average call
+#' stack depth is 10. If you really need to profile something that takes more
+#' than an hour to run, it probably makes more sense to lengthen the sampling
+#' interval rather than increase the maximum profile size. Each Lua state has
+#' its own buffer, so if you are profiling code across multiple Lua states,
+#' this limit applies separately to each one of them.
 #'
 #' You must use [lua_profile()] to recover the generated profiling data.
 #'
@@ -164,7 +178,7 @@ lua_mode = function(expr, debug, profile, jit)
 #' data collected so far, but you want to collect more data to add to this
 #' later.)
 #'
-#' @return An object of class `"luajr_profile"`.
+#' @return A data.frame.
 #'
 #' @seealso [lua_mode()] for generating the profiling data.
 #'
@@ -191,17 +205,82 @@ lua_mode = function(expr, debug, profile, jit)
 lua_profile = function(flush = TRUE)
 {
     pd = .Call(`_luajr_profile_data`, flush)
-    if (is.list(pd)) {
-        if (length(pd) == 0) {
-            return (structure(integer(0), class = "luajr_profile"))
-        }
-        return (structure(unlist(lapply(pd, function(x) {
-            samples = x[[3]] # integer vector
-            if (length(samples)) {
-                names(samples) = paste(x[[1]], x[[2]], sep = "/") # lua_State / trace
+
+    results = list(data.frame(
+            state = character(0), vmstate = character(0), samples = character(0),
+            depth = integer(0), source = character(0), what = character(0),
+            currentline = character(0), name = character(0), namewhat = character(0)))
+
+    for (i in seq_along(pd)) {
+        state = pd[[i]][[1]]
+        data = pd[[i]][[2]]
+
+        cutoff = which(data == "%%%")
+        if (length(cutoff)) {
+            cutoff = cutoff[1]
+            ends = which(data == "%%")
+            if (length(ends)) {
+                len = max(ends)
+            } else {
+                len = 0
             }
-            return (samples)
-        })), class = "luajr_profile"))
+            data = data[seq_len(len)]
+            warning("Profile buffer overflow: samples truncated to ",
+                signif(len * 8 / 1024^2, 3), " Mb.")
+        }
+
+        n_entries = sum(data == "%%")
+        n_rows = (length(data) - 3 * n_entries) / 5
+
+        vmstate = rep(NA_character_, n_rows)
+        samples = rep(NA_character_, n_rows)
+        depth = rep(NA_integer_, n_rows)
+
+        source = rep(NA_character_, n_rows)
+        what = rep(NA_character_, n_rows)
+        currentline = rep(NA_character_, n_rows)
+        name = rep(NA_character_, n_rows)
+        namewhat = rep(NA_character_, n_rows)
+
+        j = 1
+        r = 1
+        while (j < length(data)) {
+            c_vmstate = data[j]
+            c_samples = data[j + 1]
+            j = j + 2
+            c_depth = 1L
+            while (data[j] != "%%") {
+                vmstate[r] = c_vmstate
+                samples[r] = c_samples
+                depth[r] = c_depth
+
+                source[r] = data[j]
+                what[r] = data[j + 1]
+                currentline[r] = data[j + 2]
+                name[r] = data[j + 3]
+                namewhat[r] = data[j + 4]
+
+                j = j + 5
+                r = r + 1
+                c_depth = c_depth + 1L
+            }
+            j = j + 1
+        }
+
+        results[[i + 1]] = data.frame(
+            state = rep(state, n_rows), vmstate = vmstate, samples = samples,
+            depth = depth, source = source, what = what,
+            currentline = currentline, name = name, namewhat = namewhat)
     }
-    return (invisible())
+
+    results = do.call(rbind, results)
+    results = cbind(results[, 1:3, drop = FALSE],
+        slice = cumsum(results[, "depth"] == 1),
+        results[, 4:9, drop = FALSE])
+
+    if (nrow(results) == 0) {
+        warning("No profiling data to collect.")
+    }
+
+    return (results)
 }
