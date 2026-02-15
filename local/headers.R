@@ -17,6 +17,16 @@ sed("./src/luajit/src/Makefile", "./src/luajit/src/Makefile", c(
     "^default all:\t\\$\\(TARGET_T\\)$" = "default all:\t$(TARGET_O)"
 ))
 
+# Modify lj_arch.h
+# LuaJIT's profiler uses SIGPROF on POSIX by default, but this conflicts with
+# the R session in RStudio (and potentially other IDEs) which also uses signal
+# handling, causing intermittent segfaults. Switch to a dedicated pthread timer
+# thread instead, which avoids the signal conflict entirely.
+
+sed("./src/luajit/src/lj_arch.h", "./src/luajit/src/lj_arch.h", c(
+    "^#define LJ_PROFILE_SIGPROF\t1$" = "#define LJ_PROFILE_PTHREAD\t1"
+))
+
 # Modify lj_def.h
 
 sed("./src/luajit/src/lj_def.h", "./src/luajit/src/lj_def.h", c(
