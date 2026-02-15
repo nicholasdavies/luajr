@@ -1,5 +1,9 @@
 # luajr (development version)
 
+-   luajr's profiler has been overhauled to capture more complete profiling 
+    data in a data.frame. As a result, the format of the object returned by 
+    lua_profile() has changed.
+
 -   luajr now supports long vectors (i.e. vectors with 2^31 elements or more).
     You should pass these into Lua using the `'r'` arg code for efficiency. 
     Further details may be found in `vignette("objects")`. This addresses issue 
