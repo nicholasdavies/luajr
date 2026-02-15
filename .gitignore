@@ -14,3 +14,4 @@ local/LuaJIT
 # Generated files
 src/Makevars
 CRAN-SUBMISSION
+src/luajit/.relver
