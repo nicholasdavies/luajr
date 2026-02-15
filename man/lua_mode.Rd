@@ -83,17 +83,31 @@ The \code{profile} setting allows you to profile your Lua code run, generating
 information useful for optimising its execution speed.
 
 Use \code{profile = "on"} (or \code{TRUE}) to turn on the profiler with default
-settings (namely, profile at the line level and sample at 1-millisecond
+settings (namely, profile at the line level and sample at 10-millisecond
 intervals).
 
 Instead of \code{"on"}, you can pass a string containing any of these options:
 \itemize{
 \item \code{f}: enable profiling to the function level.
 \item \code{l}: enable profiling to the line level.
-\item \verb{i<integer>}: set the sampling interval, in milliseconds (default: 1ms).
+\item \verb{i<integer>}: set the sampling interval, in milliseconds (default: 10ms).
+\item \verb{d<integer>}: set the maximum stack depth (default: 200).
+\item \verb{z<real>}: set the maximum profile size, in megabytes (default: 128 Mb).
 }
 
-For example, the default options correspond to the string \code{"li1"}.
+For example, the default options correspond to the string \code{"li10d200z128"}
+or just \code{"l"}.
+
+If the internal buffer gets full (surpasses the limit in megabytes set by
+the \code{z} option), the profiler will stop recording profiles but Lua code
+will continue executing as normal. The truncation will be reported as a
+warning by \code{\link[=lua_profile]{lua_profile()}}. The default size, 128 Mb, is sufficient for
+about an hour of profiling at 10ms intervals, assuming the average call
+stack depth is 10. If you really need to profile something that takes more
+than an hour to run, it probably makes more sense to lengthen the sampling
+interval rather than increase the maximum profile size. Each Lua state has
+its own buffer, so if you are profiling code across multiple Lua states,
+this limit applies separately to each one of them.
 
 You must use \code{\link[=lua_profile]{lua_profile()}} to recover the generated profiling data.
 }

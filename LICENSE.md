@@ -8,7 +8,7 @@ statements for LuaJIT and debugger.lua can be found in LICENSE.note.*
 
 # MIT License
 
-Copyright (c) 2024 Mike Pall, Lua.org, PUC-Rio, Nicholas Davies, Scott Lembcke, 
+Copyright (c) 2026 Mike Pall, Lua.org, PUC-Rio, Nicholas Davies, Scott Lembcke, 
 Howling Moon Software
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

@@ -2,6 +2,13 @@ library(luajr)
 library(ggplot2)
 library(profvis)
 
+
+# For fun - raytracing
+lua_mode(profile = TRUE)
+lua(filename = "./local/raytrace.lua")
+lua_mode(profile = FALSE)
+
+
 # TO DO
 # Tag luajr module with =
 # Add "pv" function below to package?
@@ -102,7 +109,6 @@ logistic_map_L = lua_func(
     return result
 end", "sssr")
 
-lua("jit.on()")
 lua_mode(profile = TRUE, logistic_map_L(0.5, 10000, 1000, 20000:38500/10000))
 prof = lua_profile()
 pv(prof)

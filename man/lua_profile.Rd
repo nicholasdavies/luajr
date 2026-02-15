@@ -13,7 +13,7 @@ data collected so far, but you want to collect more data to add to this
 later.)}
 }
 \value{
-An object of class \code{"luajr_profile"}.
+A data.frame.
 }
 \description{
 After running Lua code with the profiler active (using \code{\link[=lua_mode]{lua_mode()}}), use
