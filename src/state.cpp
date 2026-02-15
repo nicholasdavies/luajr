@@ -121,7 +121,7 @@ extern "C" lua_State* luajr_newstate()
     }
 
     // Load luajr bytecode
-    luajr_loadbuffer(l, luajr_module_bytecode.data(), luajr_module_bytecode.size(), "luajr Lua module");
+    luajr_loadbuffer(l, luajr_module_bytecode.data(), luajr_module_bytecode.size(), "=luajr module");
 
     // Run script: takes as arguments the full path to the luajr dylib and the
     // path to debugger.lua.
