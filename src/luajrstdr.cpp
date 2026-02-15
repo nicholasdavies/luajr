@@ -20,7 +20,7 @@ extern "C" int R_ReadConsole(const char *, unsigned char *, int, int);
 
 extern "C" void luajr_Cexit(int exit_code)
 {
-    if (exit_code == EXIT_FAILURE)
+    if (exit_code == (int)EXIT_FAILURE)
         Rf_error("Exiting with status code EXIT_FAILURE. This likely corresponds "
                  "to a serious error triggered by LuaJIT. Running more luajr commands "
                  "may cause a crash. I recommend you save your work and restart R. "
@@ -277,7 +277,7 @@ extern "C" size_t luajr_Cfread(void* buffer, size_t size, size_t count, FILE* st
             /* If there are characters left in the input buffer, use those */
             if (RConsoleBufCnt > 0)
             {
-                size_t n = count < RConsoleBufCnt ? count : RConsoleBufCnt;
+                size_t n = count < (size_t)RConsoleBufCnt ? count : RConsoleBufCnt;
                 memcpy(buffer, RConsoleBufPtr, n);
                 RConsoleBufPtr += n;
                 RConsoleBufCnt -= n;
