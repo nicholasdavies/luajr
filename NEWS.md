@@ -1,4 +1,4 @@
-# luajr (development version)
+# luajr 0.2.1
 
 -   luajr's profiler has been overhauled to capture more complete profiling 
     data in a data.frame. As a result, the format of the object returned by 
