@@ -427,3 +427,9 @@ extern "C" SEXP luajr_profile_data(SEXP flush)
 
     return ret;
 }
+
+// Remove profiler data for state L (call before lua_close).
+extern "C" void luajr_tooling_cleanup(lua_State* L)
+{
+    profile_data.erase(L);
+}

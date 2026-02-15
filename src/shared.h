@@ -65,6 +65,7 @@ int luajr_debug_mode();
 int luajr_profile_mode();
 void luajr_profile_collect(lua_State* L);
 SEXP luajr_profile_data(SEXP flush);
+void luajr_tooling_cleanup(lua_State* L);            // Not in public API
 
 // Miscellaneous functions (setup.cpp)
 SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));

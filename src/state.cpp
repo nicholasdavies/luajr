@@ -72,6 +72,7 @@ extern "C" SEXP luajr_locate_debugger(SEXP path)
 static void finalize_lua_state(SEXP xptr)
 {
     lua_State* L = reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr));
+    luajr_tooling_cleanup(L);
     RegistryEntry::DisarmAll(L);
     lua_close(L);
     R_ClearExternalPtr(xptr);
@@ -88,6 +89,7 @@ extern "C" SEXP luajr_reset()
 {
     if (L0)
     {
+        luajr_tooling_cleanup(L0);
         RegistryEntry::DisarmAll(L0);
         lua_close(L0);
         L0 = 0;
