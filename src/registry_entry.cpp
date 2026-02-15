@@ -56,7 +56,7 @@ RegistryEntry::~RegistryEntry()
 // Put the registered value at the top of the stack.
 void RegistryEntry::Get()
 {
-    if (l == 0) { lua_pushnil(l); return; }
+    if (l == 0) { Rf_error("Invalid registry entry retrieval: Lua state closed."); return; }
     lua_getfield(l, LUA_REGISTRYINDEX, "luajrx");   // Get luajrx table from registry on stack
     lua_pushlightuserdata(l, (void*)this);          // Push registry key to stack
     lua_rawget(l, -2);                              // Get value on stack
