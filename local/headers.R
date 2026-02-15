@@ -22,10 +22,12 @@ sed("./src/luajit/src/Makefile", "./src/luajit/src/Makefile", c(
 # the R session in RStudio (and potentially other IDEs) which also uses signal
 # handling, causing intermittent segfaults. Switch to a dedicated pthread timer
 # thread instead, which avoids the signal conflict entirely.
+# This appears unnecessary now that tooling has been removed from push_to.cpp,
+# but keeping here in case it is needed in future.
 
-sed("./src/luajit/src/lj_arch.h", "./src/luajit/src/lj_arch.h", c(
-    "^#define LJ_PROFILE_SIGPROF\t1$" = "#define LJ_PROFILE_PTHREAD\t1"
-))
+# sed("./src/luajit/src/lj_arch.h", "./src/luajit/src/lj_arch.h", c(
+#     "^#define LJ_PROFILE_SIGPROF\t1$" = "#define LJ_PROFILE_PTHREAD\t1"
+# ))
 
 # Modify lj_def.h
 
