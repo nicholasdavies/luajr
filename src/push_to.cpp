@@ -346,11 +346,12 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                         ++rec_i;
                     }
                     lua_pop(L, 1);
+                    UNPROTECT(1);
                 }
 
                 // Name and return
                 Rf_setAttrib(retval, R_NamesSymbol, names);
-                UNPROTECT(1 + (nrec > 0) + narr + nrec);
+                UNPROTECT(1 + (nrec > 0));
                 return retval;
             }
 
@@ -368,7 +369,6 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
 
                 // Add each entry to a list
                 SEXP retval = PROTECT(Rf_allocVector(VECSXP, size));
-                int nprotect = 1;
 
                 // Get the list contents on the stack
                 lua_rawgeti(L, index, 0); // get list[0]
@@ -378,7 +378,6 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 while (lua_next(L, -2) != 0)
                 {
                     SEXP val = PROTECT(luajr_tosexp(L, -1));
-                    ++nprotect;
                     if (lua_type(L, -2) == LUA_TNUMBER) // List element
                     {
                         SET_VECTOR_ELT(retval, lua_tointeger(L, -2) - 1, val);
@@ -391,7 +390,6 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                             if (size > 0)
                             {
                                 SEXP names = PROTECT(Rf_allocVector(STRSXP, size));
-                                ++nprotect;
                                 SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
                                 for (int i = 0; i < Rf_length(val); ++i) {
                                     int index = REAL(VECTOR_ELT(val, i))[0] - 1;
@@ -399,6 +397,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                                     SET_STRING_ELT(names, index, name);
                                 }
                                 Rf_setAttrib(retval, R_NamesSymbol, names);
+                                UNPROTECT(1);
                             }
                         }
                         else
@@ -411,6 +410,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                         Rf_error("Lua type %s keys cannot be represented in an R list.",
                             lua_typename(L, lua_type(L, -2)));
                     }
+                    UNPROTECT(1);
                     lua_pop(L, 1);
                 }
 
@@ -423,15 +423,15 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                     // TODO This will fail if the number of rows is 2^31 or higher. However, it also seems
                     // that R itself cannot handle such long data.frames either (as of R 4.5.1).
                     SEXP rownames = PROTECT(Rf_allocVector(INTSXP, 2));
-                    ++nprotect;
                     INTEGER(rownames)[0] = NA_INTEGER;
                     INTEGER(rownames)[1] = Rf_length(VECTOR_ELT(retval, 0));
                     Rf_setAttrib(retval, R_RowNamesSymbol, rownames);
+                    UNPROTECT(1);
                 }
 
                 // Return
                 lua_pop(L, 1); // pop list[0]
-                UNPROTECT(nprotect);
+                UNPROTECT(1);
                 return retval;
             }
 
