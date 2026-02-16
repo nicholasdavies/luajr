@@ -1,3 +1,5 @@
+# luajr (development version)
+
 # luajr 0.2.2
 
 -   Updated LuaJIT to incorporate a key bugfix that would otherwise lead to
