@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,7 +39,11 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.2.1" id="luajr-021">luajr 0.2.1<a class="anchor" aria-label="anchor" href="#luajr-021"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.2.2" id="luajr-022">luajr 0.2.2<a class="anchor" aria-label="anchor" href="#luajr-022"></a></h2>
+<ul><li>Updated LuaJIT to incorporate a key bugfix that would otherwise lead to severe performance regressions on ARM64 (including recent Mac computers).</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.1" id="luajr-021">luajr 0.2.1<a class="anchor" aria-label="anchor" href="#luajr-021"></a></h2><p class="text-muted">CRAN release: 2026-02-15</p>
 <ul><li><p>luajr’s profiler has been overhauled to capture more complete profiling data in a data.frame. As a result, the format of the object returned by lua_profile() has changed.</p></li>
 <li><p>luajr now supports long vectors (i.e. vectors with 2^31 elements or more). You should pass these into Lua using the <code>'r'</code> arg code for efficiency. Further details may be found in <code><a href="../articles/objects.html">vignette("objects")</a></code>. This addresses issue <a href="https://github.com/nicholasdavies/luajr/issues/5" class="external-link">#5</a>. Thanks to <a href="https://github.com/waynelapierre" class="external-link">@waynelapierre</a> for asking about long vectors!</p></li>
 </ul></div>
