@@ -154,6 +154,8 @@ logistic_map_L = lua_func(
     local result = luajr.dataframe()
     result.a = luajr.numeric_r(dflen, 0)
     result.x = luajr.numeric_r(dflen, 0)
+    local aa = result.a._p
+    local xx = result.x._p
 
     local j = 1
     for k,a in pairs(A) do
@@ -162,8 +164,8 @@ logistic_map_L = lua_func(
             x = a * x * (1 - x)
         end
         for i = 1, iter do
-            result.a[j] = a
-            result.x[j] = x
+            aa[j] = a
+            xx[j] = x
             x = a * x * (1 - x)
             j = j + 1
         end
@@ -230,6 +232,15 @@ microbenchmark::microbenchmark(
     logistic_map_D(0.5, 100, 100, 200:385/100)
 )
 
+lua_mode(jit = TRUE)
+bench::mark(
+    logistic_map_R(0.5, 100, 100, 200:385/100),
+    logistic_map_L(0.5, 100, 100, 200:385/100),
+    logistic_map_C(0.5, 100, 100, 200:385/100),
+    logistic_map_D(0.5, 100, 100, 200:385/100)
+)
+
+lua_mode(jit = FALSE)
 bench::mark(
     logistic_map_R(0.5, 100, 100, 200:385/100),
     logistic_map_L(0.5, 100, 100, 200:385/100),
