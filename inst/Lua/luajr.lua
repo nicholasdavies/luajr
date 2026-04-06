@@ -7,10 +7,9 @@
 -- 3. REFERENCE TYPES --
 -- 4. VECTOR TYPES --
 -- 5. LIST TYPE --
--- 6. PASS TO LUA --
--- 7. RETURN TO R --
--- 8. EXTRA TYPES --
--- 9. DEBUGGER --
+-- 6. PASS TO / RETURN FROM LUA --
+-- 7. EXTRA TYPES --
+-- 8. DEBUGGER --
 
 
 ----------------------
@@ -934,9 +933,11 @@ luajr.list = new_list
 luajr.is_list = function(obj) return getmetatable(obj) == mt_list end
 
 
---------------------
--- 6. PASS TO LUA --
---------------------
+----------------------------------
+-- 6. PASS TO / RETURN FROM LUA --
+----------------------------------
+
+-- Pass to Lua
 
 -- Identifies reference types from type codes
 local ref_type = {
@@ -1017,9 +1018,7 @@ luajr.construct_null = function()
 end
 
 
---------------------
--- 7. RETURN TO R --
---------------------
+-- Return from Lua
 
 -- Helps return luajr objects to R
 -- When passed a luajr object, returns two values:
@@ -1075,7 +1074,7 @@ end
 
 
 --------------------
--- 8. EXTRA TYPES --
+-- 7. EXTRA TYPES --
 --------------------
 
 -- Attribute set/getters
@@ -1147,7 +1146,7 @@ end
 
 
 -----------------
--- 9. DEBUGGER --
+-- 8. DEBUGGER --
 -----------------
 
 -- Debugger module
@@ -1214,3 +1213,5 @@ function luajr.dbg_step_into(...)
     dbg_queue = { "s", "n" }
     return dbg(...)
 end
+
+

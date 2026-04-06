@@ -16,8 +16,8 @@ fi
 cp tools/luajit_relver.txt src/luajit/.relver
 
 ### Run pre-build developer script
-if [ -x local/prebuild.sh ]; then
-  ./local/prebuild.sh
+if [ -f local/prebuild.sh ]; then
+  sh ./local/prebuild.sh
 fi
 
 exit 0
