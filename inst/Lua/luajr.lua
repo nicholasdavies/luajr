@@ -1103,11 +1103,12 @@ sexp_set_attr = function(s, k, v)
     end
 end
 
--- Does obj have indexing and length capabilities?
+-- Does obj have indexing and length capabilities?.
 vectorish = function(obj)
+    -- luajr.character is a table, so there is no separate check for that type
     return type(obj) == "table" or luajr.is_numeric_r(obj) or luajr.is_numeric(obj) or
         luajr.is_integer_r(obj) or luajr.is_integer(obj) or luajr.is_character_r(obj) or
-            luajr.is_logical_r(obj) or luajr.is_logical(obj)
+        luajr.is_logical_r(obj) or luajr.is_logical(obj)
 end
 
 -- dataframe type
