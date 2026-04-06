@@ -5,9 +5,6 @@ extern "C" {
 #include "lualib.h"
 #include "lauxlib.h"
 }
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 // Access to Lua C API
 

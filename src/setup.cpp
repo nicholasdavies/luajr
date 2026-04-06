@@ -7,9 +7,6 @@ extern "C" {
 }
 #include <string>
 #include <csignal>
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 extern "C" int R_ReadConsole(const char*, unsigned char*, int, int);
 
@@ -21,6 +18,7 @@ static const R_CallMethodDef CallEntries[] =
 {
     { "_luajr_locate_dylib",    (DL_FUNC)&luajr_locate_dylib,    1 },
     { "_luajr_locate_module",   (DL_FUNC)&luajr_locate_module,   1 },
+    { "_luajr_locate_R_module", (DL_FUNC)&luajr_locate_R_module, 1 },
     { "_luajr_locate_debugger", (DL_FUNC)&luajr_locate_debugger, 1 },
     { "_luajr_open",            (DL_FUNC)&luajr_open,            0 },
     { "_luajr_reset",           (DL_FUNC)&luajr_reset,           0 },

@@ -23,6 +23,9 @@ local ffi = require("ffi")
 table.new = require("table.new")
 table.clear = require("table.clear")
 
+-- Load R module
+local R = require("R")
+
 -- Script receives the path to the luajr R package dylib as argument
 local luajr_dylib_path = ({...})[1]
 

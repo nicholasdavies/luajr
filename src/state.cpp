@@ -6,9 +6,6 @@ extern "C" {
 #include "lualib.h"
 #include "lauxlib.h"
 }
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 // luajr Lua module API registry keys (registered by address)
 int luajr_construct_ref = 0;
@@ -40,6 +37,12 @@ static std::string luajr_module_path;
 // Bytecode for luajr module
 static std::string luajr_module_bytecode;
 
+// Path to R module source
+static std::string luajr_R_module_path;
+
+// Bytecode for R module
+static std::string luajr_R_module_bytecode;
+
 // Path to debugger.lua
 static std::string luajr_debugger_path;
 
@@ -59,7 +62,15 @@ extern "C" SEXP luajr_locate_module(SEXP path)
     return R_NilValue;
 }
 
-// Provide path to luajr module source
+// Provide path to R module source
+extern "C" SEXP luajr_locate_R_module(SEXP path)
+{
+    CheckSEXPLen(path, STRSXP, 1);
+    luajr_R_module_path = CHAR(STRING_ELT(path, 0));
+    return R_NilValue;
+}
+
+// Provide path to debugger module source
 extern "C" SEXP luajr_locate_debugger(SEXP path)
 {
     CheckSEXPLen(path, STRSXP, 1);
@@ -105,6 +116,37 @@ extern "C" lua_State* luajr_newstate()
     lua_State* l = luaL_newstate();
     luaL_openlibs(l);
 
+    // R MODULE
+
+    // Get bytecode for R Lua module
+    if (luajr_R_module_bytecode.empty())
+    {
+        // Call string.dump(luajr_R_module_source, true)
+        lua_getglobal(l, "string");
+        lua_getfield(l, -1, "dump");
+        luajr_loadfile(l, luajr_R_module_path.c_str());
+        lua_pushboolean(l, true);
+        luajr_pcall(l, 2, 1, "string.dump() to precompile R Lua module", LUAJR_TOOLING_NONE);
+
+        // Save results of string.dump
+        size_t bytecode_len;
+        const char* bytecode = lua_tolstring(l, -1, &bytecode_len);
+        luajr_R_module_bytecode.assign(bytecode, bytecode_len);
+        lua_pop(l, 2); // results of string.dump and "string"
+    }
+
+    // Load R module bytecode
+    luajr_loadbuffer(l, luajr_R_module_bytecode.data(), luajr_R_module_bytecode.size(), "=R module");
+
+    // Register in package.preload
+    lua_getglobal(l, "package");
+    lua_getfield(l, -1, "preload");
+    lua_pushvalue(l, -3);  // The loaded bytecode chunk
+    lua_setfield(l, -2, "R");
+    lua_pop(l, 3);  // bytecode, package, preload
+
+    // LUAJR MODULE
+
     // Get bytecode for luajr Lua module
     if (luajr_module_bytecode.empty())
     {
@@ -122,7 +164,7 @@ extern "C" lua_State* luajr_newstate()
         lua_pop(l, 2); // results of string.dump and "string"
     }
 
-    // Load luajr bytecode
+    // Load luajr module bytecode
     luajr_loadbuffer(l, luajr_module_bytecode.data(), luajr_module_bytecode.size(), "=luajr module");
 
     // Run script: takes as arguments the full path to the luajr dylib and the

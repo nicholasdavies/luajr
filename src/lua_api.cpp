@@ -1,15 +1,15 @@
 // Functions designed to be called from Lua code using the LuaJIT FFI.
 
 #include "shared.h"
+#include <R_ext/Altrep.h>
 #include <vector>
 #include <iostream>
 extern "C" {
 #include "lua.h"
 }
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
-#include <R_ext/Altrep.h>
+
+// SEXP type
+typedef struct { SEXP _s; } sexp_t;
 
 // Reference types
 typedef struct { int* _p;    SEXP _s; } logical_rt;

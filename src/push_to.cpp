@@ -10,9 +10,6 @@ extern "C" {
 #include "lua.h"
 #include "luajit/src/lj_def.h"
 }
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 // Additional types specific to LuaJIT. From lj_obj.h.
 #define LUA_TPROTO	(LUA_TTHREAD+1)
@@ -483,7 +480,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
 
             // If is a known cdata type
             int type = lua_tointeger(L, -2);
-            if (type < VECTOR_T)
+            if (type & REFERENCE_T)
             {
                 // Reference type
                 lua_pop(L, 2);
@@ -499,12 +496,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 // Return SEXP
                 return ret;
             }
-            else if (type == NULL_T)
-            {
-                lua_pop(L, 2);
-                return R_NilValue;
-            }
-            else
+            else if (type & VECTOR_T)
             {
                 // Value type
                 R_xlen_t size = lua_tonumber(L, -1);
@@ -514,7 +506,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 if      (type == (LOGICAL_T | VECTOR_T))    rtype = LGLSXP;
                 else if (type == (INTEGER_T | VECTOR_T))    rtype = INTSXP;
                 else if (type == (NUMERIC_T | VECTOR_T))    rtype = REALSXP;
-                else Rf_error("Unknown type");
+                else Rf_error("Unknown cdata vector type");
 
                 SEXP ret = PROTECT(Rf_allocVector(rtype, size));
                 // Now get luajr.return_copy() on the stack
@@ -525,11 +517,20 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 if      (rtype == LGLSXP)   lua_pushlightuserdata(L, LOGICAL(ret));
                 else if (rtype == INTSXP)   lua_pushlightuserdata(L, INTEGER(ret));
                 else if (rtype == REALSXP)  lua_pushlightuserdata(L, REAL(ret));
-                else Rf_error("Unknown type");
+                else Rf_error("Unknown R type");
                 luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [3]", LUAJR_TOOLING_NONE);
                 // Return SEXP
                 UNPROTECT(1);
                 return ret;
+            }
+            else if (type == NULL_T)
+            {
+                lua_pop(L, 2);
+                return R_NilValue;
+            }
+            else
+            {
+                Rf_error("Unknown cdata type");
             }
         }
         default:

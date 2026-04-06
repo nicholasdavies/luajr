@@ -1,7 +1,10 @@
+// R headers
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
+
 // Forward declarations
 struct lua_State;
-struct SEXPREC;
-typedef SEXPREC* SEXP;
 
 // The shared global Lua state
 extern lua_State* L0;
@@ -25,6 +28,7 @@ extern "C" {
 // Lua state related functions (state.cpp)
 SEXP luajr_locate_dylib(SEXP path);     // Not in public API
 SEXP luajr_locate_module(SEXP path);    // Not in public API
+SEXP luajr_locate_R_module(SEXP path);  // Not in public API
 SEXP luajr_locate_debugger(SEXP path);  // Not in public API
 SEXP luajr_open();
 SEXP luajr_reset();
@@ -79,10 +83,22 @@ SEXP luajr_lua_gettop(SEXP Lx);     // Not in public API
 } // end of extern "C"
 
 // Type codes, for use with the Lua FFI
+/// TODO redefine all these gradually, then suddenly
+/// LOGICAL_T--CHARACTER_T used on its own and ORed with REFERENCE_T or VECTOR_T
+/// REFERENCE_T only ORed with other types, including type as a variable (push_to.cpp:36)
+/// VECTOR_T ORed with other types, including type as a variable (push_to.cpp:46) and in type < VECTOR_T (push_to.cpp:486)
+/// LIST_T used on its own
+/// NULL_T used on its own
 enum
 {
-    LOGICAL_T = 0, INTEGER_T = 1, NUMERIC_T = 2, CHARACTER_T = 3,
-    REFERENCE_T = 0, VECTOR_T = 4, LIST_T = 8, NULL_T = 16,
+    NULL_T = NILSXP,
+    LIST_T = VECSXP,
+    LOGICAL_T = LGLSXP,
+    INTEGER_T = INTSXP,
+    NUMERIC_T = REALSXP,
+    CHARACTER_T = STRSXP,
+    REFERENCE_T = 64,
+    VECTOR_T = 128
 };
 
 // External pointer code tags, for use with luajr_makepointer and luajr_getpointer

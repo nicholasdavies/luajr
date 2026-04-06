@@ -11,9 +11,6 @@ extern "C" {
 #include "lauxlib.h"
 #include "luajit_build.h"
 }
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 static std::string debug_mode = "off";
 static std::string profile_mode = "off";

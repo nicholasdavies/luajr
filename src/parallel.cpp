@@ -13,9 +13,6 @@ extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
 }
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 // Open [threads] new Lua states (or use [threads] if a list of states), run
 // code [pre] in each one, then run "return [func]" to get a function. Call the

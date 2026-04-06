@@ -34,6 +34,10 @@ usethis::write_union("./.Rbuildignore", "^local$")
 # Add vignette
 usethis::use_vignette("luajr")
 
+# R Lua API
+source("./local/add_rapi.R")
+add_rapi("R_FlushConsole")
+
 
 # BUILD CYCLE
 devtools::document()

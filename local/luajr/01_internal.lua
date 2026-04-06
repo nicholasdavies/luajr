@@ -2,19 +2,65 @@
 -- 1. INTERNAL API --
 ---------------------
 
--- Load 'internal' API for interfacing with R (see ./src/lua_api.cpp)
+-- Load 'internal' API for interfacing with R (mirrored in ./src/lua_api.cpp)
 ffi.cdef[[
 // Forward declarations
 struct SEXPREC;
 typedef struct SEXPREC* SEXP;
 
 // Type codes
+// See also: ./src/shared.h
 enum
 {
-    LOGICAL_R = 0, INTEGER_R = 1, NUMERIC_R = 2, CHARACTER_R = 3,
-    LOGICAL_V = 4, INTEGER_V = 5, NUMERIC_V = 6, CHARACTER_V = 7,
-    LIST_T = 8, NULL_T = 16
+    NULL_T = 0, //NILSXP,
+    LIST_T = 19, //VECSXP,
+
+    LOGICAL_T = 10, //LGLSXP,
+    INTEGER_T = 13, //INTSXP,
+    NUMERIC_T = 14, //REALSXP,
+    CHARACTER_T = 16, //STRSXP,
+
+    REFERENCE_T = 64,
+    VECTOR_T = 128,
+
+    LOGICAL_R =   LOGICAL_T   | REFERENCE_T,
+    INTEGER_R =   INTEGER_T   | REFERENCE_T,
+    NUMERIC_R =   NUMERIC_T   | REFERENCE_T,
+    CHARACTER_R = CHARACTER_T | REFERENCE_T,
+    LOGICAL_V =   LOGICAL_T   | VECTOR_T,
+    INTEGER_V =   INTEGER_T   | VECTOR_T,
+    NUMERIC_V =   NUMERIC_T   | VECTOR_T,
+    CHARACTER_V = CHARACTER_T | VECTOR_T,
+
+    NILSXP = 0,         // NULL
+    SYMSXP = 1,         // symbols
+    LISTSXP = 2,        // pairlists
+    CLOSXP = 3,         // closures
+    ENVSXP = 4,         // environments
+    PROMSXP = 5,        // promises
+    LANGSXP = 6,        // language objects
+    SPECIALSXP = 7,     // special functions
+    BUILTINSXP = 8,     // builtin functions
+    CHARSXP = 9,        // internal character strings
+    LGLSXP = 10,        // logical vectors
+    INTSXP = 13,        // integer vectors
+    REALSXP = 14,       // numeric vectors
+    CPLXSXP = 15,       // complex vectors
+    STRSXP = 16,        // character vectors
+    DOTSXP = 17,        // dot-dot-dot object
+    ANYSXP = 18,        // make “any” args work
+    VECSXP = 19,        // list (generic vector)
+    EXPRSXP = 20,       // expression vector
+    BCODESXP = 21,      // byte code
+    EXTPTRSXP = 22,     // external pointer
+    WEAKREFSXP = 23,    // weak reference
+    RAWSXP = 24,        // raw vector
+    OBJSXP = 25         // objects not of simple type
 };
+
+
+// SEXP type
+typedef struct { SEXP _s; } sexp_t;
 
 // Reference types
 typedef struct { int* _p;    SEXP _s; } logical_rt;
@@ -83,10 +129,6 @@ void SetPtr(void** ptr, void* val);
 // Returns length of object s; returns as a double to be larger than 32-bit,
 // but still compatible with Lua's single number type.
 double SEXP_length(SEXP s);
-
-// Read line from R console
-int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
-void R_FlushConsole();
 
 // For vector types' manual memory management
 void* malloc(size_t size);

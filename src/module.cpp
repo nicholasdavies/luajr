@@ -7,9 +7,6 @@ extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
 }
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 extern "C" SEXP luajr_module_load(SEXP filename, SEXP Lx)
 {
