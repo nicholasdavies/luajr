@@ -1,0 +1,58 @@
+R 3.3.0 (2016-05-03): logspace_sum remapped to Rf_logspace_sum; log1pexp remapped to Rf_log1pexp; R_GE_version increased
+    to 11; R_orderVector1 added; R_GetConnection() added; logspace_sum(logx[], n) added; R_allocLD added; isPairList() now
+    returns TRUE for DOTSXP; allocVector3 added; LENGTH() now checks for vector arguments; SET_VECTOR_ELT/SET_STRING_ELT now
+    bounds-checked; legacy headers and remappings cleaned up extensively.
+R 3.3.1 (2016-06-21): no C API changes.
+R 3.3.2 (2016-10-31): no C API changes.
+R 3.3.3 (2017-03-06): no C API changes.
+
+R 3.4.0 (2017-04-21): R_MakeExternalPtrFn and R_ExternalPtrFn declared in Rinternals.h; Solaris C++ exception dropped;
+    BLAS/LAPACK headers improved with const qualifiers.
+R 3.4.1 (2017-06-30): no C API changes.
+R 3.4.2 (2017-09-28): no C API changes.
+R 3.4.3 (2017-11-30): no C API changes.
+R 3.4.4 (2018-03-15): no C API changes.
+
+R 3.5.0 (2018-04-23): ALTREP branch merged (object header layout changed); MAYBE_REFERENCED, MAYBE_SHARED, MARK_NOT_MUTABLE
+    documented; R_tryCatch, R_tryCatchError, R_UnwindProtect documented; NAMEDMAX raised to 3.
+R 3.5.1 (2018-07-02): no C API changes.
+R 3.5.2 (2018-12-20): no C API changes.
+R 3.5.3 (2019-03-11): no C API changes.
+
+R 3.6.0 (2019-04-26): R_PreserveInMSet and R_ReleaseFromMSet added; R_unif_index now part of API; R_GetCurrentEnv() added; NAMEDMAX raised to 7.
+R 3.6.1 (2019-07-05): no C API changes.
+R 3.6.2 (2019-12-12): installTrChar defined in Rinternals.h.
+R 3.6.3 (2020-02-29): no C API changes.
+
+R 4.0.0 (2020-04-24): Rvprintf and REvprintf exposed in C++11 via R_ext/Print.h; new Fortran subroutines dblepr1, realpr1,
+    intpr1, labelpr; R_withCallingErrorHandler added.
+R 4.0.1 (2020-06-06): no C API changes.
+R 4.0.2 (2020-06-22): no C API changes.
+R 4.0.3 (2020-10-10): no C API changes.
+R 4.0.4 (2021-02-15): no C API changes.
+R 4.0.5 (2021-03-31): no C API changes.
+
+R 4.1.0 (2021-05-18): log1pexp() and log1mexp() added to libRmath and C API.
+R 4.1.1 (2021-08-10): no C API changes.
+R 4.1.2 (2021-11-01): workaround for Oracle Developer Studio removed from R.h and Rmath.h; PROBLEM/MESSAGE macros limited to 4095 bytes.
+R 4.1.3 (2022-03-10): legacy SINGLE_* macros in R_ext/Constants.h deprecated.
+
+R 4.2.0 (2022-04-22): rmultinom and Rtanpi formally added to API; USE_RINTERNALS no longer has effect; non-API declarations moved
+  from Rinternals.h to Defn.h; legacy S-compat macros (PROBLEM, MESSAGE, ERROR, etc.) removed from R_ext/RS.h;
+  R_Calloc/R_Free/R_Realloc preferred over unprefixed forms; call_R removed; S.h header removed.
+R 4.2.1 (2022-06-23): Sint, Sfloat, SINT_MAX, SINT_MIN deprecated.
+R 4.2.2 (2022-10-31): no C API changes.
+R 4.2.3 (2023-03-15): DL_FUNC definition changed to be fully C-compliant.
+
+R 4.3.0 (2023-04-21): R_compiled_by() added.
+R 4.3.1 (2023-06-16): Rdqags() added. R 4.3.2 (2023-10-31): no C API changes.
+R 4.3.3 (2024-02-29): no C API changes.
+
+R 4.4.0 (2024-04-24): R_missing() added; pow1p added; asRboolean and asBool added.
+R 4.4.1 (2024-06-14): Rf_allocLang added.
+R 4.4.2 (2024-10-31): no C API changes. R 4.4.3 (2025-02-28): no C API changes.
+
+R 4.5.0 (2025-04-11): R_mkClosure, R_ClosureFormals, R_ClosureBody, R_ClosureEnv, R_ClosureExpr, R_BytecodeExpr, R_ParentEnv added.
+R 4.5.1 (2025-06-13): no C API changes.
+R 4.5.2 (2025-10-31): no C API changes.
+R 4.5.3 (2026-03-11): no C API changes.

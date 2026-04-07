@@ -27,10 +27,7 @@ extern "C" {
 // Declare luajr API functions in src/shared.h, inst/include/luajr.h, and inst/include/luajr_funcs.h.
 
 // Lua state related functions (state.cpp)
-SEXP luajr_locate_dylib(SEXP path);     // Not in public API
-SEXP luajr_locate_module(SEXP path);    // Not in public API
-SEXP luajr_locate_R_module(SEXP path);  // Not in public API
-SEXP luajr_locate_debugger(SEXP path);  // Not in public API
+SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod); // Not in public API
 SEXP luajr_open();
 SEXP luajr_reset();
 lua_State* luajr_newstate();

@@ -3,6 +3,9 @@
 
 local ffi = require("ffi")
 
+-- Script receives the R version as argument, e.g. 4.5.3 -> 40503
+local R_version = ({...})[1]
+
 -- Declarations
 ffi.cdef[[
 // SEXP
@@ -56,6 +59,11 @@ local C = ffi.C
 -- Module table
 local R = {}
 
+-- Make R module available for 'require'
+function package.preload.R()
+    return R
+end
+
 -- === R API bindings ===
 R.FlushConsole = C.R_FlushConsole
 R.PreserveObject = C.R_PreserveObject
@@ -72,5 +80,8 @@ end
 
 -- LuaJIT SEXP type
 R.sexp = ffi.typeof("SEXP")
+
+-- R version
+R.version = R_version
 
 return R

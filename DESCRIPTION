@@ -21,6 +21,8 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 SystemRequirements:
     GNU make
+Depends:
+    R (>= 4.0.0)
 Suggests:
     Rcpp,
     crayon,

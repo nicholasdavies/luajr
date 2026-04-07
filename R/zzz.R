@@ -1,13 +1,17 @@
 .onLoad = function(libname, pkgname)
 {
-    # Provide path to package dylib for LuaJIT FFI
-    .Call(`_luajr_locate_dylib`, getLoadedDLLs()[["luajr"]][["path"]])
-    # Provide path to luajr module
-    .Call(`_luajr_locate_module`, system.file("Lua", "luajr.lua", package = "luajr"))
-    # Provide path to R module
-    .Call(`_luajr_locate_R_module`, system.file("Lua", "R.lua", package = "luajr"))
-    # Provide path to debugger.lua
-    .Call(`_luajr_locate_debugger`, system.file("Lua", "debugger.lua", package = "luajr"))
+    .Call(`_luajr_set_info`,
+        # R version as size-3 integer vector
+        getRversion()[[1, 1:3]],
+        # Path to package dylib for LuaJIT FFI
+        getLoadedDLLs()[["luajr"]][["path"]],
+        # Path to luajr module
+        system.file("Lua", "luajr.lua", package = "luajr"),
+        # Path to R module
+        system.file("Lua", "R.lua", package = "luajr"),
+        # Path to debugger.lua
+        system.file("Lua", "debugger.lua", package = "luajr")
+    )
     invisible()
 }
 

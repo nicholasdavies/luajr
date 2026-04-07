@@ -30,6 +30,9 @@ static const RegistryFunc luajr_registry_funcs[] =
     { 0, 0 }
 };
 
+// R version as array of three integers
+static int luajr_R_version[3] = { 0, 0, 0 };
+
 // Path to luajr dylib
 static std::string luajr_dylib_path;
 
@@ -48,35 +51,23 @@ static std::string luajr_R_module_bytecode;
 // Path to debugger.lua
 static std::string luajr_debugger_path;
 
-// Provide path to luajr dylib
-extern "C" SEXP luajr_locate_dylib(SEXP path)
+// Provide information to luajr on R version and paths
+extern "C" SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod)
 {
-    CheckSEXPLen(path, STRSXP, 1);
-    luajr_dylib_path = CHAR(STRING_ELT(path, 0));
-    return R_NilValue;
-}
+    CheckSEXPLen(Rver, INTSXP, 3);
+    CheckSEXPLen(dylib, STRSXP, 1);
+    CheckSEXPLen(luajr_mod, STRSXP, 1);
+    CheckSEXPLen(R_mod, STRSXP, 1);
+    CheckSEXPLen(dbg_mod, STRSXP, 1);
 
-// Provide path to luajr module source
-extern "C" SEXP luajr_locate_module(SEXP path)
-{
-    CheckSEXPLen(path, STRSXP, 1);
-    luajr_module_path = CHAR(STRING_ELT(path, 0));
-    return R_NilValue;
-}
+    luajr_R_version[0] = INTEGER(Rver)[0];
+    luajr_R_version[1] = INTEGER(Rver)[1];
+    luajr_R_version[2] = INTEGER(Rver)[2];
+    luajr_dylib_path = CHAR(STRING_ELT(dylib, 0));
+    luajr_module_path = CHAR(STRING_ELT(luajr_mod, 0));
+    luajr_R_module_path = CHAR(STRING_ELT(R_mod, 0));
+    luajr_debugger_path = CHAR(STRING_ELT(dbg_mod, 0));
 
-// Provide path to R module source
-extern "C" SEXP luajr_locate_R_module(SEXP path)
-{
-    CheckSEXPLen(path, STRSXP, 1);
-    luajr_R_module_path = CHAR(STRING_ELT(path, 0));
-    return R_NilValue;
-}
-
-// Provide path to debugger module source
-extern "C" SEXP luajr_locate_debugger(SEXP path)
-{
-    CheckSEXPLen(path, STRSXP, 1);
-    luajr_debugger_path = CHAR(STRING_ELT(path, 0));
     return R_NilValue;
 }
 
@@ -140,12 +131,9 @@ extern "C" lua_State* luajr_newstate()
     // Load R module bytecode
     luajr_loadbuffer(l, luajr_R_module_bytecode.data(), luajr_R_module_bytecode.size(), "=R module");
 
-    // Register in package.preload
-    lua_getglobal(l, "package");
-    lua_getfield(l, -1, "preload");
-    lua_pushvalue(l, -3);  // The loaded bytecode chunk
-    lua_setfield(l, -2, "R");
-    lua_pop(l, 3);  // bytecode, package, preload
+    // Run script: takes as argument the R version.
+    lua_pushinteger(l, luajr_R_version[0] * 10000 + luajr_R_version[1] * 100 + luajr_R_version[2]);
+    luajr_pcall(l, 1, 0, "R module from luajr_newstate()", LUAJR_TOOLING_NONE);
 
     // LUAJR MODULE
 
@@ -173,7 +161,7 @@ extern "C" lua_State* luajr_newstate()
     // path to debugger.lua.
     lua_pushstring(l, luajr_dylib_path.c_str());
     lua_pushstring(l, luajr_debugger_path.c_str());
-    luajr_pcall(l, 2, 0, "luajr Lua module from luajr_newstate()", LUAJR_TOOLING_NONE);
+    luajr_pcall(l, 2, 0, "luajr module from luajr_newstate()", LUAJR_TOOLING_NONE);
 
     // Open luajr module
     luajr_dostring(l, "luajr = require 'luajr'", LUAJR_TOOLING_NONE);
