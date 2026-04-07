@@ -1,7 +1,6 @@
 // Functions designed to be called from Lua code using the LuaJIT FFI.
 
 #include "shared.h"
-#include <R_ext/Altrep.h>
 #include <vector>
 #include <iostream>
 extern "C" {
@@ -30,30 +29,6 @@ int NA_logical = NA_LOGICAL;
 int NA_integer = NA_INTEGER;
 double NA_real = NA_REAL;
 SEXP NA_character = NA_STRING;
-
-// Compact integer range altrep class -- in R's altclasses.c
-extern R_altrep_class_t R_compact_intseq_class;
-
-// Directly from altclasses.c (but less horrifically indented etc) from 4.4.0-devel
-static SEXP new_compact_intseq(R_xlen_t n, int n1, int inc)
-{
-    if (n == 1)
-        return Rf_ScalarInteger(n1);
-
-    if (inc != 1 && inc != -1)
-	    Rf_error("compact sequences with increment %d not supported yet", inc);
-
-    // info uses REALSXP to allow for long vectors
-    SEXP info = Rf_allocVector(REALSXP, 3);
-    REAL(info)[0] = (double) n;
-    REAL(info)[1] = (double) n1;
-    REAL(info)[2] = (double) inc;
-
-    SEXP ans = R_new_altrep(R_compact_intseq_class, info, R_NilValue);
-    MARK_NOT_MUTABLE(ans); // force duplicate on modify
-
-    return ans;
-}
 
 
 // ---------------
@@ -105,20 +80,6 @@ extern "C" void AllocInteger(integer_rt* x, ptrdiff_t size)
     x->_p = INTEGER(x->_s) - 1;
 }
 
-extern "C" void AllocIntegerCompact1N(integer_rt* x, ptrdiff_t N)
-{
-    if (N > 0)
-    {
-        x->_s = new_compact_intseq(N, 1, 1);
-        R_PreserveObject(x->_s);
-        x->_p = 0;
-    }
-    else
-    {
-        x->_s = R_NilValue;
-        x->_p = 0;
-    }
-}
 
 extern "C" void AllocNumeric(numeric_rt* x, ptrdiff_t size)
 {

@@ -69,7 +69,7 @@ void SetCharacterRef(character_rt* x, SEXP s);
 // call Release in garbage collection for the corresponding R_ReleaseObject().
 void AllocLogical(logical_rt* x, ptrdiff_t size);
 void AllocInteger(integer_rt* x, ptrdiff_t size);
-void AllocIntegerCompact1N(integer_rt* x, ptrdiff_t N);
+
 void AllocNumeric(numeric_rt* x, ptrdiff_t size);
 void AllocCharacter(character_rt* x, ptrdiff_t size);
 void AllocCharacterNA(character_rt* x, ptrdiff_t size);
