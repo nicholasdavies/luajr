@@ -22,9 +22,9 @@ extern "C" SEXP luajr_module_load(SEXP filename, SEXP Lx)
 
     // Check return value
     if (nret != 1)
-        Rf_error("lua_module expects the module to return one value, not %d.", nret);
+        luajr_pop_stop(L, nret, "lua_module expects the module to return one value, not %d.", nret);
     if (lua_type(L, -1) != LUA_TTABLE)
-        Rf_error("lua_func expects the module to return a table, not a %s.", lua_typename(L, lua_type(L, -1)));
+        luajr_pop_stop(L, 1, "lua_func expects the module to return a table, not a %s.", lua_typename(L, lua_type(L, -1)));
 
     // Create the registry entry with the value on the top of the stack
     RegistryEntry* re = new RegistryEntry(L);
@@ -78,22 +78,16 @@ extern "C" SEXP luajr_module_get(SEXP module, SEXP keys, SEXP typecheck)
         // Now have on stack: getter, table, keys[k]
         // Get table[keys[k]], catching any error
         if (lua_pcall(L, 2, 1, 0) != LUA_OK)
-        {
-            // Capture and pop error message
-            std::string err = lua_tostring(L, -1);
-            lua_pop(L, 1);
-
-            Rf_error("Could not get index %zu: %s.", k + 1, err.c_str());
-        }
+            luajr_pop_stop(L, 1, "Could not get index %zu: %s.", k + 1, lua_tostring(L, -1));
     }
 
     // Check type, if requested
     if (typecheck != R_NilValue) {
         if (strcmp(lua_typename(L, lua_type(L, -1)), CHAR(STRING_ELT(typecheck, 0)))) {
             if (lua_type(L, -1) == LUA_TNIL) {
-                Rf_error("Error: value in module is nil or undefined.");
+                luajr_pop_stop(L, 1, "Error: value in module is nil or undefined.");
             } else {
-                Rf_error("Type error: expecting value to be %s, not %s",
+                luajr_pop_stop(L, 1, "Type error: expecting value to be %s, not %s",
                     CHAR(STRING_ELT(typecheck, 0)), lua_typename(L, lua_type(L, -1)));
             }
         }
@@ -126,10 +120,7 @@ extern "C" SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value)
     luajr_pushsexp(L, VECTOR_ELT(keys, 0), 's');
     lua_gettable(L, -2);
     if (lua_type(L, -1) == LUA_TFUNCTION)
-    {
-        lua_pop(L, 2); // Pop table and function
-        Rf_error("Cannot overwrite a top-level module function.");
-    }
+        luajr_pop_stop(L, 2, "Cannot overwrite a top-level module function.");
     lua_pop(L, 1); // Pop module table
 
     // Module table remains on stack.
@@ -146,13 +137,7 @@ extern "C" SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value)
         // Now have on stack: getter, table, keys[k]
         // Get table[keys[k]], catching any error
         if (lua_pcall(L, 2, 1, 0) != LUA_OK)
-        {
-            // Capture and pop error message
-            std::string err = lua_tostring(L, -1);
-            lua_pop(L, 1);
-
-            Rf_error("Could not get index %zu: %s.", k + 1, err.c_str());
-        }
+            luajr_pop_stop(L, 1, "Could not get index %zu: %s.", k + 1, lua_tostring(L, -1));
     }
 
     // Put safe setter below table
@@ -166,13 +151,7 @@ extern "C" SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value)
     // Now have on stack: setter, table, final key, value
     // Set table[final key] = value, catching any error
     if (lua_pcall(L, 3, 1, 0) != LUA_OK)
-    {
-        // Capture and pop error message
-        std::string err = lua_tostring(L, -1);
-        lua_pop(L, 1);
-
-        Rf_error("Could not set index: %s.", err.c_str());
-    }
+        luajr_pop_stop(L, 1, "Could not set index: %s.", lua_tostring(L, -1));
 
     return R_NilValue;
 }

@@ -12,6 +12,7 @@ typedef struct SEXPREC* SEXP;
 // See also: ./src/shared.h
 enum
 {
+    // TODO xfer to use R.* types
     NULL_T = 0, //NILSXP,
     LIST_T = 19, //VECSXP,
 
@@ -20,6 +21,7 @@ enum
     NUMERIC_T = 14, //REALSXP,
     CHARACTER_T = 16, //STRSXP,
 
+    SEXP_T = 63, // Generic SEXP
     REFERENCE_T = 64,
     VECTOR_T = 128,
 
@@ -31,36 +33,8 @@ enum
     INTEGER_V =   INTEGER_T   | VECTOR_T,
     NUMERIC_V =   NUMERIC_T   | VECTOR_T,
     CHARACTER_V = CHARACTER_T | VECTOR_T,
-
-    NILSXP = 0,         // NULL
-    SYMSXP = 1,         // symbols
-    LISTSXP = 2,        // pairlists
-    CLOSXP = 3,         // closures
-    ENVSXP = 4,         // environments
-    PROMSXP = 5,        // promises
-    LANGSXP = 6,        // language objects
-    SPECIALSXP = 7,     // special functions
-    BUILTINSXP = 8,     // builtin functions
-    CHARSXP = 9,        // internal character strings
-    LGLSXP = 10,        // logical vectors
-    INTSXP = 13,        // integer vectors
-    REALSXP = 14,       // numeric vectors
-    CPLXSXP = 15,       // complex vectors
-    STRSXP = 16,        // character vectors
-    DOTSXP = 17,        // dot-dot-dot object
-    ANYSXP = 18,        // make “any” args work
-    VECSXP = 19,        // list (generic vector)
-    EXPRSXP = 20,       // expression vector
-    BCODESXP = 21,      // byte code
-    EXTPTRSXP = 22,     // external pointer
-    WEAKREFSXP = 23,    // weak reference
-    RAWSXP = 24,        // raw vector
-    OBJSXP = 25         // objects not of simple type
 };
 
-
-// SEXP type
-typedef struct { SEXP _s; } sexp_t;
 
 // Reference types
 typedef struct { int* _p;    SEXP _s; } logical_rt;
@@ -122,13 +96,6 @@ void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v);
 // To get/set string vectors
 const char* GetCharacterElt(SEXP s, ptrdiff_t k);
 void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v);
-
-// Set *ptr = val
-void SetPtr(void** ptr, void* val);
-
-// Returns length of object s; returns as a double to be larger than 32-bit,
-// but still compatible with Lua's single number type.
-double SEXP_length(SEXP s);
 
 // For vector types' manual memory management
 void* malloc(size_t size);

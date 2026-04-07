@@ -240,13 +240,3 @@ extern "C" void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v)
     else
         SET_STRING_ELT(s, k, Rf_mkChar(v));
 }
-
-extern "C" void SetPtr(void** ptr, void* val)
-{
-    *ptr = val;
-}
-
-extern "C" double SEXP_length(SEXP s)
-{
-    return Rf_xlength(s);
-}

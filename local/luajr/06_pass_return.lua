@@ -50,7 +50,7 @@ end
 --   typecode = e.g. internal.LOGICAL_V, etc
 luajr.construct_vec = function(ud, typecode)
     if typecode == internal.CHARACTER_V then
-        local x = luajr.character(internal.SEXP_length(ud), "")
+        local x = luajr.character(R.length(ud), "")
         for i = 1,#x do
             local c = internal.GetCharacterElt(ud, i - 1)
             if c == nullptr then
@@ -61,7 +61,7 @@ luajr.construct_vec = function(ud, typecode)
         end
         return x
     else
-        local x = vec_type[typecode](internal.SEXP_length(ud), 0)
+        local x = vec_type[typecode](R.length(ud), 0)
         vec_set[typecode](x, ud)
         return x
     end
@@ -80,6 +80,11 @@ end
 -- Construct NULL.
 luajr.construct_null = function()
     return luajr.NULL
+end
+
+-- Construct SEXP.
+luajr.construct_sexp = function(ud)
+    return R.sexp(ud)
 end
 
 
@@ -104,6 +109,7 @@ function luajr.return_info(obj)
     elseif luajr.is_list(obj)           then return internal.LIST_T, #obj
     elseif obj == nullptr               then return internal.NULL_T, 0
     elseif ffi.istype(luajr.NULL, obj)  then return internal.NULL_T, 0
+    elseif ffi.istype(R.sexp, obj)      then return internal.SEXP_T, ffi.cast("void*", obj)
     end
 
     return nil, nil
@@ -117,7 +123,9 @@ end
 function luajr.return_copy(obj, ptr)
     if luajr.is_logical_r(obj) or luajr.is_integer_r(obj) or
        luajr.is_numeric_r(obj) or luajr.is_character_r(obj) then
-        internal.SetPtr(ptr, obj._s)
+        ffi.cast(voidpp, ptr)[0] = obj._s
+    elseif ffi.istype(R.sexp, obj) then
+        ffi.cast(voidpp, ptr)[0] = obj
     elseif luajr.is_logical(obj) then
         ffi.copy(ffi.cast("int*", ptr), obj.p + 1, sizeof("int[?]", obj.n))
     elseif luajr.is_integer(obj) then

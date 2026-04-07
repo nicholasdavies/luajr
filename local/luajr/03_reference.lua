@@ -32,7 +32,7 @@ local mt_basic_r = function(allocator)
         end,
 
         __len = function(x)
-            return internal.SEXP_length(x._s)
+            return R.length(x._s)
         end,
 
         __index = function(x, k)
@@ -94,7 +94,7 @@ local mt_character_r = {
     end,
 
     __len = function(x)
-        return internal.SEXP_length(x._s)
+        return R.length(x._s)
     end,
 
     __index = function(x, k)

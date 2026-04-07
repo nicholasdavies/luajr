@@ -49,6 +49,10 @@
 #' passed to Lua as type `luajr.list`, and all vector elements of the list are
 #' passed by reference or by value, respectively.
 #'
+#' If the arg code is `'x'`, the value is passed as a bare SEXP (i.e. the raw R
+#' object pointer). This bypasses all type-specific conversions and is intended
+#' for use with the `R` Lua module (loaded via `require("R")`).
+#'
 #' For external pointers, the arg code is ignored and the external pointer is
 #' passed to Lua as type **userdata**.
 #'

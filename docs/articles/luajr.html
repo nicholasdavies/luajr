@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -183,6 +183,9 @@ argument has length 9</li>
 <code>'v'</code>: pass by <strong>v</strong>alue</li>
 <li>
 <code>'r'</code>: pass by <strong>r</strong>eference</li>
+<li>
+<code>'x'</code>: pass as a bare SE<strong>X</strong>P (raw R object
+pointer)</li>
 </ul>
 <p>The kinds of R values that can be passed to Lua functions, and their
 behaviour under different arg codes, is summarized in the following
@@ -328,6 +331,11 @@ table:</p>
 </table>
 <p>Above, <code>nn</code> stands for an integer that is greater than 1;
 in the examples, it stands specifically for 2.</p>
+<p>The <code>'x'</code> arg code is not shown in the table above. For
+any R type, <code>'x'</code> passes the value as a bare SEXP (i.e. the
+raw R object pointer). This bypasses all type-specific conversions and
+is intended for use with the <code>R</code> Lua module (loaded via
+<code><a href="https://rdrr.io/r/base/library.html" class="external-link">require("R")</a></code>).</p>
 <p>There should be one character in <code>argcode</code> for every
 argument of the function, but the string is “recycled” when there are
 more arguments passed than characters in the <code>argcode</code>

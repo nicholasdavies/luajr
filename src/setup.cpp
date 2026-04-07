@@ -167,3 +167,15 @@ extern "C" SEXP luajr_readline(SEXP prompt)
     UNPROTECT(1);
     return retval;
 }
+
+// Pop n items from the Lua stack, then throw an R error
+extern "C" void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...)
+{
+    char buf[1024];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    lua_pop(L, n);
+    Rf_error("%s", buf);
+}

@@ -12,6 +12,7 @@ int luajr_construct_ref = 0;
 int luajr_construct_vec = 0;
 int luajr_construct_list = 0;
 int luajr_construct_null = 0;
+int luajr_construct_sexp = 0;
 int luajr_return_info = 0;
 int luajr_return_copy = 0;
 
@@ -23,6 +24,7 @@ static const RegistryFunc luajr_registry_funcs[] =
     { (void*)&luajr_construct_vec,  "construct_vec" },
     { (void*)&luajr_construct_list, "construct_list" },
     { (void*)&luajr_construct_null, "construct_null" },
+    { (void*)&luajr_construct_sexp, "construct_sexp" },
     { (void*)&luajr_return_info,    "return_info" },
     { (void*)&luajr_return_copy,    "return_copy" },
     { 0, 0 }

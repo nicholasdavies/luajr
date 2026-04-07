@@ -33,8 +33,8 @@ function luajr.readline(prompt)
         buf = ffi.new("unsigned char[1024]")
     end
 
-    R.R_FlushConsole()
-    R.R_ReadConsole(prompt or "", buf, 1024, 0)
+    R.FlushConsole()
+    R.ReadConsole(prompt or "", buf, 1024, 0)
 
     -- remove terminating newline, but guard against 0-length string
     local len = ffi.C.strlen(buf)

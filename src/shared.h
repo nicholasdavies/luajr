@@ -14,6 +14,7 @@ extern int luajr_construct_ref;
 extern int luajr_construct_vec;
 extern int luajr_construct_list;
 extern int luajr_construct_null;
+extern int luajr_construct_sexp;
 extern int luajr_return_info;
 extern int luajr_return_copy;
 
@@ -69,16 +70,17 @@ int luajr_debug_mode();
 int luajr_profile_mode();
 void luajr_profile_collect(lua_State* L);
 SEXP luajr_profile_data(SEXP flush);
-void luajr_tooling_cleanup(lua_State* L);            // Not in public API
+void luajr_tooling_cleanup(lua_State* L); // Not in public API
 
 // Miscellaneous functions (setup.cpp)
 SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));
 void* luajr_getpointer(SEXP x, int tag_code);
 int luajr_handle_lua_error(lua_State* L, int err, const char* what, char* buf); // Not in public API
 SEXP luajr_readline(SEXP prompt);   // Not in public API
+void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...); // Not in public API
 
 // Access to Lua C API (lua_internal.cpp)
-SEXP luajr_lua_gettop(SEXP Lx);     // Not in public API
+SEXP luajr_lua_gettop(SEXP Lx); // Not in public API
 
 } // end of extern "C"
 
@@ -97,6 +99,7 @@ enum
     INTEGER_T = INTSXP,
     NUMERIC_T = REALSXP,
     CHARACTER_T = STRSXP,
+    SEXP_T = 63,
     REFERENCE_T = 64,
     VECTOR_T = 128
 };

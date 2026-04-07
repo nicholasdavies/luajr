@@ -128,6 +128,7 @@ The permissible arg codes are:
  * `'9'`: same as `'s'`, but require that the argument has length 9
  * `'v'`: pass by **v**alue
  * `'r'`: pass by **r**eference
+ * `'x'`: pass as a bare SE**X**P (raw R object pointer)
  
 The kinds of R values that can be passed to Lua functions, and their behaviour
 under different arg codes, is summarized in the following table:
@@ -148,6 +149,11 @@ under different arg codes, is summarized in the following table:
 
 Above, `nn` stands for an integer that is greater than 1; in the examples, it
 stands specifically for 2.
+
+The `'x'` arg code is not shown in the table above. For any R type, `'x'`
+passes the value as a bare SEXP (i.e. the raw R object pointer). This bypasses
+all type-specific conversions and is intended for use with the `R` Lua module
+(loaded via `require("R")`).
 
 There should be one character in `argcode` for every argument of the function, 
 but the string is "recycled" when there are more arguments passed than 

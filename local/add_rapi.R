@@ -227,10 +227,10 @@ add_rapi <- function(name) {
     }
 
     # --- Insert ffi.cdef declaration ---
-    cdef_marker <- "// === R API declarations ==="
-    cdef_end <- "]]"
-    cdef_start_idx <- grep(cdef_marker, lines, fixed = TRUE)
-    cdef_end_idx <- which(lines == cdef_end & seq_along(lines) > cdef_start_idx)[1]
+    cdef_start_marker <- "// === R API declarations ==="
+    cdef_end_marker <- "// === end R API declarations ==="
+    cdef_start_idx <- grep(cdef_start_marker, lines, fixed = TRUE)
+    cdef_end_idx <- grep(cdef_end_marker, lines, fixed = TRUE)
 
     # Gather existing declarations between markers
     existing_decls <- lines[rlang::seq2(cdef_start_idx + 1, cdef_end_idx - 1)]
@@ -244,30 +244,30 @@ add_rapi <- function(name) {
     all_decls <- all_decls[order(decl_names)]
 
     # --- Insert binding ---
-    bind_marker <- "-- === R API bindings ==="
-    bind_start_idx <- grep(bind_marker, lines, fixed = TRUE)
-    return_idx <- grep("^return R$", lines)
+    bind_start_marker <- "-- === R API bindings ==="
+    bind_end_marker <- "-- === end R API bindings ==="
+    bind_start_idx <- grep(bind_start_marker, lines, fixed = TRUE)
+    bind_end_idx <- grep(bind_end_marker, lines, fixed = TRUE)
 
     # Gather existing bindings
-    existing_binds <- lines[rlang::seq2(bind_start_idx + 1, return_idx - 1)]
+    existing_binds <- lines[rlang::seq2(bind_start_idx + 1, bind_end_idx - 1)]
     existing_binds <- existing_binds[nzchar(trimws(existing_binds))]
 
-    # Create binding line
-    new_bind <- sprintf("R.%s = C.%s", name, name)
+    # Create binding line (strip Rf_ or R_ prefix for Lua-side name)
+    short_name <- sub("^Rf_", "", sub("^R_", "", name))
+    new_bind <- sprintf("R.%s = C.%s", short_name, name)
     all_binds <- c(existing_binds, new_bind)
     # Sort by name
     bind_names <- sub("^R\\.", "", sub(" =.*", "", all_binds))
     all_binds <- all_binds[order(bind_names)]
 
     # --- Rebuild file ---
-    # Structure: [preamble ... marker] [decls] []] ... bind_marker] [binds] [\n] [return R ...]
     new_lines <- c(
-        lines[1:cdef_start_idx],          # up to and including cdef marker
-        all_decls,                          # sorted declarations
-        lines[cdef_end_idx:bind_start_idx], # ]] through bind marker
-        all_binds,                          # sorted bindings
-        "",
-        lines[return_idx:length(lines)]     # return R to end
+        lines[1:cdef_start_idx],            # up to and including cdef start marker
+        all_decls,                           # sorted declarations
+        lines[cdef_end_idx:bind_start_idx],  # cdef end marker through bind start marker
+        all_binds,                           # sorted bindings
+        lines[bind_end_idx:length(lines)]    # bind end marker to end of file
     )
 
     writeLines(new_lines, r_lua_path)

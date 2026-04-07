@@ -1,5 +1,13 @@
 # luajr (development version)
 
+-   Added a new `'x'` argcode which allows passing any R variable to Lua 
+    functions through R's SEXP interface.
+
+-   Added a new 'R' module which can be used in Lua code to access R's API.
+
+-   Fixed a bug when returning a Lua table to R containing certain LuaJIT cdata
+    types.
+
 # luajr 0.2.2
 
 -   Updated LuaJIT to incorporate a key bugfix that would otherwise lead to

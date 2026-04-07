@@ -35,7 +35,10 @@ local debugger_lua_path = ({...})[2]
 -- Null pointer object
 local nullptr = ffi.cast("void*", 0)
 
--- "Hidden" sentinel object
+-- Pointer-to-pointer type for writing pointer values
+local voidpp = ffi.typeof("void**")
+
+-- "Hidden" sentinel object for internal use
 ffi.cdef[[ typedef struct { int a; } HIDDEN_t; ]]
 local hidden = ffi.new("HIDDEN_t")
 

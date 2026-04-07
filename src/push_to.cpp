@@ -108,7 +108,7 @@ static void push_R_list(lua_State* L, SEXP x, char as)
     {
         case 'r':
         case 'v':
-            // Get luajr.construct_list on the stack
+            // Get luajr.construct_list() on the stack
             lua_pushlightuserdata(L, (void*)&luajr_construct_list);
             lua_rawget(L, LUA_REGISTRYINDEX);
 
@@ -195,6 +195,16 @@ void CheckStringLength(SEXP chr)
 // S4SXP.
 extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
 {
+    // 'x' arg code: pass any type as a bare SEXP
+    if (as == 'x')
+    {
+        lua_pushlightuserdata(L, (void*)&luajr_construct_sexp);
+        lua_rawget(L, LUA_REGISTRYINDEX);
+        lua_pushlightuserdata(L, x);
+        luajr_pcall(L, 1, 1, "luajr.construct_sexp() from luajr_pushsexp()", LUAJR_TOOLING_NONE);
+        return;
+    }
+
     switch (TYPEOF(x))
     {
         case NILSXP: // NULL
@@ -239,7 +249,11 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
             lua_pushlstring(L, (const char*)RAW(x), Rf_length(x));
             break;
         default:
-            Rf_error("Cannot convert %s to Lua.", Rf_type2char(TYPEOF(x)));
+            lua_pushlightuserdata(L, (void*)&luajr_construct_sexp);
+            lua_rawget(L, LUA_REGISTRYINDEX);
+            lua_pushlightuserdata(L, x);
+            luajr_pcall(L, 1, 1, "luajr.construct_sexp() from luajr_pushsexp()", LUAJR_TOOLING_NONE);
+            break;
     }
 }
 
@@ -271,8 +285,9 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             // RAWSXP instead of as a STRSXP.
             if (std::strlen(str) != len)
             {
-                SEXP retval = Rf_allocVector(RAWSXP, len);
+                SEXP retval = PROTECT(Rf_allocVector(RAWSXP, len));
                 std::memcpy(RAW(retval), str, len);
+                UNPROTECT(1);
                 return retval;
             }
             else
@@ -307,11 +322,8 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                     if      (lua_type(L, -2) == LUA_TNUMBER) ++narr;
                     else if (lua_type(L, -2) == LUA_TSTRING) ++nrec;
                     else
-                    {
-                        lua_pop(L, 2);
-                        Rf_error("Lua type %s keys cannot be represented in an R list.",
+                        luajr_pop_stop(L, 2, "Lua type %s keys cannot be represented in an R list.",
                             lua_typename(L, lua_type(L, -2)));
-                    }
                     lua_pop(L, 1);
                 }
 
@@ -386,12 +398,20 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                         {
                             if (size > 0)
                             {
-                                SEXP names = PROTECT(Rf_allocVector(STRSXP, size));
+                                if (TYPEOF(val) != VECSXP)
+                                    luajr_pop_stop(L, 3, "Malformed luajr list: names mapping is not a VECSXP.");
                                 SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
+                                if (setnames == R_NilValue || TYPEOF(setnames) != STRSXP)
+                                    luajr_pop_stop(L, 3, "Malformed luajr list: names mapping has no names attribute.");
+                                SEXP names = PROTECT(Rf_allocVector(STRSXP, size));
                                 for (int i = 0; i < Rf_length(val); ++i) {
-                                    int index = REAL(VECTOR_ELT(val, i))[0] - 1;
-                                    SEXP name = STRING_ELT(setnames, i);
-                                    SET_STRING_ELT(names, index, name);
+                                    SEXP elt = VECTOR_ELT(val, i);
+                                    if (TYPEOF(elt) != REALSXP || Rf_xlength(elt) < 1)
+                                        luajr_pop_stop(L, 3, "Malformed luajr list: names mapping element is not a scalar real.");
+                                    int nm_index = REAL(elt)[0] - 1;
+                                    if (nm_index < 0 || nm_index >= size)
+                                        luajr_pop_stop(L, 3, "Malformed luajr list: names index %d out of bounds [0, %d).", nm_index, (int)size);
+                                    SET_STRING_ELT(names, nm_index, STRING_ELT(setnames, i));
                                 }
                                 Rf_setAttrib(retval, R_NamesSymbol, names);
                                 UNPROTECT(1);
@@ -404,7 +424,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                     }
                     else
                     {
-                        Rf_error("Lua type %s keys cannot be represented in an R list.",
+                        luajr_pop_stop(L, 3, "Lua type %s keys cannot be represented in an R list.",
                             lua_typename(L, lua_type(L, -2)));
                     }
                     UNPROTECT(1);
@@ -470,21 +490,24 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             // Get luajr.return_info() on the stack
             lua_pushlightuserdata(L, (void*)&luajr_return_info);
             lua_rawget(L, LUA_REGISTRYINDEX);
-            // Call it with cdata arg
+            // Call it with cdata arg; returns typecode, size (or nil, nil for unknown type).
             lua_pushvalue(L, index);
             luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [2]", LUAJR_TOOLING_NONE);
 
             // If not a known cdata type, return external pointer
-            if (lua_isnil(L, -2))
-                return R_MakeExternalPtr(const_cast<void*>(lua_topointer(L, index)), R_NilValue, R_NilValue);
-
-            // If is a known cdata type
-            int type = lua_tointeger(L, -2);
-            if (type & REFERENCE_T)
-            {
-                // Reference type
+            if (lua_isnil(L, -2)) {
                 lua_pop(L, 2);
+                return R_MakeExternalPtr(const_cast<void*>(lua_topointer(L, index)), R_NilValue, R_NilValue);
+            }
 
+            // Otherwise, is a known cdata type
+            int type = lua_tointeger(L, -2);
+            R_xlen_t size = lua_tonumber(L, -1);
+            lua_pop(L, 2);
+
+            if ((type & REFERENCE_T) || type == SEXP_T)
+            {
+                // Reference type or bare SEXP
                 SEXP ret = R_NilValue;
                 // Get luajr.return_copy() on the stack
                 lua_pushlightuserdata(L, (void*)&luajr_return_copy);
@@ -499,9 +522,6 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             else if (type & VECTOR_T)
             {
                 // Value type
-                R_xlen_t size = lua_tonumber(L, -1);
-                lua_pop(L, 2);
-
                 int rtype = NILSXP;
                 if      (type == (LOGICAL_T | VECTOR_T))    rtype = LGLSXP;
                 else if (type == (INTEGER_T | VECTOR_T))    rtype = INTSXP;
@@ -517,7 +537,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 if      (rtype == LGLSXP)   lua_pushlightuserdata(L, LOGICAL(ret));
                 else if (rtype == INTSXP)   lua_pushlightuserdata(L, INTEGER(ret));
                 else if (rtype == REALSXP)  lua_pushlightuserdata(L, REAL(ret));
-                else Rf_error("Unknown R type");
+                else luajr_pop_stop(L, 2, "Unknown R type");
                 luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [3]", LUAJR_TOOLING_NONE);
                 // Return SEXP
                 UNPROTECT(1);
@@ -525,7 +545,6 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             }
             else if (type == NULL_T)
             {
-                lua_pop(L, 2);
                 return R_NilValue;
             }
             else

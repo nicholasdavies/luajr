@@ -76,9 +76,9 @@ extern "C" SEXP luajr_func_create(SEXP func, SEXP Lx)
 
         // Handle mistakes
         if (nret != 1)
-            Rf_error("lua_func expects `func' to evaluate to one value, not %d.", nret);
+            luajr_pop_stop(L, nret, "lua_func expects `func' to evaluate to one value, not %d.", nret);
         if (lua_type(L, -1) != LUA_TFUNCTION)
-            Rf_error("lua_func expects `func' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
+            luajr_pop_stop(L, 1, "lua_func expects `func' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
 
         // Create the registry entry with the value on the top of the stack
         RegistryEntry* re = new RegistryEntry(L);

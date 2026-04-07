@@ -35,7 +35,10 @@ local debugger_lua_path = ({...})[2]
 -- Null pointer object
 local nullptr = ffi.cast("void*", 0)
 
--- "Hidden" sentinel object
+-- Pointer-to-pointer type for writing pointer values
+local voidpp = ffi.typeof("void**")
+
+-- "Hidden" sentinel object for internal use
 ffi.cdef[[ typedef struct { int a; } HIDDEN_t; ]]
 local hidden = ffi.new("HIDDEN_t")
 
@@ -54,6 +57,7 @@ typedef struct SEXPREC* SEXP;
 // See also: ./src/shared.h
 enum
 {
+    // TODO xfer to use R.* types
     NULL_T = 0, //NILSXP,
     LIST_T = 19, //VECSXP,
 
@@ -62,6 +66,7 @@ enum
     NUMERIC_T = 14, //REALSXP,
     CHARACTER_T = 16, //STRSXP,
 
+    SEXP_T = 63, // Generic SEXP
     REFERENCE_T = 64,
     VECTOR_T = 128,
 
@@ -73,36 +78,8 @@ enum
     INTEGER_V =   INTEGER_T   | VECTOR_T,
     NUMERIC_V =   NUMERIC_T   | VECTOR_T,
     CHARACTER_V = CHARACTER_T | VECTOR_T,
-
-    NILSXP = 0,         // NULL
-    SYMSXP = 1,         // symbols
-    LISTSXP = 2,        // pairlists
-    CLOSXP = 3,         // closures
-    ENVSXP = 4,         // environments
-    PROMSXP = 5,        // promises
-    LANGSXP = 6,        // language objects
-    SPECIALSXP = 7,     // special functions
-    BUILTINSXP = 8,     // builtin functions
-    CHARSXP = 9,        // internal character strings
-    LGLSXP = 10,        // logical vectors
-    INTSXP = 13,        // integer vectors
-    REALSXP = 14,       // numeric vectors
-    CPLXSXP = 15,       // complex vectors
-    STRSXP = 16,        // character vectors
-    DOTSXP = 17,        // dot-dot-dot object
-    ANYSXP = 18,        // make “any” args work
-    VECSXP = 19,        // list (generic vector)
-    EXPRSXP = 20,       // expression vector
-    BCODESXP = 21,      // byte code
-    EXTPTRSXP = 22,     // external pointer
-    WEAKREFSXP = 23,    // weak reference
-    RAWSXP = 24,        // raw vector
-    OBJSXP = 25         // objects not of simple type
 };
 
-
-// SEXP type
-typedef struct { SEXP _s; } sexp_t;
 
 // Reference types
 typedef struct { int* _p;    SEXP _s; } logical_rt;
@@ -165,13 +142,6 @@ void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v);
 const char* GetCharacterElt(SEXP s, ptrdiff_t k);
 void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v);
 
-// Set *ptr = val
-void SetPtr(void** ptr, void* val);
-
-// Returns length of object s; returns as a double to be larger than 32-bit,
-// but still compatible with Lua's single number type.
-double SEXP_length(SEXP s);
-
 // For vector types' manual memory management
 void* malloc(size_t size);
 void free(void* ptr);
@@ -217,8 +187,8 @@ function luajr.readline(prompt)
         buf = ffi.new("unsigned char[1024]")
     end
 
-    R.R_FlushConsole()
-    R.R_ReadConsole(prompt or "", buf, 1024, 0)
+    R.FlushConsole()
+    R.ReadConsole(prompt or "", buf, 1024, 0)
 
     -- remove terminating newline, but guard against 0-length string
     local len = ffi.C.strlen(buf)
@@ -284,7 +254,7 @@ local mt_basic_r = function(allocator)
         end,
 
         __len = function(x)
-            return internal.SEXP_length(x._s)
+            return R.length(x._s)
         end,
 
         __index = function(x, k)
@@ -346,7 +316,7 @@ local mt_character_r = {
     end,
 
     __len = function(x)
-        return internal.SEXP_length(x._s)
+        return R.length(x._s)
     end,
 
     __index = function(x, k)
@@ -1030,7 +1000,7 @@ end
 --   typecode = e.g. internal.LOGICAL_V, etc
 luajr.construct_vec = function(ud, typecode)
     if typecode == internal.CHARACTER_V then
-        local x = luajr.character(internal.SEXP_length(ud), "")
+        local x = luajr.character(R.length(ud), "")
         for i = 1,#x do
             local c = internal.GetCharacterElt(ud, i - 1)
             if c == nullptr then
@@ -1041,7 +1011,7 @@ luajr.construct_vec = function(ud, typecode)
         end
         return x
     else
-        local x = vec_type[typecode](internal.SEXP_length(ud), 0)
+        local x = vec_type[typecode](R.length(ud), 0)
         vec_set[typecode](x, ud)
         return x
     end
@@ -1060,6 +1030,11 @@ end
 -- Construct NULL.
 luajr.construct_null = function()
     return luajr.NULL
+end
+
+-- Construct SEXP.
+luajr.construct_sexp = function(ud)
+    return R.sexp(ud)
 end
 
 
@@ -1084,6 +1059,7 @@ function luajr.return_info(obj)
     elseif luajr.is_list(obj)           then return internal.LIST_T, #obj
     elseif obj == nullptr               then return internal.NULL_T, 0
     elseif ffi.istype(luajr.NULL, obj)  then return internal.NULL_T, 0
+    elseif ffi.istype(R.sexp, obj)      then return internal.SEXP_T, ffi.cast("void*", obj)
     end
 
     return nil, nil
@@ -1097,7 +1073,9 @@ end
 function luajr.return_copy(obj, ptr)
     if luajr.is_logical_r(obj) or luajr.is_integer_r(obj) or
        luajr.is_numeric_r(obj) or luajr.is_character_r(obj) then
-        internal.SetPtr(ptr, obj._s)
+        ffi.cast(voidpp, ptr)[0] = obj._s
+    elseif ffi.istype(R.sexp, obj) then
+        ffi.cast(voidpp, ptr)[0] = obj
     elseif luajr.is_logical(obj) then
         ffi.copy(ffi.cast("int*", ptr), obj.p + 1, sizeof("int[?]", obj.n))
     elseif luajr.is_integer(obj) then
