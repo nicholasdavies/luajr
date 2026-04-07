@@ -36,8 +36,8 @@ static int luajr_R_version[3] = { 0, 0, 0 };
 // Path to luajr dylib
 static std::string luajr_dylib_path;
 
-// Path to R shared library
-static std::string luajr_R_lib_path;
+// Path to R shared library (for Windows only)
+static std::string luajr_R_dll_path;
 
 // Path to luajr module source
 static std::string luajr_module_path;
@@ -55,11 +55,11 @@ static std::string luajr_R_module_bytecode;
 static std::string luajr_debugger_path;
 
 // Provide information to luajr on R version and paths
-extern "C" SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP R_lib, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod)
+extern "C" SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP dll, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod)
 {
     CheckSEXPLen(Rver, INTSXP, 3);
     CheckSEXPLen(dylib, STRSXP, 1);
-    CheckSEXPLen(R_lib, STRSXP, 1);
+    CheckSEXPLen(dll, STRSXP, 1);
     CheckSEXPLen(luajr_mod, STRSXP, 1);
     CheckSEXPLen(R_mod, STRSXP, 1);
     CheckSEXPLen(dbg_mod, STRSXP, 1);
@@ -68,7 +68,7 @@ extern "C" SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP R_lib, SEXP luajr_mod
     luajr_R_version[1] = INTEGER(Rver)[1];
     luajr_R_version[2] = INTEGER(Rver)[2];
     luajr_dylib_path = CHAR(STRING_ELT(dylib, 0));
-    luajr_R_lib_path = CHAR(STRING_ELT(R_lib, 0));
+    luajr_R_dll_path = CHAR(STRING_ELT(dll, 0));
     luajr_module_path = CHAR(STRING_ELT(luajr_mod, 0));
     luajr_R_module_path = CHAR(STRING_ELT(R_mod, 0));
     luajr_debugger_path = CHAR(STRING_ELT(dbg_mod, 0));
@@ -136,10 +136,10 @@ extern "C" lua_State* luajr_newstate()
     // Load R module bytecode
     luajr_loadbuffer(l, luajr_R_module_bytecode.data(), luajr_R_module_bytecode.size(), "=R module");
 
-    // Run script: takes as arguments the R version, dylib path, and R lib path.
+    // Run script: takes as arguments the R version, Windows R DLL path, and R lib path.
     lua_pushinteger(l, luajr_R_version[0] * 10000 + luajr_R_version[1] * 100 + luajr_R_version[2]);
     lua_pushstring(l, luajr_dylib_path.c_str());
-    lua_pushstring(l, luajr_R_lib_path.c_str());
+    lua_pushstring(l, luajr_R_dll_path.c_str());
     luajr_pcall(l, 3, 0, "R module from luajr_newstate()", LUAJR_TOOLING_NONE);
 
     // LUAJR MODULE

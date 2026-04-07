@@ -9,8 +9,8 @@ local R_version = ({...})[1]
 -- Script also receives the path to the luajr R package dylib as argument
 local luajr_dylib_path = ({...})[2]
 
--- Script also receives the path to the R shared library as argument
-local R_lib_path = ({...})[3]
+-- Script also receives the path to the R DLL as argument (Windows only)
+local R_dll_path = ({...})[3]
 
 -- Declarations
 ffi.cdef[[
@@ -68,7 +68,7 @@ extern int R_NaInt;
 -- symbols, so load R's shared library directly.
 local C
 if ffi.os == "Windows" then
-    C = ffi.load(R_lib_path)
+    C = ffi.load(R_dll_path)
 else
     C = ffi.load(luajr_dylib_path)
 end

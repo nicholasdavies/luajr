@@ -975,9 +975,9 @@ local vec_type = {
 
 -- Helpers to copy existing R objects to vector objects when passing in
 local vec_set = {
-    [internal.LOGICAL_V]   = function(x, s) internal.memcpy(x.p + 1, R.LOGICAL(s), ffi.sizeof("int") * R.length(s)) end,
-    [internal.INTEGER_V]   = function(x, s) internal.memcpy(x.p + 1, R.INTEGER(s), ffi.sizeof("int") * R.length(s)) end,
-    [internal.NUMERIC_V]   = function(x, s) internal.memcpy(x.p + 1, R.REAL(s), ffi.sizeof("double") * R.length(s)) end
+    [internal.LOGICAL_V]   = function(x, s) ffi.C.memcpy(x.p + 1, R.LOGICAL(s), ffi.sizeof("int") * R.length(s)) end,
+    [internal.INTEGER_V]   = function(x, s) ffi.C.memcpy(x.p + 1, R.INTEGER(s), ffi.sizeof("int") * R.length(s)) end,
+    [internal.NUMERIC_V]   = function(x, s) ffi.C.memcpy(x.p + 1, R.REAL(s), ffi.sizeof("double") * R.length(s)) end
     -- CHARACTER_V handled separately
 }
 
