@@ -61,8 +61,14 @@ extern double R_NaReal;
 extern int R_NaInt;
 ]]
 
--- Resolve symbols via the luajr dylib (which links against R)
-local C = ffi.load(luajr_dylib_path)
+-- Resolve R API symbols. On Windows, ffi.load doesn't expose a DLL's imported
+-- symbols, so use ffi.C which searches all loaded modules in the process.
+local C
+if ffi.os == "Windows" then
+    C = ffi.C
+else
+    C = ffi.load(luajr_dylib_path)
+end
 
 -- Module table
 local R = {
