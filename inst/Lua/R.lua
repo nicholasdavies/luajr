@@ -6,6 +6,9 @@ local ffi = require("ffi")
 -- Script receives the R version as argument, e.g. 4.5.3 -> 40503
 local R_version = ({...})[1]
 
+-- Script also receives the path to the luajr R package dylib as argument
+local luajr_dylib_path = ({...})[2]
+
 -- Declarations
 ffi.cdef[[
 // SEXP
@@ -18,7 +21,9 @@ typedef unsigned int SEXPTYPE;
 int *INTEGER(SEXP x);
 int *LOGICAL(SEXP x);
 const char *R_CHAR(SEXP x);
+void R_FlushConsole(void);
 void R_PreserveObject(SEXP);
+int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
 void R_ReleaseObject(SEXP);
 double *REAL(SEXP x);
 SEXP Rf_allocVector(SEXPTYPE, R_xlen_t);
@@ -56,8 +61,8 @@ extern double R_NaReal;
 extern int R_NaInt;
 ]]
 
--- Resolve symbols from the R shared library (already loaded in process)
-local C = ffi.C
+-- Resolve symbols via the luajr dylib (which links against R)
+local C = ffi.load(luajr_dylib_path)
 
 -- Module table
 local R = {
@@ -97,6 +102,7 @@ end
 R.allocVector = C.Rf_allocVector
 R.CHAR = C.R_CHAR
 R.dimnamesgets = C.Rf_dimnamesgets
+R.FlushConsole = C.R_FlushConsole
 R.getAttrib = C.Rf_getAttrib
 R.install = C.Rf_install
 R.INTEGER = C.INTEGER
@@ -104,6 +110,7 @@ R.LOGICAL = C.LOGICAL
 R.mkChar = C.Rf_mkChar
 R.PreserveObject = C.R_PreserveObject
 R.PROTECT = C.Rf_protect
+R.ReadConsole = C.R_ReadConsole
 R.REAL = C.REAL
 R.ReleaseObject = C.R_ReleaseObject
 R.SET_STRING_ELT = C.SET_STRING_ELT
@@ -120,7 +127,7 @@ R.length = function(sexp)
     return tonumber(C.Rf_xlength(sexp))
 end
 
--- Human-readable SEXP type name
+-- SEXP type name as string
 R.typename = function(sexp)
     return ffi.string(C.Rf_type2char(C.TYPEOF(sexp)))
 end

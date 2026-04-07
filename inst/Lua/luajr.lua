@@ -47,7 +47,7 @@ local hidden = ffi.new("HIDDEN_t")
 -- 1. INTERNAL API --
 ---------------------
 
--- Load 'internal' API for interfacing with R (mirrored in ./src/lua_api.cpp)
+-- 'Internal' API for interfacing with C, R; struct types
 ffi.cdef[[
 // Forward declarations
 struct SEXPREC;
@@ -90,11 +90,6 @@ typedef struct { SEXP _s; } character_rt;
 typedef struct { int* p;    double n; double c; } logical_vt;
 typedef struct { int* p;    double n; double c; } integer_vt;
 typedef struct { double* p; double n; double c; } numeric_vt;
-
-// R console functions. These cannot be included in the R module because the
-// symbols are not exported on Windows, so only available via the dylib.
-int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
-void R_FlushConsole();
 
 // For vector types' manual memory management
 void* memcpy(void* dest, const void* src, size_t count);
@@ -142,8 +137,8 @@ function luajr.readline(prompt)
         buf = ffi.new("unsigned char[1024]")
     end
 
-    internal.R_FlushConsole()
-    internal.R_ReadConsole(prompt or "", buf, 1024, 0)
+    R.FlushConsole()
+    R.ReadConsole(prompt or "", buf, 1024, 0)
 
     -- remove terminating newline, but guard against 0-length string
     local len = ffi.C.strlen(buf)

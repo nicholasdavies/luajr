@@ -2,7 +2,7 @@
 -- 1. INTERNAL API --
 ---------------------
 
--- Load 'internal' API for interfacing with R (mirrored in ./src/lua_api.cpp)
+-- 'Internal' API for interfacing with C, R; struct types
 ffi.cdef[[
 // Forward declarations
 struct SEXPREC;
@@ -45,11 +45,6 @@ typedef struct { SEXP _s; } character_rt;
 typedef struct { int* p;    double n; double c; } logical_vt;
 typedef struct { int* p;    double n; double c; } integer_vt;
 typedef struct { double* p; double n; double c; } numeric_vt;
-
-// R console functions. These cannot be included in the R module because the
-// symbols are not exported on Windows, so only available via the dylib.
-int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
-void R_FlushConsole();
 
 // For vector types' manual memory management
 void* memcpy(void* dest, const void* src, size_t count);

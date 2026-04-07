@@ -131,9 +131,10 @@ extern "C" lua_State* luajr_newstate()
     // Load R module bytecode
     luajr_loadbuffer(l, luajr_R_module_bytecode.data(), luajr_R_module_bytecode.size(), "=R module");
 
-    // Run script: takes as argument the R version.
+    // Run script: takes as arguments the R version and the dylib path.
     lua_pushinteger(l, luajr_R_version[0] * 10000 + luajr_R_version[1] * 100 + luajr_R_version[2]);
-    luajr_pcall(l, 1, 0, "R module from luajr_newstate()", LUAJR_TOOLING_NONE);
+    lua_pushstring(l, luajr_dylib_path.c_str());
+    luajr_pcall(l, 2, 0, "R module from luajr_newstate()", LUAJR_TOOLING_NONE);
 
     // LUAJR MODULE
 
