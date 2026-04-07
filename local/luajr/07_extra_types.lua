@@ -21,7 +21,7 @@ sexp_get_attr = function(s, k)
         x = luajr.character_r(hidden)
         x._s = a
     else
-        error("Cannot get attribute of type " .. R.typename(a))
+        error("Cannot get attribute of type " .. R.type_string(a))
     end
     return x
 end

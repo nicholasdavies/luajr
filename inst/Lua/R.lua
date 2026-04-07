@@ -18,22 +18,22 @@ typedef ptrdiff_t R_xlen_t;
 typedef unsigned int SEXPTYPE;
 
 // === R API declarations ===
-int *INTEGER(SEXP x);
-int *LOGICAL(SEXP x);
-const char *R_CHAR(SEXP x);
+int* INTEGER(SEXP x);
+int* LOGICAL(SEXP x);
+const char* R_CHAR(SEXP x);
 void R_FlushConsole(void);
 void R_PreserveObject(SEXP);
 int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
 void R_ReleaseObject(SEXP);
-double *REAL(SEXP x);
+double* REAL(SEXP x);
 SEXP Rf_allocVector(SEXPTYPE, R_xlen_t);
 SEXP Rf_dimnamesgets(SEXP, SEXP);
 SEXP Rf_getAttrib(SEXP, SEXP);
-SEXP Rf_install(const char *);
-SEXP Rf_mkChar(const char *);
+SEXP Rf_install(const char*);
+SEXP Rf_mkChar(const char*);
 SEXP Rf_protect(SEXP);
 SEXP Rf_setAttrib(SEXP, SEXP, SEXP);
-const char * Rf_type2char(SEXPTYPE);
+const char* Rf_type2char(SEXPTYPE);
 void Rf_unprotect(int);
 void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v);
 SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v);
@@ -128,7 +128,7 @@ R.length = function(sexp)
 end
 
 -- SEXP type name as string
-R.typename = function(sexp)
+R.type_string = function(sexp)
     return ffi.string(C.Rf_type2char(C.TYPEOF(sexp)))
 end
 
