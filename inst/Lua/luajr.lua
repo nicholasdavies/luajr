@@ -80,7 +80,6 @@ enum
     CHARACTER_V = CHARACTER_T | VECTOR_T,
 };
 
-
 // Reference types
 typedef struct { int* _p;    SEXP _s; } logical_rt;
 typedef struct { int* _p;    SEXP _s; } integer_rt;
@@ -92,62 +91,13 @@ typedef struct { int* p;    double n; double c; } logical_vt;
 typedef struct { int* p;    double n; double c; } integer_vt;
 typedef struct { double* p; double n; double c; } numeric_vt;
 
-// Dummy NULL type
-typedef struct { int _; } NULL_t;
-
-// NA values
-extern int TRUE_logical;
-extern int FALSE_logical;
-extern int NA_logical;
-extern int NA_integer;
-extern double NA_real;
-extern SEXP NA_character;
-
-// Functions to populate reference types
-void SetLogicalRef(logical_rt* x, SEXP s);
-void SetIntegerRef(integer_rt* x, SEXP s);
-void SetNumericRef(numeric_rt* x, SEXP s);
-void SetCharacterRef(character_rt* x, SEXP s);
-
-// Functions to allocate reference types
-// The Alloc* functions call R_PreserveObject() on the underlying SEXP, so we
-// call Release in garbage collection for the corresponding R_ReleaseObject().
-void AllocLogical(logical_rt* x, ptrdiff_t size);
-void AllocInteger(integer_rt* x, ptrdiff_t size);
-
-void AllocNumeric(numeric_rt* x, ptrdiff_t size);
-void AllocCharacter(character_rt* x, ptrdiff_t size);
-void AllocCharacterNA(character_rt* x, ptrdiff_t size);
-void AllocCharacterTo(character_rt* x, ptrdiff_t size, const char* v);
-void Release(SEXP s);
-
-// Functions to populate vector types
-void SetLogicalVec(logical_vt* x, SEXP s);
-void SetIntegerVec(integer_vt* x, SEXP s);
-void SetNumericVec(numeric_vt* x, SEXP s);
-// character handled separately
-
-// Functions to get attributes
-int GetAttrType(SEXP s, const char* k);
-SEXP GetAttrSEXP(SEXP s, const char* k);
-
-// Functions to set attributes
-void SetAttrLogicalRef(SEXP s, const char* k, logical_rt* v);
-void SetAttrIntegerRef(SEXP s, const char* k, integer_rt* v);
-void SetAttrNumericRef(SEXP s, const char* k, numeric_rt* v);
-void SetAttrCharacterRef(SEXP s, const char* k, character_rt* v);
-void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v);
-
-// To get/set string vectors
-const char* GetCharacterElt(SEXP s, ptrdiff_t k);
-void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v);
-
 // R console functions. These cannot be included in the R module because the
 // symbols are not exported on Windows, so only available via the dylib.
 int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
 void R_FlushConsole();
 
 // For vector types' manual memory management
+void* memcpy(void* dest, const void* src, size_t count);
 void* malloc(size_t size);
 void free(void* ptr);
 
@@ -170,13 +120,13 @@ function package.preload.luajr()
 end
 
 -- TRUE, FALSE, NA, NULL definitions
-luajr.TRUE          = internal.TRUE_logical
-luajr.FALSE         = internal.FALSE_logical
-luajr.NA_logical_   = internal.NA_logical
-luajr.NA_integer_   = internal.NA_integer
-luajr.NA_real_      = internal.NA_real
-luajr.NA_character_ = internal.NA_character
-luajr.NULL          = ffi.new("NULL_t")
+luajr.TRUE          = 1
+luajr.FALSE         = 0
+luajr.NA_logical_   = R.NA_LOGICAL
+luajr.NA_integer_   = R.NA_INTEGER
+luajr.NA_real_      = R.NA_REAL
+luajr.NA_character_ = R.NA_STRING
+luajr.NULL          = R.NilValue
 
 -- Forward declarations
 local sexp_get_attr
@@ -229,6 +179,50 @@ end
 -- 3. REFERENCE TYPES --
 ------------------------
 
+-- Reference type allocators
+-- R.ReleaseObject is called in garbage collection.
+
+local function alloc_logical(x, size)
+    x._s = R.allocVector(R.LGLSXP, size)
+    R.PreserveObject(x._s)
+    x._p = R.LOGICAL(x._s) - 1
+end
+
+local function alloc_integer(x, size)
+    x._s = R.allocVector(R.INTSXP, size)
+    R.PreserveObject(x._s)
+    x._p = R.INTEGER(x._s) - 1
+end
+
+local function alloc_numeric(x, size)
+    x._s = R.allocVector(R.REALSXP, size)
+    R.PreserveObject(x._s)
+    x._p = R.REAL(x._s) - 1
+end
+
+local function alloc_character(x, size)
+    x._s = R.allocVector(R.STRSXP, size)
+    R.PreserveObject(x._s)
+end
+
+local function alloc_character_NA(x, size)
+    x._s = R.allocVector(R.STRSXP, size)
+    R.PreserveObject(x._s)
+    for i = 0, size - 1 do
+        R.SET_STRING_ELT(x._s, i, luajr.NA_character_)
+    end
+end
+
+local function alloc_character_to(x, size, v)
+    x._s = R.allocVector(R.STRSXP, size)
+    R.PreserveObject(x._s)
+    local sv = R.PROTECT(R.mkChar(v))
+    for i = 0, size - 1 do
+        R.SET_STRING_ELT(x._s, i, sv)
+    end
+    R.UNPROTECT(1)
+end
+
 -- Metatable for logical/integer/numeric reference types
 local mt_basic_r = function(allocator)
     local mt = {
@@ -255,7 +249,7 @@ local mt_basic_r = function(allocator)
             -- this on an object that has not been preserved with R_PreserveObject is
             -- harmless. It may involve a performance penalty, so ideally this could be
             -- removed for pass-by-reference types. Note, same applies to mt_character_r.
-            internal.Release(x._s)
+            R.ReleaseObject(x._s)
         end,
 
         __len = function(x)
@@ -301,14 +295,14 @@ local mt_character_r = {
             -- do nothing
         elseif type(init1) == "number" then
             if init2 == nil then
-                internal.AllocCharacter(self, init1)
+                alloc_character(self, init1)
             elseif init2 == luajr.NA_character_ then
-                internal.AllocCharacterNA(self, init1)
+                alloc_character_NA(self, init1)
             else
-                internal.AllocCharacterTo(self, init1, init2)
+                alloc_character_to(self, init1, init2)
             end
         elseif vectorish(init1) then
-            internal.AllocCharacter(self, #init1)
+            alloc_character(self, #init1)
             for i = 1,#self do self[i] = init1[i] end
         else
             error("Reference type must be initialised.")
@@ -317,7 +311,7 @@ local mt_character_r = {
     end,
 
     __gc = function(x)
-        internal.Release(x._s)
+        R.ReleaseObject(x._s)
     end,
 
     __len = function(x)
@@ -325,19 +319,19 @@ local mt_character_r = {
     end,
 
     __index = function(x, k)
-        local v = internal.GetCharacterElt(x._s, k - 1)
-        if v == nullptr then
-            return luajr.NA_character_
+        local v = R.STRING_ELT(x._s, k - 1)
+        if v == luajr.NA_character_ then
+            return v
         else
-            return ffi.string(v)
+            return ffi.string(R.CHAR(v))
         end
     end,
 
     __newindex = function(x, k, v)
         if v == luajr.NA_character_ then
-            internal.SetCharacterElt(x._s, k - 1, nullptr)
+            R.SET_STRING_ELT(x._s, k - 1, luajr.NA_character_)
         else
-            internal.SetCharacterElt(x._s, k - 1, v)
+            R.SET_STRING_ELT(x._s, k - 1, R.mkChar(v))
         end
     end,
 
@@ -362,10 +356,11 @@ local mt_character_r = {
 }
 mt_character_r.__ipairs = mt_character_r.__pairs
 
+
 -- Reference type definitions
-luajr.logical_r   = ffi.metatype("logical_rt", mt_basic_r(internal.AllocLogical))
-luajr.integer_r   = ffi.metatype("integer_rt", mt_basic_r(internal.AllocInteger))
-luajr.numeric_r   = ffi.metatype("numeric_rt", mt_basic_r(internal.AllocNumeric))
+luajr.logical_r   = ffi.metatype("logical_rt", mt_basic_r(alloc_logical))
+luajr.integer_r   = ffi.metatype("integer_rt", mt_basic_r(alloc_integer))
+luajr.numeric_r   = ffi.metatype("numeric_rt", mt_basic_r(alloc_numeric))
 luajr.character_r = ffi.metatype("character_rt", mt_character_r)
 
 -- Reference type checkers
@@ -969,10 +964,10 @@ local ref_type = {
 
 -- Helpers to set reference objects to existing R objects when passing in
 local ref_set = {
-    [internal.LOGICAL_R]   = internal.SetLogicalRef,
-    [internal.INTEGER_R]   = internal.SetIntegerRef,
-    [internal.NUMERIC_R]   = internal.SetNumericRef,
-    [internal.CHARACTER_R] = internal.SetCharacterRef
+    [internal.LOGICAL_R]   = function(x, s) x._p, x._s = R.LOGICAL(s) - 1, s end,
+    [internal.INTEGER_R]   = function(x, s) x._p, x._s = R.INTEGER(s) - 1, s end,
+    [internal.NUMERIC_R]   = function(x, s) x._p, x._s = R.REAL(s) - 1, s end,
+    [internal.CHARACTER_R] = function(x, s) x._s = s end
 }
 
 -- Identifies vector types from type codes
@@ -985,18 +980,19 @@ local vec_type = {
 
 -- Helpers to copy existing R objects to vector objects when passing in
 local vec_set = {
-    [internal.LOGICAL_V]   = internal.SetLogicalVec,
-    [internal.INTEGER_V]   = internal.SetIntegerVec,
-    [internal.NUMERIC_V]   = internal.SetNumericVec
+    [internal.LOGICAL_V]   = function(x, s) internal.memcpy(x.p + 1, R.LOGICAL(s), ffi.sizeof("int") * R.length(s)) end,
+    [internal.INTEGER_V]   = function(x, s) internal.memcpy(x.p + 1, R.INTEGER(s), ffi.sizeof("int") * R.length(s)) end,
+    [internal.NUMERIC_V]   = function(x, s) internal.memcpy(x.p + 1, R.REAL(s), ffi.sizeof("double") * R.length(s)) end
     -- CHARACTER_V handled separately
 }
+
 
 -- Construct a reference type. Called with:
 --   ud = SEXP to be referenced
 --   typecode = e.g. internal.LOGICAL_R, etc
 luajr.construct_ref = function(ud, typecode)
     local x = ref_type[typecode](hidden)
-    ref_set[typecode](x, ud)
+    ref_set[typecode](x, ffi.cast(R.sexp, ud))
     return x
 end
 
@@ -1007,11 +1003,11 @@ luajr.construct_vec = function(ud, typecode)
     if typecode == internal.CHARACTER_V then
         local x = luajr.character(R.length(ud), "")
         for i = 1,#x do
-            local c = internal.GetCharacterElt(ud, i - 1)
-            if c == nullptr then
-                x[i] = luajr.NA_character_
+            local v = R.STRING_ELT(ud, i - 1)
+            if v == luajr.NA_character_ then
+                x[i] = v
             else
-                x[i] = ffi.string(c)
+                x[i] = ffi.string(R.CHAR(v))
             end
         end
         return x
@@ -1063,7 +1059,7 @@ function luajr.return_info(obj)
     elseif luajr.is_character(obj)      then return internal.CHARACTER_V, #obj
     elseif luajr.is_list(obj)           then return internal.LIST_T, #obj
     elseif obj == nullptr               then return internal.NULL_T, 0
-    elseif ffi.istype(luajr.NULL, obj)  then return internal.NULL_T, 0
+    elseif obj == luajr.NULL            then return internal.NULL_T, 0
     elseif ffi.istype(R.sexp, obj)      then return internal.SEXP_T, ffi.cast("void*", obj)
     end
 
@@ -1088,11 +1084,12 @@ function luajr.return_copy(obj, ptr)
     elseif luajr.is_numeric(obj) then
         ffi.copy(ffi.cast("double*", ptr), obj.p + 1, sizeof("double[?]", obj.n))
     elseif luajr.is_character(obj) then
+        local s = ffi.cast("SEXP", ptr)
         for k,v in ipairs(obj) do
             if v == luajr.NA_character_ then
-                internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, nullptr)
+                R.SET_STRING_ELT(s, k - 1, luajr.NA_character_)
             else
-                internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, v)
+                R.SET_STRING_ELT(s, k - 1, R.mkChar(v))
             end
         end
     else
@@ -1107,30 +1104,45 @@ end
 
 -- Attribute set/getters
 sexp_get_attr = function(s, k)
-    local typecode = internal.GetAttrType(s, k)
-    if typecode == internal.NULL_T then return nil end
-    local x = ref_type[typecode](hidden)
-    ref_set[typecode](x, internal.GetAttrSEXP(s, k))
+    local a = R.getAttrib(s, R.install(k))
+    local t = R.TYPEOF(a)
+    if t == R.NILSXP then return nil end
+    local x
+    if t == R.LGLSXP then
+        x = luajr.logical_r(hidden)
+        x._p, x._s = R.LOGICAL(a) - 1, a
+    elseif t == R.INTSXP then
+        x = luajr.integer_r(hidden)
+        x._p, x._s = R.INTEGER(a) - 1, a
+    elseif t == R.REALSXP then
+        x = luajr.numeric_r(hidden)
+        x._p, x._s = R.REAL(a) - 1, a
+    elseif t == R.STRSXP then
+        x = luajr.character_r(hidden)
+        x._s = a
+    else
+        error("Cannot get attribute of type " .. R.typename(a))
+    end
     return x
 end
 
 sexp_set_attr = function(s, k, v)
     if k == "/matrix/colnames" and luajr.is_character_r(v) then
-        internal.SetMatrixColnamesCharacterRef(s, v)
-    elseif luajr.is_logical_r(v) then
-        internal.SetAttrLogicalRef(s, k, v)
-    elseif luajr.is_integer_r(v) then
-        internal.SetAttrIntegerRef(s, k, v)
-    elseif luajr.is_numeric_r(v) then
-        internal.SetAttrNumericRef(s, k, v)
-    elseif luajr.is_character_r(v) then
-        internal.SetAttrCharacterRef(s, k, v)
+        local dimnames = R.allocVector(R.VECSXP, 2)
+        R.PROTECT(dimnames)
+        R.SET_VECTOR_ELT(dimnames, 0, R.NilValue)
+        R.SET_VECTOR_ELT(dimnames, 1, v._s)
+        R.dimnamesgets(s, dimnames)
+        R.UNPROTECT(1)
+    elseif luajr.is_logical_r(v) or luajr.is_integer_r(v) or
+           luajr.is_numeric_r(v) or luajr.is_character_r(v) then
+        R.setAttrib(s, R.install(k), v._s)
     else
         error("No attribute setter for type " .. type(v) .. ".")
     end
 end
 
--- Does obj have indexing and length capabilities?.
+-- Does obj have indexing and length capabilities?
 vectorish = function(obj)
     -- luajr.character is a table, so there is no separate check for that type
     return type(obj) == "table" or luajr.is_numeric_r(obj) or luajr.is_numeric(obj) or

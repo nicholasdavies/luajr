@@ -11,13 +11,13 @@ function package.preload.luajr()
 end
 
 -- TRUE, FALSE, NA, NULL definitions
-luajr.TRUE          = internal.TRUE_logical
-luajr.FALSE         = internal.FALSE_logical
-luajr.NA_logical_   = internal.NA_logical
-luajr.NA_integer_   = internal.NA_integer
-luajr.NA_real_      = internal.NA_real
-luajr.NA_character_ = internal.NA_character
-luajr.NULL          = ffi.new("NULL_t")
+luajr.TRUE          = 1
+luajr.FALSE         = 0
+luajr.NA_logical_   = R.NA_LOGICAL
+luajr.NA_integer_   = R.NA_INTEGER
+luajr.NA_real_      = R.NA_REAL
+luajr.NA_character_ = R.NA_STRING
+luajr.NULL          = R.NilValue
 
 -- Forward declarations
 local sexp_get_attr

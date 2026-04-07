@@ -14,10 +14,10 @@ local ref_type = {
 
 -- Helpers to set reference objects to existing R objects when passing in
 local ref_set = {
-    [internal.LOGICAL_R]   = internal.SetLogicalRef,
-    [internal.INTEGER_R]   = internal.SetIntegerRef,
-    [internal.NUMERIC_R]   = internal.SetNumericRef,
-    [internal.CHARACTER_R] = internal.SetCharacterRef
+    [internal.LOGICAL_R]   = function(x, s) x._p, x._s = R.LOGICAL(s) - 1, s end,
+    [internal.INTEGER_R]   = function(x, s) x._p, x._s = R.INTEGER(s) - 1, s end,
+    [internal.NUMERIC_R]   = function(x, s) x._p, x._s = R.REAL(s) - 1, s end,
+    [internal.CHARACTER_R] = function(x, s) x._s = s end
 }
 
 -- Identifies vector types from type codes
@@ -30,18 +30,19 @@ local vec_type = {
 
 -- Helpers to copy existing R objects to vector objects when passing in
 local vec_set = {
-    [internal.LOGICAL_V]   = internal.SetLogicalVec,
-    [internal.INTEGER_V]   = internal.SetIntegerVec,
-    [internal.NUMERIC_V]   = internal.SetNumericVec
+    [internal.LOGICAL_V]   = function(x, s) internal.memcpy(x.p + 1, R.LOGICAL(s), ffi.sizeof("int") * R.length(s)) end,
+    [internal.INTEGER_V]   = function(x, s) internal.memcpy(x.p + 1, R.INTEGER(s), ffi.sizeof("int") * R.length(s)) end,
+    [internal.NUMERIC_V]   = function(x, s) internal.memcpy(x.p + 1, R.REAL(s), ffi.sizeof("double") * R.length(s)) end
     -- CHARACTER_V handled separately
 }
+
 
 -- Construct a reference type. Called with:
 --   ud = SEXP to be referenced
 --   typecode = e.g. internal.LOGICAL_R, etc
 luajr.construct_ref = function(ud, typecode)
     local x = ref_type[typecode](hidden)
-    ref_set[typecode](x, ud)
+    ref_set[typecode](x, ffi.cast(R.sexp, ud))
     return x
 end
 
@@ -52,11 +53,11 @@ luajr.construct_vec = function(ud, typecode)
     if typecode == internal.CHARACTER_V then
         local x = luajr.character(R.length(ud), "")
         for i = 1,#x do
-            local c = internal.GetCharacterElt(ud, i - 1)
-            if c == nullptr then
-                x[i] = luajr.NA_character_
+            local v = R.STRING_ELT(ud, i - 1)
+            if v == luajr.NA_character_ then
+                x[i] = v
             else
-                x[i] = ffi.string(c)
+                x[i] = ffi.string(R.CHAR(v))
             end
         end
         return x
@@ -108,7 +109,7 @@ function luajr.return_info(obj)
     elseif luajr.is_character(obj)      then return internal.CHARACTER_V, #obj
     elseif luajr.is_list(obj)           then return internal.LIST_T, #obj
     elseif obj == nullptr               then return internal.NULL_T, 0
-    elseif ffi.istype(luajr.NULL, obj)  then return internal.NULL_T, 0
+    elseif obj == luajr.NULL            then return internal.NULL_T, 0
     elseif ffi.istype(R.sexp, obj)      then return internal.SEXP_T, ffi.cast("void*", obj)
     end
 
@@ -133,11 +134,12 @@ function luajr.return_copy(obj, ptr)
     elseif luajr.is_numeric(obj) then
         ffi.copy(ffi.cast("double*", ptr), obj.p + 1, sizeof("double[?]", obj.n))
     elseif luajr.is_character(obj) then
+        local s = ffi.cast("SEXP", ptr)
         for k,v in ipairs(obj) do
             if v == luajr.NA_character_ then
-                internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, nullptr)
+                R.SET_STRING_ELT(s, k - 1, luajr.NA_character_)
             else
-                internal.SetCharacterElt(ffi.cast("SEXP", ptr), k - 1, v)
+                R.SET_STRING_ELT(s, k - 1, R.mkChar(v))
             end
         end
     else

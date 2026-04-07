@@ -2,6 +2,50 @@
 -- 3. REFERENCE TYPES --
 ------------------------
 
+-- Reference type allocators
+-- R.ReleaseObject is called in garbage collection.
+
+local function alloc_logical(x, size)
+    x._s = R.allocVector(R.LGLSXP, size)
+    R.PreserveObject(x._s)
+    x._p = R.LOGICAL(x._s) - 1
+end
+
+local function alloc_integer(x, size)
+    x._s = R.allocVector(R.INTSXP, size)
+    R.PreserveObject(x._s)
+    x._p = R.INTEGER(x._s) - 1
+end
+
+local function alloc_numeric(x, size)
+    x._s = R.allocVector(R.REALSXP, size)
+    R.PreserveObject(x._s)
+    x._p = R.REAL(x._s) - 1
+end
+
+local function alloc_character(x, size)
+    x._s = R.allocVector(R.STRSXP, size)
+    R.PreserveObject(x._s)
+end
+
+local function alloc_character_NA(x, size)
+    x._s = R.allocVector(R.STRSXP, size)
+    R.PreserveObject(x._s)
+    for i = 0, size - 1 do
+        R.SET_STRING_ELT(x._s, i, luajr.NA_character_)
+    end
+end
+
+local function alloc_character_to(x, size, v)
+    x._s = R.allocVector(R.STRSXP, size)
+    R.PreserveObject(x._s)
+    local sv = R.PROTECT(R.mkChar(v))
+    for i = 0, size - 1 do
+        R.SET_STRING_ELT(x._s, i, sv)
+    end
+    R.UNPROTECT(1)
+end
+
 -- Metatable for logical/integer/numeric reference types
 local mt_basic_r = function(allocator)
     local mt = {
@@ -28,7 +72,7 @@ local mt_basic_r = function(allocator)
             -- this on an object that has not been preserved with R_PreserveObject is
             -- harmless. It may involve a performance penalty, so ideally this could be
             -- removed for pass-by-reference types. Note, same applies to mt_character_r.
-            internal.Release(x._s)
+            R.ReleaseObject(x._s)
         end,
 
         __len = function(x)
@@ -74,14 +118,14 @@ local mt_character_r = {
             -- do nothing
         elseif type(init1) == "number" then
             if init2 == nil then
-                internal.AllocCharacter(self, init1)
+                alloc_character(self, init1)
             elseif init2 == luajr.NA_character_ then
-                internal.AllocCharacterNA(self, init1)
+                alloc_character_NA(self, init1)
             else
-                internal.AllocCharacterTo(self, init1, init2)
+                alloc_character_to(self, init1, init2)
             end
         elseif vectorish(init1) then
-            internal.AllocCharacter(self, #init1)
+            alloc_character(self, #init1)
             for i = 1,#self do self[i] = init1[i] end
         else
             error("Reference type must be initialised.")
@@ -90,7 +134,7 @@ local mt_character_r = {
     end,
 
     __gc = function(x)
-        internal.Release(x._s)
+        R.ReleaseObject(x._s)
     end,
 
     __len = function(x)
@@ -98,19 +142,19 @@ local mt_character_r = {
     end,
 
     __index = function(x, k)
-        local v = internal.GetCharacterElt(x._s, k - 1)
-        if v == nullptr then
-            return luajr.NA_character_
+        local v = R.STRING_ELT(x._s, k - 1)
+        if v == luajr.NA_character_ then
+            return v
         else
-            return ffi.string(v)
+            return ffi.string(R.CHAR(v))
         end
     end,
 
     __newindex = function(x, k, v)
         if v == luajr.NA_character_ then
-            internal.SetCharacterElt(x._s, k - 1, nullptr)
+            R.SET_STRING_ELT(x._s, k - 1, luajr.NA_character_)
         else
-            internal.SetCharacterElt(x._s, k - 1, v)
+            R.SET_STRING_ELT(x._s, k - 1, R.mkChar(v))
         end
     end,
 
@@ -135,10 +179,11 @@ local mt_character_r = {
 }
 mt_character_r.__ipairs = mt_character_r.__pairs
 
+
 -- Reference type definitions
-luajr.logical_r   = ffi.metatype("logical_rt", mt_basic_r(internal.AllocLogical))
-luajr.integer_r   = ffi.metatype("integer_rt", mt_basic_r(internal.AllocInteger))
-luajr.numeric_r   = ffi.metatype("numeric_rt", mt_basic_r(internal.AllocNumeric))
+luajr.logical_r   = ffi.metatype("logical_rt", mt_basic_r(alloc_logical))
+luajr.integer_r   = ffi.metatype("integer_rt", mt_basic_r(alloc_integer))
+luajr.numeric_r   = ffi.metatype("numeric_rt", mt_basic_r(alloc_numeric))
 luajr.character_r = ffi.metatype("character_rt", mt_character_r)
 
 -- Reference type checkers
