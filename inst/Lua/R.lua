@@ -42,9 +42,7 @@ enum
 };
 
 // === R API declarations ===
-void R_FlushConsole(void);
 void R_PreserveObject(SEXP);
-int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
 void R_ReleaseObject(SEXP);
 SEXP Rf_protect(SEXP);
 void Rf_unprotect(int);
@@ -65,9 +63,7 @@ function package.preload.R()
 end
 
 -- === R API bindings ===
-R.FlushConsole = C.R_FlushConsole
 R.PreserveObject = C.R_PreserveObject
-R.ReadConsole = C.R_ReadConsole
 R.ReleaseObject = C.R_ReleaseObject
 R.protect = C.Rf_protect
 R.unprotect = C.Rf_unprotect

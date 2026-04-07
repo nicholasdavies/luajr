@@ -114,7 +114,7 @@ void SetCharacterRef(character_rt* x, SEXP s);
 // call Release in garbage collection for the corresponding R_ReleaseObject().
 void AllocLogical(logical_rt* x, ptrdiff_t size);
 void AllocInteger(integer_rt* x, ptrdiff_t size);
-void AllocIntegerCompact1N(integer_rt* x, ptrdiff_t N);
+
 void AllocNumeric(numeric_rt* x, ptrdiff_t size);
 void AllocCharacter(character_rt* x, ptrdiff_t size);
 void AllocCharacterNA(character_rt* x, ptrdiff_t size);
@@ -141,6 +141,11 @@ void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v);
 // To get/set string vectors
 const char* GetCharacterElt(SEXP s, ptrdiff_t k);
 void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v);
+
+// R console functions. These cannot be included in the R module because the
+// symbols are not exported on Windows, so only available via the dylib.
+int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
+void R_FlushConsole();
 
 // For vector types' manual memory management
 void* malloc(size_t size);
@@ -187,8 +192,8 @@ function luajr.readline(prompt)
         buf = ffi.new("unsigned char[1024]")
     end
 
-    R.FlushConsole()
-    R.ReadConsole(prompt or "", buf, 1024, 0)
+    internal.R_FlushConsole()
+    internal.R_ReadConsole(prompt or "", buf, 1024, 0)
 
     -- remove terminating newline, but guard against 0-length string
     local len = ffi.C.strlen(buf)

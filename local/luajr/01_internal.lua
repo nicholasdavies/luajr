@@ -97,6 +97,11 @@ void SetMatrixColnamesCharacterRef(SEXP s, character_rt* v);
 const char* GetCharacterElt(SEXP s, ptrdiff_t k);
 void SetCharacterElt(SEXP s, ptrdiff_t k, const char* v);
 
+// R console functions. These cannot be included in the R module because the
+// symbols are not exported on Windows, so only available via the dylib.
+int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
+void R_FlushConsole();
+
 // For vector types' manual memory management
 void* malloc(size_t size);
 void free(void* ptr);
