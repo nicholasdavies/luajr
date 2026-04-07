@@ -16,7 +16,7 @@ lua_State* L0 = 0;
 // Initializes the luajr package
 static const R_CallMethodDef CallEntries[] =
 {
-    { "_luajr_set_info",        (DL_FUNC)&luajr_set_info,        5 },
+    { "_luajr_set_info",        (DL_FUNC)&luajr_set_info,        6 },
     { "_luajr_open",            (DL_FUNC)&luajr_open,            0 },
     { "_luajr_reset",           (DL_FUNC)&luajr_reset,           0 },
     { "_luajr_run_code",        (DL_FUNC)&luajr_run_code,        2 },

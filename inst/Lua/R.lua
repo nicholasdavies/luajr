@@ -9,6 +9,9 @@ local R_version = ({...})[1]
 -- Script also receives the path to the luajr R package dylib as argument
 local luajr_dylib_path = ({...})[2]
 
+-- Script also receives the path to the R shared library as argument
+local R_lib_path = ({...})[3]
+
 -- Declarations
 ffi.cdef[[
 // SEXP
@@ -61,11 +64,11 @@ extern double R_NaReal;
 extern int R_NaInt;
 ]]
 
--- Resolve R API symbols. On Windows, ffi.load doesn't expose a DLL's imported
--- symbols, so use ffi.C which searches all loaded modules in the process.
+-- Resolve R API symbols. On Windows, the luajr dylib doesn't re-export R's
+-- symbols, so load R's shared library directly.
 local C
 if ffi.os == "Windows" then
-    C = ffi.C
+    C = ffi.load(R_lib_path)
 else
     C = ffi.load(luajr_dylib_path)
 end

@@ -5,6 +5,8 @@
         getRversion()[[1, 1:3]],
         # Path to package dylib for LuaJIT FFI
         getLoadedDLLs()[["luajr"]][["path"]],
+        # Path to R shared library for LuaJIT FFI
+        file.path(R.home("bin"), paste0("R", .Platform$dynlib.ext)),
         # Path to luajr module
         system.file("Lua", "luajr.lua", package = "luajr"),
         # Path to R module
