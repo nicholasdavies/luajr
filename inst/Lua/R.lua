@@ -21,6 +21,7 @@ typedef ptrdiff_t R_xlen_t;
 typedef unsigned int SEXPTYPE;
 
 // === R API declarations ===
+void DUPLICATE_ATTRIB(SEXP to, SEXP from);
 int* INTEGER(SEXP x);
 int* LOGICAL(SEXP x);
 const char* R_CHAR(SEXP x);
@@ -30,6 +31,7 @@ int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
 void R_ReleaseObject(SEXP);
 double* REAL(SEXP x);
 SEXP Rf_allocVector(SEXPTYPE, R_xlen_t);
+void Rf_copyMostAttrib(SEXP, SEXP);
 SEXP Rf_dimnamesgets(SEXP, SEXP);
 SEXP Rf_getAttrib(SEXP, SEXP);
 SEXP Rf_install(const char*);
@@ -40,7 +42,9 @@ const char* Rf_type2char(SEXPTYPE);
 void Rf_unprotect(int);
 void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v);
 SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v);
+void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from);
 SEXP STRING_ELT(SEXP x, R_xlen_t i);
+SEXP* STRING_PTR(SEXP x);
 int TYPEOF(SEXP x);
 // === end R API declarations ===
 
@@ -48,20 +52,20 @@ R_xlen_t Rf_xlength(SEXP); // Wrapped manually below to convert to number
 
 // R constants -- bound manually below
 extern SEXP R_NilValue;
+extern int R_NaInt;
+extern double R_NaReal;
+extern SEXP R_NaString;
 extern SEXP R_UnboundValue;
 extern SEXP R_MissingArg;
 extern SEXP R_GlobalEnv;
 extern SEXP R_EmptyEnv;
 extern SEXP R_BaseEnv;
-extern SEXP R_NaString;
 extern SEXP R_BlankString;
 extern SEXP R_NamesSymbol;
 extern SEXP R_ClassSymbol;
 extern SEXP R_DimSymbol;
 extern SEXP R_DimNamesSymbol;
 extern SEXP R_RowNamesSymbol;
-extern double R_NaReal;
-extern int R_NaInt;
 ]]
 
 -- Resolve R API symbols. On Windows, the luajr dylib doesn't re-export R's
@@ -110,7 +114,9 @@ end
 -- === R API bindings ===
 R.allocVector = C.Rf_allocVector
 R.CHAR = C.R_CHAR
+R.copyMostAttrib = C.Rf_copyMostAttrib
 R.dimnamesgets = C.Rf_dimnamesgets
+R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
 R.FlushConsole = C.R_FlushConsole
 R.getAttrib = C.Rf_getAttrib
 R.install = C.Rf_install
@@ -125,7 +131,9 @@ R.ReleaseObject = C.R_ReleaseObject
 R.SET_STRING_ELT = C.SET_STRING_ELT
 R.SET_VECTOR_ELT = C.SET_VECTOR_ELT
 R.setAttrib = C.Rf_setAttrib
+R.SHALLOW_DUPLICATE_ATTRIB = C.SHALLOW_DUPLICATE_ATTRIB
 R.STRING_ELT = C.STRING_ELT
+R.STRING_PTR = C.STRING_PTR
 R.type2char = C.Rf_type2char
 R.TYPEOF = C.TYPEOF
 R.UNPROTECT = C.Rf_unprotect
@@ -143,6 +151,10 @@ end
 
 -- R constants
 R.NilValue = C.R_NilValue
+R.NA_LOGICAL = C.R_NaInt
+R.NA_INTEGER = C.R_NaInt
+R.NA_REAL = C.R_NaReal
+R.NA_STRING = C.R_NaString
 R.UnboundValue = C.R_UnboundValue
 R.MissingArg = C.R_MissingArg
 R.GlobalEnv = C.R_GlobalEnv
@@ -154,10 +166,6 @@ R.ClassSymbol = C.R_ClassSymbol
 R.DimSymbol = C.R_DimSymbol
 R.DimNamesSymbol = C.R_DimNamesSymbol
 R.RowNamesSymbol = C.R_RowNamesSymbol
-R.NA_LOGICAL = C.R_NaInt
-R.NA_INTEGER = C.R_NaInt
-R.NA_REAL = C.R_NaReal
-R.NA_STRING = C.R_NaString
 
 -- LuaJIT SEXP type
 R.sexp = ffi.typeof("SEXP")

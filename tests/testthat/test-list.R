@@ -27,10 +27,10 @@ test_that("list attributes work", {
     lua("x.a = 'eh'")
     lua("x.b = 'be'")
 
-    lua("x('at1', luajr.logical_r({ true }))")
-    lua("x('at2', luajr.integer_r({ 1 }))")
-    lua("x('at3', luajr.numeric_r({ 0.5 }))")
-    lua("x('at4', luajr.character_r(3, 'hi'))")
+    lua("x('at1', luajr.logical({ true }))")
+    lua("x('at2', luajr.integer({ 1 }))")
+    lua("x('at3', luajr.numeric({ 0.5 }))")
+    lua("x('at4', luajr.character(3, 'hi'))")
     lua("x('at5', luajr.list())")
 
     x = lua("return x")

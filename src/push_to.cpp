@@ -400,21 +400,24 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                             {
                                 if (TYPEOF(val) != VECSXP)
                                     luajr_pop_stop(L, 3, "Malformed luajr list: names mapping is not a VECSXP.");
-                                SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
-                                if (setnames == R_NilValue || TYPEOF(setnames) != STRSXP)
-                                    luajr_pop_stop(L, 3, "Malformed luajr list: names mapping has no names attribute.");
-                                SEXP names = PROTECT(Rf_allocVector(STRSXP, size));
-                                for (int i = 0; i < Rf_length(val); ++i) {
-                                    SEXP elt = VECTOR_ELT(val, i);
-                                    if (TYPEOF(elt) != REALSXP || Rf_xlength(elt) < 1)
-                                        luajr_pop_stop(L, 3, "Malformed luajr list: names mapping element is not a scalar real.");
-                                    int nm_index = REAL(elt)[0] - 1;
-                                    if (nm_index < 0 || nm_index >= size)
-                                        luajr_pop_stop(L, 3, "Malformed luajr list: names index %d out of bounds [0, %d).", nm_index, (int)size);
-                                    SET_STRING_ELT(names, nm_index, STRING_ELT(setnames, i));
+                                if (Rf_length(val) > 0)
+                                {
+                                    SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
+                                    if (setnames == R_NilValue || TYPEOF(setnames) != STRSXP)
+                                        luajr_pop_stop(L, 3, "Malformed luajr list: names mapping has no names attribute.");
+                                    SEXP names = PROTECT(Rf_allocVector(STRSXP, size));
+                                    for (int i = 0; i < Rf_length(val); ++i) {
+                                        SEXP elt = VECTOR_ELT(val, i);
+                                        if (TYPEOF(elt) != REALSXP || Rf_xlength(elt) < 1)
+                                            luajr_pop_stop(L, 3, "Malformed luajr list: names mapping element is not a scalar real.");
+                                        int nm_index = REAL(elt)[0] - 1;
+                                        if (nm_index < 0 || nm_index >= size)
+                                            luajr_pop_stop(L, 3, "Malformed luajr list: names index %d out of bounds [0, %d).", nm_index, (int)size);
+                                        SET_STRING_ELT(names, nm_index, STRING_ELT(setnames, i));
+                                    }
+                                    Rf_setAttrib(retval, R_NamesSymbol, names);
+                                    UNPROTECT(1);
                                 }
-                                Rf_setAttrib(retval, R_NamesSymbol, names);
-                                UNPROTECT(1);
                             }
                         }
                         else
@@ -452,24 +455,8 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 return retval;
             }
 
-            // Other known table type
-            int rtype = NILSXP;
-            if (type == (CHARACTER_T | VECTOR_T))
-                rtype = STRSXP;
-            else
-                Rf_error("Unknown type");
-
-            SEXP ret = PROTECT(Rf_allocVector(rtype, size));
-            // Now get luajr.return_copy() on the stack
-            lua_pushlightuserdata(L, (void*)&luajr_return_copy);
-            lua_rawget(L, LUA_REGISTRYINDEX);
-            // Call it with cdata arg and pointer
-            lua_pushvalue(L, index);
-            lua_pushlightuserdata(L, ret);
-            luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [1]", LUAJR_TOOLING_NONE);
-            // Return SEXP
-            UNPROTECT(1);
-            return ret;
+            // Unknown table type
+            Rf_error("Unknown table type");
         }
         case LUA_TLIGHTUSERDATA:
         case LUA_TUSERDATA:
@@ -505,7 +492,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             R_xlen_t size = lua_tonumber(L, -1);
             lua_pop(L, 2);
 
-            if ((type & REFERENCE_T) || type == SEXP_T)
+            if (type & REFERENCE_T || type == SEXP_T)
             {
                 // Reference type or bare SEXP
                 SEXP ret = R_NilValue;
@@ -517,30 +504,6 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 lua_pushlightuserdata(L, &ret);
                 luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [2]", LUAJR_TOOLING_NONE);
                 // Return SEXP
-                return ret;
-            }
-            else if (type & VECTOR_T)
-            {
-                // Value type
-                int rtype = NILSXP;
-                if      (type == (LOGICAL_T | VECTOR_T))    rtype = LGLSXP;
-                else if (type == (INTEGER_T | VECTOR_T))    rtype = INTSXP;
-                else if (type == (NUMERIC_T | VECTOR_T))    rtype = REALSXP;
-                else Rf_error("Unknown cdata vector type");
-
-                SEXP ret = PROTECT(Rf_allocVector(rtype, size));
-                // Now get luajr.return_copy() on the stack
-                lua_pushlightuserdata(L, (void*)&luajr_return_copy);
-                lua_rawget(L, LUA_REGISTRYINDEX);
-                // Call it with cdata arg and pointer
-                lua_pushvalue(L, index);
-                if      (rtype == LGLSXP)   lua_pushlightuserdata(L, LOGICAL(ret));
-                else if (rtype == INTSXP)   lua_pushlightuserdata(L, INTEGER(ret));
-                else if (rtype == REALSXP)  lua_pushlightuserdata(L, REAL(ret));
-                else luajr_pop_stop(L, 2, "Unknown R type");
-                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [3]", LUAJR_TOOLING_NONE);
-                // Return SEXP
-                UNPROTECT(1);
                 return ret;
             }
             else if (type == NULL_T)

@@ -27,12 +27,11 @@
 #' built-in **os** and **io** libraries (search for "thread safe" in the
 #' [Lua 5.2 reference manual](https://www.lua.org/manual/5.2/manual.html)).
 #'
-#' Additionally, use of luajr reference types is **not** thread-safe because
+#' Additionally, use of luajr vector types is **not** thread-safe because
 #' these use R to allocate and manage memory, and R is not thread-safe. This
-#' means that you cannot safely use `luajr.logical_r`, `luajr.integer_r`,
-#' `luajr.numeric_r`, `luajr.character_r`, or other reference types within
-#' `func`. `luajr.list` and `luajr.dataframe` are fine, provided the list
-#' entries / dataframe columns are value types.
+#' means that you cannot safely use `luajr.logical`, `luajr.integer`,
+#' `luajr.numeric`, `luajr.character`, or other vector types within
+#' `func`.
 #'
 #' There is overhead associated with creating new Lua states and with gathering
 #' all the function results in an R list. It is advisable to check whether

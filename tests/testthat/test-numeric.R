@@ -116,3 +116,31 @@ test_that("numeric insert and erase work", {
 
     lua_reset()
 })
+
+test_that("numeric vector copy independence", {
+    lua("x = luajr.numeric({10, 20, 30})")
+    lua("y = luajr.numeric(x)")
+    lua("x[2] = 99")
+    expect_identical(lua("return x[2]"), 99)
+    expect_identical(lua("return y[2]"), 20)
+    lua_reset()
+})
+
+test_that("numeric vector NA values", {
+    lua("x = luajr.numeric(3, 0)")
+    lua("x[2] = luajr.NA_real_")
+    expect_identical(lua("return x[2]"), NA_real_)
+    expect_identical(lua("return x[1]"), 0)
+    lua_reset()
+})
+
+test_that("numeric vector stress test", {
+    lua("x = luajr.numeric()")
+    lua("for i = 1, 10000 do x:push_back(i) end")
+    expect_identical(lua("return #x"), 10000)
+    expect_identical(lua("return x[10000]"), 10000)
+    lua("x:erase(1, 5000)")
+    expect_identical(lua("return #x"), 5000)
+    expect_identical(lua("return x[1]"), 5001)
+    lua_reset()
+})

@@ -56,13 +56,13 @@ function run()
 
     -- Solution storage
     local df = luajr.dataframe()
-    df.t = luajr.numeric_r(1000, 0)
-    df.S = luajr.numeric_r(1000, 0)
-    df.I = luajr.numeric_r(1000, 0)
-    df.R = luajr.numeric_r(1000, 0)
+    df.time = luajr.numeric(1000, 0)
+    df.S = luajr.numeric(1000, 0)
+    df.I = luajr.numeric(1000, 0)
+    df.R = luajr.numeric(1000, 0)
 
     for t = 1,1000 do
-        df.t[t] = t
+        df.time[t] = t
         df.S[t] = x.S
         df.I[t] = x.I
         df.R[t] = x.R

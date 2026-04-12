@@ -1,5 +1,5 @@
 ------------------
--- 5. LIST TYPE --
+-- 4. LIST TYPE --
 ------------------
 
 -- Metatable for list

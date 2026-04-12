@@ -36,7 +36,7 @@ usethis::use_vignette("luajr")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("Rf_type2char")
+add_rapi("SHALLOW_DUPLICATE_ATTRIB")
 
 
 # BUILD CYCLE

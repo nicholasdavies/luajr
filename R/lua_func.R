@@ -29,11 +29,11 @@
 #' that specific length, otherwise an error message is emitted.
 #'
 #' Still focusing on the same vector types, if the arg code is `'r'`, then the
-#' vector is passed *by reference* to Lua, adopting the type `luajr.logical_r`,
-#' `luajr.integer_r`, `luajr.numeric_r`, or `luajr.character_r` as appropriate.
-#' If the arg code is `'v'`, the vector is passed *by value* to Lua,
-#' adopting the type `luajr.logical`, `luajr.integer`, `luajr.numeric`, or
-#' `luajr.character` as appropriate.
+#' vector is passed *by reference* to Lua, adopting the type `luajr.logical`,
+#' `luajr.integer`, `luajr.numeric`, or `luajr.character` as appropriate.
+#' Modifications to individual elements will be reflected in the R vector.
+#' If the arg code is `'v'`, the vector is passed *by value* (copy-on-write)
+#' to Lua, adopting the same types. A copy is made on first modification.
 #'
 #' For a raw vector, only the `'s'` type is accepted and the result in Lua is
 #' a string (potentially with embedded nulls).
@@ -63,9 +63,9 @@
 #'
 #' If multiple arguments are returned, a list with all arguments is returned.
 #'
-#' Reference types (e.g. `luajr.logical_r`) and vector types (e.g.
-#' `luajr.logical`) are returned to R as such. A `luajr.list` is returned as an
-#' R list. Reference and list types respect R attributes set within Lua code.
+#' Vector types (e.g. `luajr.logical`) are returned to R as the corresponding R
+#' vector. A `luajr.list` is returned as an R list. Vector and list types
+#' respect R attributes set within Lua code.
 #'
 #' A **table** is returned as a list. In the list, any table entries with a
 #' number key come first (with indices 1 to n, i.e. the original number key's
