@@ -474,46 +474,16 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
         }
         case LUA_TCDATA:
         {
-            // Get luajr.return_info() on the stack
-            lua_pushlightuserdata(L, (void*)&luajr_return_info);
+            // Get luajr.return_cdata() on the stack
+            SEXP ret = R_NilValue;
+            lua_pushlightuserdata(L, (void*)&luajr_return_cdata);
             lua_rawget(L, LUA_REGISTRYINDEX);
-            // Call it with cdata arg; returns typecode, size (or nil, nil for unknown type).
+            // Call it with cdata arg and SEXP*. The SEXP is written to &ret
+            // by the Lua function (or left as R_NilValue for NULL types).
             lua_pushvalue(L, index);
-            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [2]", LUAJR_TOOLING_NONE);
-
-            // If not a known cdata type, return external pointer
-            if (lua_isnil(L, -2)) {
-                lua_pop(L, 2);
-                return R_MakeExternalPtr(const_cast<void*>(lua_topointer(L, index)), R_NilValue, R_NilValue);
-            }
-
-            // Otherwise, is a known cdata type
-            int type = lua_tointeger(L, -2);
-            R_xlen_t size = lua_tonumber(L, -1);
-            lua_pop(L, 2);
-
-            if (type & REFERENCE_T || type == SEXP_T)
-            {
-                // Reference type or bare SEXP
-                SEXP ret = R_NilValue;
-                // Get luajr.return_copy() on the stack
-                lua_pushlightuserdata(L, (void*)&luajr_return_copy);
-                lua_rawget(L, LUA_REGISTRYINDEX);
-                // Call it with cdata arg and sexp
-                lua_pushvalue(L, index);
-                lua_pushlightuserdata(L, &ret);
-                luajr_pcall(L, 2, 0, "luajr.return_copy() from luajr_tosexp() [2]", LUAJR_TOOLING_NONE);
-                // Return SEXP
-                return ret;
-            }
-            else if (type == NULL_T)
-            {
-                return R_NilValue;
-            }
-            else
-            {
-                Rf_error("Unknown cdata type");
-            }
+            lua_pushlightuserdata(L, &ret);
+            luajr_pcall(L, 2, 0, "luajr.return_cdata() from luajr_tosexp()", LUAJR_TOOLING_NONE);
+            return ret;
         }
         default:
             Rf_error("Unknown return type detected: %d", lua_type(L, index));

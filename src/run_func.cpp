@@ -112,6 +112,29 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
     return luajr_return(L, top1 - top0);
 }
 
+// Get the number of parameters and vararg status of a Lua function
+extern "C" SEXP luajr_func_nparams(SEXP fx)
+{
+    RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(fx, LUAJR_REGFUNC_CODE));
+    if (!re)
+        Rf_error("luajr_func_nparams expects a valid registry entry.");
+
+    lua_State* L = re->GetState();
+
+    // Call luajr.func_info(f) via registry
+    lua_pushlightuserdata(L, (void*)&luajr_func_info);
+    lua_rawget(L, LUA_REGISTRYINDEX);
+    re->Get();  // push function as argument
+    luajr_pcall(L, 1, 2, "luajr.func_info()", LUAJR_TOOLING_NONE);
+
+    SEXP result = PROTECT(Rf_allocVector(INTSXP, 2));
+    INTEGER(result)[0] = (int)lua_tointeger(L, -2);
+    INTEGER(result)[1] = (int)lua_tointeger(L, -1);
+    lua_pop(L, 2);
+    UNPROTECT(1);
+    return result;
+}
+
 // Get a luajr function on the stack of the lua_State associated with the luajr function
 extern "C" void luajr_pushfunc(SEXP fx)
 {

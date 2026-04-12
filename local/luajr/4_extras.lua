@@ -58,7 +58,7 @@ function luajr.matrix_r(nrow, ncol)
     local dim = luajr.integer(2)
     dim[1] = nrow
     dim[2] = ncol
-    m("dim", dim)
+    m:attr("dim", dim)
 
     return m
 end
@@ -71,7 +71,7 @@ function luajr.datamatrix_r(nrow, ncol, names)
     if #names > ncol then error("Supplied more names than columns to luajr.datamatrix_r.") end
     local colnames = luajr.character(ncol)
     for i = 1,#names do colnames[i] = names[i] end
-    m("/matrix/colnames", colnames)
+    m:attr("/matrix/colnames", colnames)
 
     return m
 end

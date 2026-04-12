@@ -15,6 +15,8 @@ int luajr_construct_null = 0;
 int luajr_construct_sexp = 0;
 int luajr_return_info = 0;
 int luajr_return_copy = 0;
+int luajr_return_cdata = 0;
+int luajr_func_info = 0;
 
 // luajr module functions to register
 struct RegistryFunc { void* key; const char* name; };
@@ -27,6 +29,8 @@ static const RegistryFunc luajr_registry_funcs[] =
     { (void*)&luajr_construct_sexp, "construct_sexp" },
     { (void*)&luajr_return_info,    "return_info" },
     { (void*)&luajr_return_copy,    "return_copy" },
+    { (void*)&luajr_return_cdata,   "return_cdata" },
+    { (void*)&luajr_func_info,      "func_info" },
     { 0, 0 }
 };
 

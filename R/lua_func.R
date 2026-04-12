@@ -100,10 +100,32 @@
 #' @export
 lua_func = function(func, argcode = "s", L = NULL)
 {
-    fx = .Call(`_luajr_func_create`, func, L);
-    return (function(...) {
-        ret = .Call(`_luajr_func_call`, fx, list(...), argcode, L);
+    fx = .Call(`_luajr_func_create`, func, L)
+    info = .Call(`_luajr_func_nparams`, fx)
+    nparams = info[1]
+    isvararg = info[2]
 
-        if (is.null(ret)) invisible() else ret
-    })
+    if (isvararg) {
+        # Vararg Lua functions: use R varargs
+        f = function(...) {
+            ret = .Call(`_luajr_func_call`, fx, list(...), argcode, L)
+            if (is.null(ret)) invisible() else ret
+        }
+    } else {
+        # Fixed-arity Lua functions: generate a wrapper with named args,
+        # avoiding the overhead of R's ... dispatch
+        f = function() {
+            ret = .Call(`_luajr_func_call`, fx, list(), argcode, L)
+            if (is.null(ret)) invisible() else ret
+        }
+        if (nparams > 0) {
+            arg_names = paste0("a", seq_len(nparams))
+            # Set the function's formal arguments to (a1, a2, ...)
+            formals(f) = setNames(lapply(arg_names, function(x) quote(expr = )), arg_names)
+            # Replace list() in the body with list(a1, a2, ...)
+            body(f)[[2]][[3]][[4]] = as.call(c(list(quote(list)), lapply(arg_names, as.symbol)))
+        }
+    }
+
+    return(f)
 }

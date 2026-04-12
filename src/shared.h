@@ -17,6 +17,8 @@ extern int luajr_construct_null;
 extern int luajr_construct_sexp;
 extern int luajr_return_info;
 extern int luajr_return_copy;
+extern int luajr_return_cdata;
+extern int luajr_func_info;
 
 // We declare all functions to have C linkage to avoid name mangling and allow
 // the use of the package functions from C code. This file (shared.h) is only
@@ -44,6 +46,7 @@ SEXP luajr_run_code(SEXP code, SEXP Lx);
 SEXP luajr_run_file(SEXP filename, SEXP Lx);
 SEXP luajr_func_create(SEXP func, SEXP Lx);
 SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
+SEXP luajr_func_nparams(SEXP fx);  // Not in public API
 void luajr_pushfunc(SEXP fx);
 
 // Load and access Lua modules (module.cpp)

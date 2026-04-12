@@ -36,7 +36,7 @@ usethis::use_vignette("luajr")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("SHALLOW_DUPLICATE_ATTRIB")
+add_rapi("SET_VECTOR_ELT")
 
 
 # BUILD CYCLE

@@ -798,19 +798,25 @@ function luajr.return_info(obj)
     return nil, nil
 end
 
--- Copies a luajr object to allocated memory so that it can be taken in by R.
---   obj is the luajr object;
---   ptr is a SEXP* (_pointer_ to SEXP) if obj is a vector or reference type;
---     or a SEXP if obj is a bare SEXP.
-function luajr.return_copy(obj, ptr)
+-- Get nparams and isvararg for a Lua function.
+-- Called from C (luajr_func_nparams).
+function luajr.func_info(f)
+    local info = debug.getinfo(f, "u")
+    return info.nparams, info.isvararg and 1 or 0
+end
+
+-- Combined return for cdata types. Checks type, writes SEXP to ptr if
+-- applicable, and returns a typecode. Returns nil for unknown cdata types.
+-- Used by the LUA_TCDATA branch in luajr_tosexp (push_to.cpp).
+function luajr.return_cdata(obj, ptr)
     if luajr.is_logical(obj) or luajr.is_integer(obj) or
        luajr.is_numeric(obj) or luajr.is_character(obj) then
         obj:shrink_to_fit()
         ffi.cast(voidpp, ptr)[0] = obj.s
     elseif ffi.istype(R.sexp, obj) then
         ffi.cast(voidpp, ptr)[0] = obj
-    else
-        error("luajr.return_copy should not be called with an object of this type.")
+    elseif obj ~= nullptr and obj ~= luajr.NULL then
+        error("Cannot return cdata of this type to R.")
     end
 end
 
@@ -875,7 +881,7 @@ function luajr.matrix_r(nrow, ncol)
     local dim = luajr.integer(2)
     dim[1] = nrow
     dim[2] = ncol
-    m("dim", dim)
+    m:attr("dim", dim)
 
     return m
 end
@@ -888,7 +894,7 @@ function luajr.datamatrix_r(nrow, ncol, names)
     if #names > ncol then error("Supplied more names than columns to luajr.datamatrix_r.") end
     local colnames = luajr.character(ncol)
     for i = 1,#names do colnames[i] = names[i] end
-    m("/matrix/colnames", colnames)
+    m:attr("/matrix/colnames", colnames)
 
     return m
 end
