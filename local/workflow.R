@@ -36,7 +36,7 @@ usethis::use_vignette("luajr")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("SET_VECTOR_ELT")
+add_rapi("R_ExternalPtrAddr")
 
 
 # BUILD CYCLE
@@ -50,8 +50,8 @@ devtools::install(build_vignettes = TRUE)
 
 
 # RELEASE CYCLE
-# update LuaJIT
-# update debugger.lua
+# update LuaJIT: cd local, ./update_lj.sh
+# update debugger.lua: cd local, ./update_dbg.sh
 # update copyright year
 devtools::check(remote = TRUE, manual = TRUE)
 devtools::check_win_devel()

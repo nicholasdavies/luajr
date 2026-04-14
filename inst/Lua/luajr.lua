@@ -54,33 +54,6 @@ ffi.cdef[[
 struct SEXPREC;
 typedef struct SEXPREC* SEXP;
 
-// Type codes
-// See also: ./src/shared.h
-enum
-{
-    // TODO xfer to use R.* types
-    NULL_T = 0, //NILSXP,
-    LIST_T = 19, //VECSXP,
-
-    LOGICAL_T = 10, //LGLSXP,
-    INTEGER_T = 13, //INTSXP,
-    NUMERIC_T = 14, //REALSXP,
-    CHARACTER_T = 16, //STRSXP,
-
-    SEXP_T = 63, // Generic SEXP
-    REFERENCE_T = 64,
-    VECTOR_T = 128,
-
-    LOGICAL_R =   LOGICAL_T   | REFERENCE_T,
-    INTEGER_R =   INTEGER_T   | REFERENCE_T,
-    NUMERIC_R =   NUMERIC_T   | REFERENCE_T,
-    CHARACTER_R = CHARACTER_T | REFERENCE_T,
-    LOGICAL_V =   LOGICAL_T   | VECTOR_T,
-    INTEGER_V =   INTEGER_T   | VECTOR_T,
-    NUMERIC_V =   NUMERIC_T   | VECTOR_T,
-    CHARACTER_V = CHARACTER_T | VECTOR_T,
-};
-
 // Vector types
 typedef struct { int* p;    SEXP s; double n; double c; } logical_t;
 typedef struct { int* p;    SEXP s; double n; double c; } integer_t;
@@ -136,6 +109,13 @@ function luajr.readline(prompt)
     -- remove terminating newline, but guard against 0-length string
     local len = ffi.C.strlen(buf)
     return ffi.string(buf, len == 0 and 0 or len - 1)
+end
+
+-- Get nparams and isvararg for a Lua function.
+-- Called from C++ (luajr_func_info).
+function luajr.get_func_info(f)
+    local info = debug.getinfo(f, "u")
+    return info.nparams, info.isvararg and 1 or 0
 end
 
 -- sizeof helper
@@ -725,36 +705,6 @@ luajr.is_list = function(obj) return getmetatable(obj) == mt_list end
 
 -- Pass to Lua
 
--- Identifies vector types from type codes (for pass by reference)
-local ref_type = {
-    [internal.LOGICAL_R]   = luajr.logical,
-    [internal.INTEGER_R]   = luajr.integer,
-    [internal.NUMERIC_R]   = luajr.numeric,
-    [internal.CHARACTER_R] = luajr.character
-}
-
--- Identifies vector types from type codes (for pass by value / alias)
-local vec_type = {
-    [internal.LOGICAL_V]   = luajr.logical,
-    [internal.INTEGER_V]   = luajr.integer,
-    [internal.NUMERIC_V]   = luajr.numeric,
-    [internal.CHARACTER_V] = luajr.character
-}
-
--- Construct a reference type. Called with:
---   ud = SEXP to be referenced
---   typecode = e.g. internal.LOGICAL_R, etc
-luajr.construct_ref = function(ud, typecode)
-    return ref_type[typecode](ffi.cast(R.sexp, ud), byref)
-end
-
--- Construct a vector type (alias / copy-on-write). Called with:
---   ud = SEXP to be aliased
---   typecode = e.g. internal.LOGICAL_V, etc
-luajr.construct_vec = function(ud, typecode)
-    return vec_type[typecode](ffi.cast(R.sexp, ud), alias)
-end
-
 -- Construct a list. Called with:
 --   elements = table (integer keys, 1 to n) with elements to hold
 --   names = table, e.g. { foo = 1, bar = 3 } if 1st and 3rd elements are named
@@ -765,59 +715,15 @@ luajr.construct_list = function(elements, names)
     return list
 end
 
--- Construct NULL.
-luajr.construct_null = function()
-    return luajr.NULL
-end
-
--- Construct SEXP.
-luajr.construct_sexp = function(ud)
-    return R.sexp(ud)
-end
-
-
 -- Return from Lua
 
--- Helps return luajr objects to R
--- When passed a luajr object, returns two values:
---    1, an integer type code from the internal api
---    2, unused (0) for vector types, or #obj for list, or void* for bare SEXP.
--- If the object is not a luajr type (e.g. a plain Lua type) returns nil, nil.
+-- Called from the LUA_TTABLE branch of luajr_tosexp (push_to.cpp). Only
+-- reached for real Lua tables, so the only relevant case is detecting whether
+-- the table is a luajr list. Returns R.VECSXP + #obj for a luajr list, or
+-- nil, nil for a plain Lua table.
 function luajr.return_info(obj)
-    if     luajr.is_logical(obj)        then return internal.LOGICAL_R, 0
-    elseif luajr.is_integer(obj)        then return internal.INTEGER_R, 0
-    elseif luajr.is_numeric(obj)        then return internal.NUMERIC_R, 0
-    elseif luajr.is_character(obj)      then return internal.CHARACTER_R, 0
-
-    elseif luajr.is_list(obj)           then return internal.LIST_T, #obj
-    elseif obj == nullptr               then return internal.NULL_T, 0
-    elseif obj == luajr.NULL            then return internal.NULL_T, 0
-    elseif ffi.istype(R.sexp, obj)      then return internal.SEXP_T, ffi.cast("void*", obj)
-    end
-
+    if luajr.is_list(obj) then return R.VECSXP, #obj end
     return nil, nil
-end
-
--- Get nparams and isvararg for a Lua function.
--- Called from C (luajr_func_nparams).
-function luajr.func_info(f)
-    local info = debug.getinfo(f, "u")
-    return info.nparams, info.isvararg and 1 or 0
-end
-
--- Combined return for cdata types. Checks type, writes SEXP to ptr if
--- applicable, and returns a typecode. Returns nil for unknown cdata types.
--- Used by the LUA_TCDATA branch in luajr_tosexp (push_to.cpp).
-function luajr.return_cdata(obj, ptr)
-    if luajr.is_logical(obj) or luajr.is_integer(obj) or
-       luajr.is_numeric(obj) or luajr.is_character(obj) then
-        obj:shrink_to_fit()
-        ffi.cast(voidpp, ptr)[0] = obj.s
-    elseif ffi.istype(R.sexp, obj) then
-        ffi.cast(voidpp, ptr)[0] = obj
-    elseif obj ~= nullptr and obj ~= luajr.NULL then
-        error("Cannot return cdata of this type to R.")
-    end
 end
 
 

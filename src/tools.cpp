@@ -197,6 +197,8 @@ extern "C" int luajr_pcall(lua_State* L, int nargs, int nresults, const char* wh
 
     // Do the call, keeping track if there was an error
     int lua_err = lua_pcall(L, nargs, nresults, errfunc);
+    //// int lua_err = 0;
+    //// lua_call(L, nargs, nresults); -- this may make a very small difference, but not measurable
 
     // Post run
     if (tooling & LUAJR_TOOLING_ALL)

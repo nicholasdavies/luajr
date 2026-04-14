@@ -10,15 +10,9 @@ struct lua_State;
 extern lua_State* L0;
 
 // luajr Lua module API registry keys
-extern int luajr_construct_ref;
-extern int luajr_construct_vec;
 extern int luajr_construct_list;
-extern int luajr_construct_null;
-extern int luajr_construct_sexp;
 extern int luajr_return_info;
-extern int luajr_return_copy;
-extern int luajr_return_cdata;
-extern int luajr_func_info;
+extern int luajr_get_func_info;
 
 // We declare all functions to have C linkage to avoid name mangling and allow
 // the use of the package functions from C code. This file (shared.h) is only
@@ -46,8 +40,18 @@ SEXP luajr_run_code(SEXP code, SEXP Lx);
 SEXP luajr_run_file(SEXP filename, SEXP Lx);
 SEXP luajr_func_create(SEXP func, SEXP Lx);
 SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
-SEXP luajr_func_nparams(SEXP fx);  // Not in public API
+SEXP luajr_func_call0(SEXP fx, SEXP acode, SEXP Lx);
+SEXP luajr_func_call1(SEXP fx, SEXP a1, SEXP acode, SEXP Lx);
+SEXP luajr_func_call2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx);
+SEXP luajr_func_call3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode, SEXP Lx);
+SEXP luajr_func_call4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP acode, SEXP Lx);
+SEXP luajr_func_call5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP acode, SEXP Lx);
+SEXP luajr_func_call6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP acode, SEXP Lx);
+SEXP luajr_func_call7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP acode, SEXP Lx);
+SEXP luajr_func_call8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP acode, SEXP Lx);
+SEXP luajr_func_info(SEXP fx);  // Not in public API
 void luajr_pushfunc(SEXP fx);
+int luajr_wrap_function(lua_State* L);  // lua_CFunction; not in public API
 
 // Load and access Lua modules (module.cpp)
 SEXP luajr_module_load(SEXP filename, SEXP Lx);
@@ -83,26 +87,6 @@ void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...); // Not in public
 SEXP luajr_lua_gettop(SEXP Lx); // Not in public API
 
 } // end of extern "C"
-
-// Type codes, for use with the Lua FFI
-/// TODO redefine all these gradually, then suddenly
-/// LOGICAL_T--CHARACTER_T used on its own and ORed with REFERENCE_T or VECTOR_T
-/// REFERENCE_T only ORed with other types, including type as a variable (push_to.cpp:36)
-/// VECTOR_T ORed with other types, including type as a variable (push_to.cpp:46) and in type < VECTOR_T (push_to.cpp:486)
-/// LIST_T used on its own
-/// NULL_T used on its own
-enum
-{
-    NULL_T = NILSXP,
-    LIST_T = VECSXP,
-    LOGICAL_T = LGLSXP,
-    INTEGER_T = INTSXP,
-    NUMERIC_T = REALSXP,
-    CHARACTER_T = STRSXP,
-    SEXP_T = 63,
-    REFERENCE_T = 64,
-    VECTOR_T = 128
-};
 
 // External pointer code tags, for use with luajr_makepointer and luajr_getpointer
 enum

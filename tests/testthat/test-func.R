@@ -12,6 +12,7 @@ test_that("pass by reference works", {
     expect_identical(identity(pi), pi)
     expect_identical(identity(letters), letters)
     expect_identical(identity(list(a = 1, b = pi, letters)), list(a = 1, b = pi, letters))
+    expect_null(identity(NULL))
 
     # Pass and modify
     expect_identical(lua_func("function(x) x[1] = true return x end", "r")(c(FALSE, FALSE, FALSE)), c(TRUE, FALSE, FALSE))
@@ -28,6 +29,7 @@ test_that("pass by value works", {
     expect_identical(identity(pi), pi)
     expect_identical(identity(letters), letters)
     expect_identical(identity(list(a = 1, b = pi, letters)), list(a = 1, b = pi, letters))
+    expect_null(identity(NULL))
 
     # Pass and modify
     expect_identical(lua_func("function(x) x[1] = true return x end", "v")(c(FALSE, FALSE, FALSE)), c(TRUE, FALSE, FALSE))
@@ -49,7 +51,15 @@ test_that("pass by simplify works", {
     expect_identical(lua_func("type", "s")(1.01), "number")
     expect_identical(lua_func("type", "s")("Hi"), "string")
     expect_identical(lua_func("type", "s")(list()), "table")
+    # TODO: old C++ path pushed external pointers as lightuserdata so type() returned
+    # "userdata". The Lua-side path returns a cdata void* (FFI cannot create
+    # lightuserdata), so type() now returns "cdata". Restore "userdata" semantics
+    # if/when a C helper is exposed.
+    # Old C++ version
     expect_identical(lua_func("type", "s")(L), "userdata")
+    # New Lua version
+    # expect_identical(lua_func("type", "s")(L), "cdata")
+    # END TODO
     expect_identical(lua_func("type", "s")(charToRaw("Hello")), "string")
 
     # Check values
@@ -79,6 +89,76 @@ test_that("pass by simplify works", {
     expect_identical(lua_func("function(x) return x[1] end", "a")(1.5), 1.5)
     expect_identical(lua_func("function(x) return x end", "a")(1.5), list(1.5))
     expect_error(lua_func("function(x) return x[1] end", "s")(1.5), "attempt to index local 'x' \\(a number value\\)")
+})
+
+test_that("returning a Lua function works", {
+    # Function that returns a closure
+    make_doubler = lua_func("function() return function(x) return x * 2 end end")
+    g_ptr = make_doubler()
+    expect_identical(class(g_ptr), "externalptr")
+    g = lua_func(g_ptr)
+    expect_identical(g(21), 42)
+
+    # Closure capturing an upvalue
+    make_adder = lua_func("function(n) return function(x) return x + n end end")
+    add3 = lua_func(make_adder(3))
+    expect_identical(add3(10), 13)
+    expect_identical(add3(0), 3)
+})
+
+test_that("returning luajr vector cdata uses fast path (no pcall)", {
+    # All four vector types should round-trip via the C-side fast path
+    # (luajr_tryget_sexp_cdata in lj_luajr.c), which checks the cdata's
+    # ctype and extracts the SEXP directly.
+
+    # Exact-size case (n == c, no shrink needed)
+    expect_identical(lua_func("function() local v = luajr.logical(3); v[1]=true; v[2]=false; v[3]=true; return v end")(),
+        c(TRUE, FALSE, TRUE))
+    expect_identical(lua_func("function() local v = luajr.integer(2); v[1]=10; v[2]=20; return v end")(),
+        c(10L, 20L))
+    expect_identical(lua_func("function() local v = luajr.numeric(3); v[1]=1.5; v[2]=2.5; v[3]=3.5; return v end")(),
+        c(1.5, 2.5, 3.5))
+    expect_identical(lua_func("function() local v = luajr.character(2); v[1]='a'; v[2]='b'; return v end")(),
+        c("a", "b"))
+
+    # Shrink case (n < c after push_back); SETLENGTH should truncate in place
+    f = lua_func("function()
+        local v = luajr.numeric()
+        for i = 1, 5 do v:push_back(i * 10) end
+        return v
+    end")
+    expect_identical(f(), c(10, 20, 30, 40, 50))
+
+    # Empty vector still works
+    expect_identical(lua_func("function() return luajr.integer() end")(), integer(0))
+})
+
+test_that("'x' argcode pushes SEXP cdata directly", {
+    # Make ffi/R available
+    lua("ffi = require('ffi'); R = require('R')")
+
+    # The 'x' code should push the value as a cdata of type R.sexp,
+    # using the fast path implemented in lj_luajr.c (luajr_push_sexp_cdata).
+    is_sexp = lua_func("function(x) return ffi.istype(R.sexp, x) end", "x")
+    expect_true(is_sexp(1L))
+    expect_true(is_sexp(c(1.5, 2.5)))
+    expect_true(is_sexp("hello"))
+    expect_true(is_sexp(list(a = 1)))
+    expect_true(is_sexp(NULL))
+
+    # Pointer round-trips identically
+    identity_x = lua_func("function(x) return x end", "x")
+    v = c(pi, exp(1), sqrt(2))
+    expect_identical(identity_x(v), v)
+    s = c("a", "b", "c")
+    expect_identical(identity_x(s), s)
+    expect_identical(identity_x(list(a = 1, b = 2)), list(a = 1, b = 2))
+
+    # Cross-state: a separate Lua state should also resolve SEXP correctly
+    L = lua_open()
+    lua("ffi = require('ffi'); R = require('R')", L = L)
+    is_sexp_L = lua_func("function(x) return ffi.istype(R.sexp, x) end", "x", L = L)
+    expect_true(is_sexp_L(1:5))
 })
 
 test_that("passing NA works", {

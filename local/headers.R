@@ -35,6 +35,12 @@ sed("./src/luajit/src/lj_def.h", "./src/luajit/src/lj_def.h", c(
     '^#include <stdlib.h>$' = '#include <stdlib.h>\n#include "luajrstdr.h"'
 ))
 
+# Modify ljamalg.c to include lj_luajr.c (luajr-specific extensions to LuaJIT)
+
+sed("./src/luajit/src/ljamalg.c", "./src/luajit/src/ljamalg.c", c(
+    '^#include "lib_init.c"$' = '#include "lib_init.c"\n\n#include "lj_luajr.c"'
+))
+
 # Create luajr/lua/luajit header files
 
 sed("./src/luajit/src/luaconf.h", "./inst/include/luajr_luaconf.h")

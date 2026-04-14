@@ -100,32 +100,62 @@
 #' @export
 lua_func = function(func, argcode = "s", L = NULL)
 {
+    # Get function and information
     fx = .Call(`_luajr_func_create`, func, L)
-    info = .Call(`_luajr_func_nparams`, fx)
-    nparams = info[1]
+    info = .Call(`_luajr_func_info`, fx)
+    nparams = info[1]  # number of parameters, not including vararg ...
     isvararg = info[2]
 
-    if (isvararg) {
-        # Vararg Lua functions: use R varargs
-        f = function(...) {
-            ret = .Call(`_luajr_func_call`, fx, list(...), argcode, L)
-            if (is.null(ret)) invisible() else ret
-        }
+    # Validate parameters
+    if (!is.character(argcode) || length(argcode) != 1) {
+        stop("argcode must be a string.")
+    }
+    if ((isvararg || nparams > 0) && nchar(argcode) == 0) {
+        stop("argcode must be a non-empty string for Lua functions with arguments.")
+    }
+
+    # Select caller
+    if (isvararg || nparams > 8) {
+        call_name = "_luajr_func_call"
     } else {
-        # Fixed-arity Lua functions: generate a wrapper with named args,
-        # avoiding the overhead of R's ... dispatch
-        f = function() {
-            ret = .Call(`_luajr_func_call`, fx, list(), argcode, L)
-            if (is.null(ret)) invisible() else ret
-        }
+        call_name = paste0("_luajr_func_call", nparams)
+    }
+
+    # TODO this doesn't work for vararg functions
+    # # Recycle argcode to match nparams for non-vararg functions
+    # if (!isvararg && nparams > 0 && nparams <= 8)
+    #     argcode = substr(strrep(argcode, ceiling(nparams / nchar(argcode))), 1, nparams)
+
+    if (isvararg) {
+        f = function(...) .Call(placeholder, fx, list(...), argcode, L)
+    } else {
+        f = function() .Call(placeholder, fx, argcode, L)
+
         if (nparams > 0) {
             arg_names = paste0("a", seq_len(nparams))
-            # Set the function's formal arguments to (a1, a2, ...)
+            arg_syms = lapply(arg_names, as.symbol)
             formals(f) = setNames(lapply(arg_names, function(x) quote(expr = )), arg_names)
-            # Replace list() in the body with list(a1, a2, ...)
-            body(f)[[2]][[3]][[4]] = as.call(c(list(quote(list)), lapply(arg_names, as.symbol)))
+
+            # body(f) is the .Call(...) expression
+            b = as.list(body(f))
+            if (nparams > 8) {
+                b = append(b, list(as.call(c(quote(list), arg_syms))), after = 3)
+            } else {
+                b = append(b, arg_syms, after = 3)
+            }
+            body(f) = as.call(b)
         }
     }
 
-    return(f)
+    # Embed resolved values in the function body
+    # Full embedding allows R function compilation, possibly by avoiding environment lookup
+    b = as.list(body(f))
+    n = length(b)
+    b[[2]] = getNativeSymbolInfo(call_name, "luajr")$address
+    b[[3]] = fx
+    b[[n - 1]] = argcode
+    b[n] = list(L) # in case L = NULL
+    body(f) = as.call(b)
+
+    return (compiler::cmpfun(f))
 }

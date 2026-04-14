@@ -89,3 +89,5 @@
 #include "lib_buffer.c"
 #include "lib_init.c"
 
+#include "lj_luajr.c"
+

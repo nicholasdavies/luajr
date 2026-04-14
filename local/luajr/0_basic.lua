@@ -54,33 +54,6 @@ ffi.cdef[[
 struct SEXPREC;
 typedef struct SEXPREC* SEXP;
 
-// Type codes
-// See also: ./src/shared.h
-enum
-{
-    // TODO xfer to use R.* types
-    NULL_T = 0, //NILSXP,
-    LIST_T = 19, //VECSXP,
-
-    LOGICAL_T = 10, //LGLSXP,
-    INTEGER_T = 13, //INTSXP,
-    NUMERIC_T = 14, //REALSXP,
-    CHARACTER_T = 16, //STRSXP,
-
-    SEXP_T = 63, // Generic SEXP
-    REFERENCE_T = 64,
-    VECTOR_T = 128,
-
-    LOGICAL_R =   LOGICAL_T   | REFERENCE_T,
-    INTEGER_R =   INTEGER_T   | REFERENCE_T,
-    NUMERIC_R =   NUMERIC_T   | REFERENCE_T,
-    CHARACTER_R = CHARACTER_T | REFERENCE_T,
-    LOGICAL_V =   LOGICAL_T   | VECTOR_T,
-    INTEGER_V =   INTEGER_T   | VECTOR_T,
-    NUMERIC_V =   NUMERIC_T   | VECTOR_T,
-    CHARACTER_V = CHARACTER_T | VECTOR_T,
-};
-
 // Vector types
 typedef struct { int* p;    SEXP s; double n; double c; } logical_t;
 typedef struct { int* p;    SEXP s; double n; double c; } integer_t;
@@ -136,6 +109,13 @@ function luajr.readline(prompt)
     -- remove terminating newline, but guard against 0-length string
     local len = ffi.C.strlen(buf)
     return ffi.string(buf, len == 0 and 0 or len - 1)
+end
+
+-- Get nparams and isvararg for a Lua function.
+-- Called from C++ (luajr_func_info).
+function luajr.get_func_info(f)
+    local info = debug.getinfo(f, "u")
+    return info.nparams, info.isvararg and 1 or 0
 end
 
 -- sizeof helper

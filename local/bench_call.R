@@ -2,9 +2,9 @@
 library(luajr)
 library(Rcpp)
 
-bench = function(...)
+bench = function(..., n = 100000)
 {
-    bench::mark(..., min_iterations = 100000, max_iterations = 100000)
+    bench::mark(..., min_iterations = n, max_iterations = n)
 }
 
 blank_R = function() {}
@@ -14,15 +14,23 @@ blank_C = cppFunction("void cpp_nothing() { }") # interesting: this puts invisib
 bench(
     blank_R(),
     blank_L(),
-    blank_C()
+    blank_C(),
+    n = 1e6
 )
 
 # # A tibble: 3 × 13
-# expression      min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result memory             time                 gc
-# <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list> <list>             <list>               <list>
-#     1 blank_R()         0     41ns 23849117.        0B        0 100000     0     4.19ms <NULL> <Rprofmem [0 × 3]> <bench_tm [100,000]> <tibble>
-#     2 blank_L()     205ns    287ns  3551951.        0B        0 100000     0    28.15ms <NULL> <Rprofmem [0 × 3]> <bench_tm [100,000]> <tibble>
-#     3 blank_C()      82ns    164ns  5645351.        0B        0 100000     0    17.71ms <NULL> <Rprofmem [0 × 3]> <bench_tm [100,000]> <tibble>
+#   expression      min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result memory             time                   gc
+#   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list> <list>             <list>                 <list>
+# 1 blank_R()         0     41ns 33068210.        0B     66.1 999998     2     30.2ms <NULL> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 2 blank_L()     164ns    246ns  3973529.        0B     11.9 999997     3    251.7ms <NULL> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 3 blank_C()      41ns    123ns  6990131.        0B     14.0 999998     2    143.1ms <NULL> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+
+# # A tibble: 3 × 13
+#   expression      min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result memory             time                   gc
+#   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list> <list>             <list>                 <list>
+# 1 blank_R()         0        0 40027192.        0B    80.1  999998     2       25ms <NULL> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 2 blank_L()         0     82ns 12484338.        0B     49.9 999996     4     80.1ms <NULL> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 3 blank_C()      41ns    123ns  8327683.    2.49KB     33.3 999996     4    120.1ms <NULL> <Rprofmem [1 × 3]> <bench_tm [1,000,000]> <tibble>
 
 # A few critical points. The minimum timing interval seems to be 41 ns.
 # A clock cycle here is about 0.25 ns.
@@ -38,13 +46,23 @@ bench(
 # END_RCPP
 # }
 
-# blank_L looks like this:
-# function(...) {
-#         ret = .Call(`_luajr_func_call`, fx, list(...), argcode, L);
-#
-#         if (is.null(ret)) invisible() else ret
-#     }
+get_R = function() { return (42) }
+get_L = lua_func("function() return 42 end")
+get_C = cppFunction("double cpp_nothing() { return 42; }")
 
+bench(
+    get_R(),
+    get_L(),
+    get_C(),
+    n = 1e6
+)
+
+# # A tibble: 3 × 13
+#   expression      min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result    memory             time                   gc
+#   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list>    <list>             <list>                 <list>
+# 1 get_R()           0     41ns 26207861.        0B     78.6 999997     3     38.2ms <dbl [1]> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 2 get_L()           0     82ns 11014693.        0B     33.0 999997     3     90.8ms <dbl [1]> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 3 get_C()        41ns    123ns  6525964.        0B     26.1 999996     4    153.2ms <dbl [1]> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
 
 x = rnorm(100)
 identity_R = function(x) x
@@ -54,7 +72,8 @@ identity_C = cppFunction("SEXP cpp_identity(SEXP x) { return x; }")
 bench(
     identity_R(x),
     identity_L(x),
-    identity_C(x)
+    identity_C(x),
+    n = 1e6
 )
 
 # # A tibble: 3 × 13
@@ -65,8 +84,8 @@ bench(
 # 3 identity_C(x)     82ns    164ns  5108476.        0B     51.1  99999     1     19.6ms <dbl [100]> <Rprofmem [0 × 3]> <bench_tm [100,000]> <tibble>
 
 # # A tibble: 3 × 13
-#   expression         min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result      memory             time                 gc
-#   <bch:expr>    <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list>      <list>             <list>               <list>
-# 1 identity_R(x)        0     82ns  7504288.        0B      0   100000     0     13.3ms <dbl [100]> <Rprofmem [0 × 3]> <bench_tm [100,000]> <tibble>
-# 2 identity_L(x)    451ns    574ns  1628137.        0B     16.3  99999     1     61.4ms <dbl [100]> <Rprofmem [0 × 3]> <bench_tm [100,000]> <tibble>
-# 3 identity_C(x)     82ns    164ns  5108476.        0B     51.1  99999     1     19.6ms <dbl [100]> <Rprofmem [0 × 3]> <bench_tm [100,000]> <tibble>
+#   expression         min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result      memory             time                   gc
+#   <bch:expr>    <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list>      <list>             <list>                 <list>
+# 1 identity_R(x)        0     82ns 14177224.        0B     70.9 999995     5     70.5ms <dbl [100]> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 2 identity_L(x)     41ns    123ns  6101000.        0B     30.5 999995     5    163.9ms <dbl [100]> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>
+# 3 identity_C(x)     82ns    164ns  5247177.        0B     31.5 999994     6    190.6ms <dbl [100]> <Rprofmem [0 × 3]> <bench_tm [1,000,000]> <tibble>

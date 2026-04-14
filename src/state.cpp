@@ -8,29 +8,17 @@ extern "C" {
 }
 
 // luajr Lua module API registry keys (registered by address)
-int luajr_construct_ref = 0;
-int luajr_construct_vec = 0;
 int luajr_construct_list = 0;
-int luajr_construct_null = 0;
-int luajr_construct_sexp = 0;
 int luajr_return_info = 0;
-int luajr_return_copy = 0;
-int luajr_return_cdata = 0;
-int luajr_func_info = 0;
+int luajr_get_func_info = 0;
 
 // luajr module functions to register
 struct RegistryFunc { void* key; const char* name; };
 static const RegistryFunc luajr_registry_funcs[] =
 {
-    { (void*)&luajr_construct_ref,  "construct_ref" },
-    { (void*)&luajr_construct_vec,  "construct_vec" },
     { (void*)&luajr_construct_list, "construct_list" },
-    { (void*)&luajr_construct_null, "construct_null" },
-    { (void*)&luajr_construct_sexp, "construct_sexp" },
     { (void*)&luajr_return_info,    "return_info" },
-    { (void*)&luajr_return_copy,    "return_copy" },
-    { (void*)&luajr_return_cdata,   "return_cdata" },
-    { (void*)&luajr_func_info,      "func_info" },
+    { (void*)&luajr_get_func_info,  "get_func_info" },
     { 0, 0 }
 };
 
@@ -187,6 +175,10 @@ extern "C" lua_State* luajr_newstate()
         lua_getfield(l, -2, luajr_registry_funcs[i].name);
         lua_rawset(l, LUA_REGISTRYINDEX);
     }
+
+    // Add the C-defined luajr.wrap_function to the luajr table.
+    lua_pushcfunction(l, luajr_wrap_function);
+    lua_setfield(l, -2, "wrap_function");
 
     lua_pop(l, 1); // luajr
 

@@ -19,16 +19,20 @@ struct SEXPREC;
 typedef struct SEXPREC* SEXP;
 typedef ptrdiff_t R_xlen_t;
 typedef unsigned int SEXPTYPE;
+typedef unsigned char Rbyte;
 
 // === R API declarations ===
 void DUPLICATE_ATTRIB(SEXP to, SEXP from);
 int* INTEGER(SEXP x);
 int* LOGICAL(SEXP x);
 const char* R_CHAR(SEXP x);
+void *R_ExternalPtrAddr(SEXP s);
 void R_FlushConsole(void);
+SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot);
 void R_PreserveObject(SEXP);
 int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
 void R_ReleaseObject(SEXP);
+Rbyte *RAW(SEXP x);
 double* REAL(SEXP x);
 SEXP Rf_allocVector(SEXPTYPE, R_xlen_t);
 void Rf_copyMostAttrib(SEXP, SEXP);
@@ -36,7 +40,10 @@ SEXP Rf_dimnamesgets(SEXP, SEXP);
 SEXP Rf_getAttrib(SEXP, SEXP);
 SEXP Rf_install(const char*);
 SEXP Rf_mkChar(const char*);
+SEXP Rf_mkCharLen(const char *, int);
 SEXP Rf_protect(SEXP);
+SEXP Rf_ScalarLogical(int);
+SEXP Rf_ScalarReal(double);
 SEXP Rf_setAttrib(SEXP, SEXP, SEXP);
 const char* Rf_type2char(SEXPTYPE);
 void Rf_unprotect(int);
@@ -46,6 +53,7 @@ void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from);
 SEXP STRING_ELT(SEXP x, R_xlen_t i);
 SEXP* STRING_PTR(SEXP x);
 int TYPEOF(SEXP x);
+SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 // === end R API declarations ===
 
 R_xlen_t Rf_xlength(SEXP); // Wrapped manually below to convert to number
@@ -117,17 +125,23 @@ R.CHAR = C.R_CHAR
 R.copyMostAttrib = C.Rf_copyMostAttrib
 R.dimnamesgets = C.Rf_dimnamesgets
 R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
+R.ExternalPtrAddr = C.R_ExternalPtrAddr
 R.FlushConsole = C.R_FlushConsole
 R.getAttrib = C.Rf_getAttrib
 R.install = C.Rf_install
 R.INTEGER = C.INTEGER
 R.LOGICAL = C.LOGICAL
+R.MakeExternalPtr = C.R_MakeExternalPtr
 R.mkChar = C.Rf_mkChar
+R.mkCharLen = C.Rf_mkCharLen
 R.PreserveObject = C.R_PreserveObject
 R.PROTECT = C.Rf_protect
+R.RAW = C.RAW
 R.ReadConsole = C.R_ReadConsole
 R.REAL = C.REAL
 R.ReleaseObject = C.R_ReleaseObject
+R.ScalarLogical = C.Rf_ScalarLogical
+R.ScalarReal = C.Rf_ScalarReal
 R.SET_STRING_ELT = C.SET_STRING_ELT
 R.SET_VECTOR_ELT = C.SET_VECTOR_ELT
 R.setAttrib = C.Rf_setAttrib
@@ -137,6 +151,7 @@ R.STRING_PTR = C.STRING_PTR
 R.type2char = C.Rf_type2char
 R.TYPEOF = C.TYPEOF
 R.UNPROTECT = C.Rf_unprotect
+R.VECTOR_ELT = C.VECTOR_ELT
 -- === end R API bindings ===
 
 -- Convert 64-bit length to Lua number

@@ -15,6 +15,12 @@ extern "C" {
 #define LUA_TPROTO	(LUA_TTHREAD+1)
 #define LUA_TCDATA	(LUA_TTHREAD+2)
 
+// Defined in luajit/src/lj_luajr.c
+extern "C" void luajr_push_sexp_cdata(lua_State* L, void* x);
+extern "C" void luajr_push_vector_cdata(lua_State* L, int sxp_type,
+    void* p, void* s, double n, double c);
+extern "C" ptrdiff_t luajr_get_sexp_cdata(lua_State* L, int index, void** out_s);
+
 // Helper function to push a vector to the Lua stack.
 template <typename Push>
 static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
@@ -25,24 +31,23 @@ static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
     switch (as)
     {
         case 'r':
-            // Get luajr.construct_ref() on the stack
-            lua_pushlightuserdata(L, (void*)&luajr_construct_ref);
-            lua_rawget(L, LUA_REGISTRYINDEX);
-            // Call it with arguments x as userdata, type code as integer
-            lua_pushlightuserdata(L, x);
-            lua_pushinteger(L, type | REFERENCE_T);
-            luajr_pcall(L, 2, 1, "luajr.construct_ref() from push_R_vector()", LUAJR_TOOLING_NONE);
-            break;
-
         case 'v':
-            // Get luajr.construct_vec() on the stack
-            lua_pushlightuserdata(L, (void*)&luajr_construct_vec);
-            lua_rawget(L, LUA_REGISTRYINDEX);
-            // Call it with arguments x as userdata, type code as integer
-            lua_pushlightuserdata(L, x);
-            lua_pushinteger(L, type | VECTOR_T);
-            luajr_pcall(L, 2, 1, "luajr.construct_vec() from push_R_vector()", LUAJR_TOOLING_NONE);
+        {
+            // Compute the data pointer with offset for 1-based indexing
+            void* p;
+            switch (type)
+            {
+                case LGLSXP:  p = (void*)(LOGICAL(x) - 1); break;
+                case INTSXP:  p = (void*)(INTEGER(x) - 1); break;
+                case REALSXP: p = (void*)(REAL(x) - 1);    break;
+                case STRSXP:  p = (void*)(STRING_PTR(x) - 1); break;
+                default: Rf_error("Unknown vector type for push_R_vector.");
+            }
+            // c flag: -1 = byref, -2 = alias; must match 1_vector.lua
+            double c_val = (as == 'r') ? -1.0 : -2.0;
+            luajr_push_vector_cdata(L, type, p, (void*)x, (double)xlen, c_val);
             break;
+        }
 
         case 's':
         case 'a':
@@ -188,20 +193,17 @@ void CheckStringLength(SEXP chr)
 
 // Analogous to Lua's lua_pushXXX(lua_State* L, XXX x) functions, this pushes
 // the R object [x] onto Lua's stack.
-// Supported: NILSXP, LGLSXP, INTSXP, REALSXP, STRSXP, VECSXP, EXTPTRSXP,
-// RAWSXP.
-// Not supported: SYMSXP, LISTSXP, CLOSXP, ENVSXP, PROMSXP, LANGSXP, SPECIALSXP,
-// BUILTINSXP, CHARSXP, CPLXSXP, DOTSXP, ANYSXP, EXPRSXP, BCODESXP, WEAKREFSXP,
-// S4SXP.
+// Supported with conversions to Lua types: NILSXP, LGLSXP, INTSXP, REALSXP,
+// STRSXP, VECSXP, EXTPTRSXP, RAWSXP.
+// Supported only as SEXP: SYMSXP, LISTSXP, CLOSXP, ENVSXP, PROMSXP, LANGSXP,
+// SPECIALSXP, BUILTINSXP, CHARSXP, CPLXSXP, DOTSXP, ANYSXP, EXPRSXP, BCODESXP,
+// WEAKREFSXP, S4SXP.
 extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
 {
     // 'x' arg code: pass any type as a bare SEXP
     if (as == 'x')
     {
-        lua_pushlightuserdata(L, (void*)&luajr_construct_sexp);
-        lua_rawget(L, LUA_REGISTRYINDEX);
-        lua_pushlightuserdata(L, x);
-        luajr_pcall(L, 1, 1, "luajr.construct_sexp() from luajr_pushsexp()", LUAJR_TOOLING_NONE);
+        luajr_push_sexp_cdata(L, (void*)x);
         return;
     }
 
@@ -209,31 +211,27 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
     {
         case NILSXP: // NULL
             if (as == 'r' || as == 'v')
-            {
-                lua_pushlightuserdata(L, (void*)&luajr_construct_null);
-                lua_rawget(L, LUA_REGISTRYINDEX);
-                luajr_pcall(L, 0, 1, "luajr.construct_null() from luajr_pushsexp()", LUAJR_TOOLING_NONE);
-            }
+                luajr_push_sexp_cdata(L, (void*)R_NilValue);
             else
                 lua_pushnil(L);
             break;
         case LGLSXP: // logical vector: r, v, s, a, 1-9
-            push_R_vector(L, x, as, LOGICAL_T,
+            push_R_vector(L, x, as, LGLSXP,
                 [](lua_State* L, SEXP x, unsigned int i)
                     { lua_pushboolean(L, LOGICAL_ELT(x, i)); });
             break;
         case INTSXP: // integer vector: r, v, s, a, 1-9
-            push_R_vector(L, x, as, INTEGER_T,
+            push_R_vector(L, x, as, INTSXP,
                 [](lua_State* L, SEXP x, unsigned int i)
                     { lua_pushinteger(L, INTEGER_ELT(x, i)); });
             break;
         case REALSXP: // numeric vector: r, v, s, a, 1-9
-            push_R_vector(L, x, as, NUMERIC_T,
+            push_R_vector(L, x, as, REALSXP,
                 [](lua_State* L, SEXP x, unsigned int i)
                     { lua_pushnumber(L, REAL_ELT(x, i)); });
             break;
         case STRSXP: // character vector: r, v, s, a, 1-9
-            push_R_vector(L, x, as, CHARACTER_T,
+            push_R_vector(L, x, as, STRSXP,
                 [](lua_State* L, SEXP x, unsigned int i)
                     { CheckStringLength(STRING_ELT(x, i));
                       lua_pushstring(L, CHAR(STRING_ELT(x, i))); });
@@ -249,10 +247,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, char as)
             lua_pushlstring(L, (const char*)RAW(x), Rf_length(x));
             break;
         default:
-            lua_pushlightuserdata(L, (void*)&luajr_construct_sexp);
-            lua_rawget(L, LUA_REGISTRYINDEX);
-            lua_pushlightuserdata(L, x);
-            luajr_pcall(L, 1, 1, "luajr.construct_sexp() from luajr_pushsexp()", LUAJR_TOOLING_NONE);
+            luajr_push_sexp_cdata(L, (void*)x);
             break;
     }
 }
@@ -370,7 +365,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             lua_pop(L, 2);
 
             // List type
-            if (type == LIST_T)
+            if (type == VECSXP)
             {
                 if (size >= LJ_MAX_ASIZE)
                     Rf_error("List is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
@@ -474,16 +469,20 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
         }
         case LUA_TCDATA:
         {
-            // Get luajr.return_cdata() on the stack
-            SEXP ret = R_NilValue;
-            lua_pushlightuserdata(L, (void*)&luajr_return_cdata);
-            lua_rawget(L, LUA_REGISTRYINDEX);
-            // Call it with cdata arg and SEXP*. The SEXP is written to &ret
-            // by the Lua function (or left as R_NilValue for NULL types).
-            lua_pushvalue(L, index);
-            lua_pushlightuserdata(L, &ret);
-            luajr_pcall(L, 2, 0, "luajr.return_cdata() from luajr_tosexp()", LUAJR_TOOLING_NONE);
-            return ret;
+            // Recognized cdata: bare SEXP, one of the four luajr vector
+            // types, or any null pointer cdata (which becomes R_NilValue).
+            void* sptr = NULL;
+            ptrdiff_t status = luajr_get_sexp_cdata(L, index, &sptr);
+            if (status == -2)
+                Rf_error("Cannot return cdata of this type to R.");
+            if (sptr == NULL) return R_NilValue;
+            SEXP s = (SEXP)sptr;
+            if (status >= 0)
+                // Shrink: Rf_xlengthgets allocates a new SEXP, copies
+                // elements, truncates names, and copies remaining
+                // attributes (excluding dim/dimnames) via copyMostAttrib.
+                return Rf_xlengthgets(s, (R_xlen_t)status);
+            return s;
         }
         default:
             Rf_error("Unknown return type detected: %d", lua_type(L, index));
