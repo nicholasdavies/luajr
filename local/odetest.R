@@ -54,7 +54,7 @@ gradient3 = lua_func("function(t, x, pars)
     d[1] = -0.05 * x[2] * x[1]
     d[2] =  0.05 * x[2] * x[1] - 0.025 * x[2]
     d[3] =                       0.025 * x[2]
-    --local l = luajr.list()
+    --local l = luajr.list(1)
     --l[1] = d
     local l = R.PROTECT(R.allocVector(R.VECSXP, 1))
     R.SET_VECTOR_ELT(l, 0, d.s)
@@ -92,8 +92,8 @@ bench(
 #   <bch:expr>                   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list>     <list>     <list>     <list>
 # 1 g <- gradient(0, yini, c())     656ns 820.03ns   695200.        0B    27.8  100000     4    143.8ms <list [1]> <Rprofmem> <bench_tm> <tibble>
 # 2 g <- gradient2(0, yini, c())    328ns    410ns  1948302.        0B    39.0  100000     2     51.3ms <list [1]> <Rprofmem> <bench_tm> <tibble>
-# 3 g <- gradient3(0, yini, c())    328ns    492ns   998892.        0B     20.0 100000     2    100.1ms <list [1]> <Rprofmem> <bench_tm> <tibble>
-# 4 g <- gradient4(0, yini, c())    246ns    328ns  2242414.        0B     22.4 100000     1     44.6ms <list [1]> <Rprofmem> <bench_tm> <tibble>
+# 3 g <- gradient3(0, yini, c())    287ns    451ns   781558.        0B     7.82 100000     1      128ms <list [1]> <Rprofmem [0 × 3]> <bench_tm> <tibble>
+# 4 g <- gradient4(0, yini, c())    205ns    328ns  2419934.        0B    24.2  100000     1     41.3ms <list [1]> <Rprofmem [0 × 3]> <bench_tm> <tibble>
 
 bench(
     out <- ode(yini, times, gradient, c(), method = "rk4"),

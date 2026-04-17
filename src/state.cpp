@@ -8,16 +8,12 @@ extern "C" {
 }
 
 // luajr Lua module API registry keys (registered by address)
-int luajr_construct_list = 0;
-int luajr_return_info = 0;
 int luajr_get_func_info = 0;
 
 // luajr module functions to register
 struct RegistryFunc { void* key; const char* name; };
 static const RegistryFunc luajr_registry_funcs[] =
 {
-    { (void*)&luajr_construct_list, "construct_list" },
-    { (void*)&luajr_return_info,    "return_info" },
     { (void*)&luajr_get_func_info,  "get_func_info" },
     { 0, 0 }
 };

@@ -34,9 +34,16 @@ local to_charsxp = function(v)
     return ch
 end
 
+-- Helper: get names attribute if it exists and is STRSXP, else nil
+local get_names = function(s)
+    local names = R.getAttrib(s, R.NamesSymbol)
+    if R.TYPEOF(names) == R.STRSXP then return names end
+    return nil
+end
+
 -- Metatable for vector type
 -- typedef struct { ctype* p; SEXP s; double n; double c; } [vector]_t;
-local mt_vector_template = function(is_char, ct, stype, dataptr)
+local mt_vector_template = function(ct, stype, dataptr)
     local vtype = ffi.typeof(ct .. "[?]") -- not used for character
 
     -- Throw an error on an illegal use of a 'byref' vector
@@ -45,18 +52,18 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
     end
 
     -- Type-specific element operations
-    local op_read  -- (p, k) p[k] (with conversion)
-    local op_write -- (self, k, v) self[k] = v (with conversion)
-    local op_set   -- (self, k, v) self[k] = v (raw)
-    local op_fill  -- (p, s, k, v, n) fill n elements of self starting at k with v (with conversion)
-    local op_copy  -- (p, s, k, p_src, n) copy n elements into self(p,s)[k], ..., self[k+n-1] from p_src (raw)
-    local op_copyv -- (p, s, k, p_src, n) copy n elements into self(p,s)[k], ..., self[k+n-1] from p_src (with conversion)
-    local is_val   -- (v) true if v is a Lua type compatible with the vector
-    if is_char then
-        op_read = function(p, k) return from_charsxp(p[k]) end
-        op_write = function(self, k, v) R.SET_STRING_ELT(self.s, k - 1, to_charsxp(v)) end
-        op_set = function(self, k, v) R.SET_STRING_ELT(self.s, k - 1, v) end
-        op_fill = function(p, s, k, v, n)
+    local op_readv  -- (self, k) self[k] (with conversion)
+    local op_writev -- (self, k, v) self[k] = v (with conversion)
+    local op_write  -- (p, s, k, v) self(p,s)[k] = v (raw)
+    local op_fillv  -- (p, s, k, v, n) fill n elements of self starting at k with v (with conversion)
+    local op_copy   -- (p, s, k, p_src, n) copy n elements into self(p,s)[k], ..., self[k+n-1] from p_src (raw)
+    local op_copyv  -- (p, s, k, p_src, n) copy n elements into self(p,s)[k], ..., self[k+n-1] from p_src (with conversion)
+    local is_val    -- (v) true if v is a Lua type compatible with the vector
+    if stype == R.STRSXP then
+        op_readv = function(self, k) return from_charsxp(self.p[k]) end
+        op_writev = function(self, k, v) R.SET_STRING_ELT(self.s, k - 1, to_charsxp(v)) end
+        op_write = function(p, s, k, v) R.SET_STRING_ELT(s, k - 1, v) end
+        op_fillv = function(p, s, k, v, n)
             local ch = to_charsxp(v)
             for i = 0,n-1 do R.SET_STRING_ELT(s, k - 1 + i, ch) end
         end
@@ -67,11 +74,65 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
             for i = 0,n-1 do R.SET_STRING_ELT(s, k - 1 + i, to_charsxp(p_src[i + 1])) end
         end
         is_val = function(v) return type(v) == "string" or v == luajr.NA_character_ end
+    elseif stype == R.VECSXP then
+        -- Element of a list is itself a SEXP. On read, wrap based on TYPEOF
+        -- and the parent list's mode: byref-list -> byref children (writes
+        -- propagate, no resize); alias- or owned-list -> alias children
+        -- (COW). The alias/owned uniformity ensures the user experience is
+        -- the same across the alias->owned transition that happens when an
+        -- alias list is first mutated.
+        op_readv = function(self, k)
+            local elem = self.p[k]
+            local mode = (self.c == byref) and byref or alias
+            local typ = R.TYPEOF(elem)
+            if     typ == R.LGLSXP  then return luajr.logical(elem, mode)
+            elseif typ == R.INTSXP  then return luajr.integer(elem, mode)
+            elseif typ == R.REALSXP then return luajr.numeric(elem, mode)
+            elseif typ == R.STRSXP  then return luajr.character(elem, mode)
+            elseif typ == R.VECSXP  then return luajr.list(elem, mode)
+            else return elem  -- bare SEXP
+            end
+        end
+        -- Coerce a Lua value to a SEXP for storage in a list.
+        local to_sexp = function(v)
+            if v == nil then return R.NilValue end
+            local t = type(v)
+            if t == "cdata" then
+                if luajr.is_logical(v) or luajr.is_integer(v) or
+                   luajr.is_numeric(v) or luajr.is_character(v) or
+                   luajr.is_list(v) then
+                    return v.s
+                elseif ffi.istype(R.sexp, v) then
+                    return v
+                else
+                    error("cannot store cdata of this type in a list", 3)
+                end
+            elseif t == "boolean" then return R.ScalarLogical(v)
+            elseif t == "number" then return R.ScalarReal(v)
+            elseif t == "string" then
+                return R.ScalarString(R.mkChar(v))
+            else
+                error("cannot store " .. t .. " in a list", 3)
+            end
+        end
+        op_writev = function(self, k, v) R.SET_VECTOR_ELT(self.s, k - 1, to_sexp(v)) end
+        op_write = function(p, s, k, v) R.SET_VECTOR_ELT(s, k - 1, v) end
+        op_fillv = function(p, s, k, v, n)
+            local sx = to_sexp(v)
+            for i = 0,n-1 do R.SET_VECTOR_ELT(s, k - 1 + i, sx) end
+        end
+        op_copy = function(p, s, k, p_src, n)
+            for i = 0,n-1 do R.SET_VECTOR_ELT(s, k - 1 + i, p_src[i + 1]) end
+        end
+        op_copyv = function(p, s, k, p_src, n)
+            for i = 0,n-1 do R.SET_VECTOR_ELT(s, k - 1 + i, to_sexp(p_src[i + 1])) end
+        end
+        is_val = function(v) return v ~= nil end  -- accept anything coercible
     else
-        op_read = function(p, k) return p[k] end
-        op_write = function(self, k, v) self.p[k] = v end
-        op_set = function(self, k, v) self.p[k] = v end
-        op_fill = function(p, s, k, v, n)
+        op_readv = function(self, k) return self.p[k] end
+        op_writev = function(self, k, v) self.p[k] = v end
+        op_write = function(p, s, k, v) p[k] = v end
+        op_fillv = function(p, s, k, v, n)
             for i = 0,n-1 do p[k + i] = v end
         end
         op_copy = function(p, s, k, p_src, n)
@@ -94,22 +155,60 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
     --   outer_p (offset pointer), skipping positions erase..erase_last
     -- returns number of elements in the result
     local set = function(p, s, params)
+        local ns, nd = params.names_src, params.names_dst
         if params.fill ~= nil then
-            op_fill(p, s, 1, params.fill, params.n)
+            op_fillv(p, s, 1, params.fill, params.n)
         elseif params.p ~= nil then
             op_copy(p, s, 1, params.p, params.n)
+            if nd and ns then
+                for i = 0, params.n - 1 do R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i)) end
+            end
         elseif params.copy ~= nil then
             op_copyv(p, s, 1, params.copy, params.n)
+            if nd and ns then
+                for i = 0, params.n - 1 do R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i)) end
+            end
         elseif params.insert ~= nil then
-            op_copy(p, s, 1, params.outer_p, params.insert - 1)
-            op_copy(p, s, params.insert + params.insert_n,
-                params.outer_p + params.insert - 1, params.outer_n - params.insert + 1)
+            if p == params.outer_p then
+                for j = params.outer_n, params.insert, -1 do
+                    op_write(p, s, j + params.insert_n, p[j])
+                end
+                if nd then
+                    for j = params.outer_n - 1, params.insert - 1, -1 do
+                        R.SET_STRING_ELT(nd, j + params.insert_n, R.STRING_ELT(nd, j))
+                    end
+                    for j = params.insert - 1, params.insert + params.insert_n - 2 do
+                        R.SET_STRING_ELT(nd, j, R.BlankString)
+                    end
+                end
+            else
+                op_copy(p, s, 1, params.outer_p, params.insert - 1)
+                op_copy(p, s, params.insert + params.insert_n,
+                    params.outer_p + params.insert - 1, params.outer_n - params.insert + 1)
+                if nd and ns then
+                    for i = 0, params.insert - 2 do R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i)) end
+                    for i = params.insert + params.insert_n - 1, params.insert_n + params.outer_n - 1 do
+                        R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i - params.insert_n))
+                    end
+                end
+            end
             return params.insert_n + params.outer_n
         elseif params.erase ~= nil then
-            op_copy(p, s, 1, params.outer_p, params.erase - 1)
+            if p ~= params.outer_p then
+                op_copy(p, s, 1, params.outer_p, params.erase - 1)
+            end
             op_copy(p, s, params.erase,
                 params.outer_p + params.erase_last,
                 params.outer_n - params.erase_last)
+            if nd then
+                local ndel = params.erase_last - params.erase + 1
+                if nd ~= ns then
+                    for i = 0, params.erase - 2 do R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i)) end
+                end
+                for i = params.erase - 1, params.outer_n - ndel - 1 do
+                    R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i + ndel))
+                end
+            end
             return params.outer_n - (params.erase_last - params.erase + 1)
         elseif params.n == nil then
             error("unsupported parameters in set")
@@ -117,32 +216,55 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
         return params.n
     end
 
+    -- In-place set, replacing self's names from a source SEXP.
+    -- names_from: SEXP to read source names from, or nil to clear names.
+    local set_inplace = function(self, set_params, names_from)
+        local src_names = names_from and get_names(names_from) or nil
+        if src_names then
+            local dst_names = get_names(self.s)
+            if not dst_names then
+                dst_names = R.PROTECT(R.allocVector(R.STRSXP, self.c))
+                R.setAttrib(self.s, R.NamesSymbol, dst_names)
+                R.UNPROTECT(1)
+            end
+            set_params.names_src = src_names
+            set_params.names_dst = dst_names
+        else
+            R.setAttrib(self.s, R.NamesSymbol, R.NilValue)
+        end
+        self.n = set(self.p, self.s, set_params)
+    end
+
     -- Helper function to (re)allocate memory
     -- self is the current vector
     -- new_c is the new capacity
     -- set_params gets passed on to set()
-    local allocate = function(self, new_c, set_params)
+    -- names_from: optional SEXP to read source names from (defaults to self.s)
+    local allocate = function(self, new_c, set_params, names_from)
         -- ensure not a byref
         if self.c == byref then
             byref_error("reallocate")
         end
 
-        -- allocate new memory (with array indexing starting at 1)
+        -- allocate new memory
         local new_s = R.allocVector(stype, new_c) -- throws if couldn't allocate
         R.PreserveObject(new_s)
         local new_p = dataptr(new_s) - 1
 
-        -- copy attributes
-        -- NOTE This copies all attributes except names, dim, dimnames. There's no
-        -- easy way to know the "right" way of extending these (consider insertion
-        -- in the middle, or growing a matrix) so let other methods handle them.
+        -- copy attributes (excludes names, dim, dimnames)
         R.copyMostAttrib(self.s, new_s)
-        -- TODO once all the handling of the names attribute is implemented, could
-        -- replace the above with:
-        -- R.SHALLOW_DUPLICATE_ATTRIB(new_s, self.s)
-        -- TODO note the arguments are the other way around; that's correct.
 
-        -- initialize
+        -- handle names: if source has names, create new names at capacity
+        local old_names = get_names(names_from or self.s)
+        if old_names and new_c > 0 then
+            local new_names = R.PROTECT(R.allocVector(R.STRSXP, new_c))
+            R.setAttrib(new_s, R.NamesSymbol, new_names)
+            R.UNPROTECT(1)
+            set_params.names_src = old_names
+            set_params.names_dst = new_names
+        end
+
+        -- initialize memory
         self.n = set(new_p, new_s, set_params)
 
         -- release current sexp
@@ -153,6 +275,28 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
         self.p = new_p
         self.s = new_s
         self.c = new_c
+    end
+
+    -- Shift self to make room for insert_n elements at position i,
+    -- then copy source names into the gap.
+    -- names_from: SEXP whose names fill the gap, or nil for blank.
+    local insert_shift = function(self, i, insert_n, names_from)
+        if self.n + insert_n <= self.c then
+            local names = get_names(self.s)
+            self.n = set(self.p, self.s, { insert = i, insert_n = insert_n,
+                outer_p = self.p, outer_n = self.n,
+                names_src = names, names_dst = names })
+        else
+            allocate(self, self.n + insert_n, { insert = i, insert_n = insert_n,
+                outer_p = self.p, outer_n = self.n })
+        end
+        local dst_names = get_names(self.s)
+        local src_names = names_from and get_names(names_from) or nil
+        if dst_names and src_names then
+            for j = 0, insert_n - 1 do
+                R.SET_STRING_ELT(dst_names, i - 1 + j, R.STRING_ELT(src_names, j))
+            end
+        end
     end
 
     -- Methods
@@ -169,35 +313,30 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
                 if a < 0 then error("assign: count must be non-negative", 2) end
                 if self.c == byref and a ~= self.n then byref_error("assign") end
                 if self.c == byref or a <= self.c then
-                    self.n = set(self.p, self.s, { fill = b, n = a })
+                    set_inplace(self, { fill = b, n = a }, nil)
                 else
-                    allocate(self, a, { fill = b, n = a })
+                    allocate(self, a, { fill = b, n = a }, R.NilValue)
                 end
             elseif ffi.istype(self, a) and b == nil then
                 -- from vector
                 if self.c == byref and a.n ~= self.n then byref_error("assign") end
                 if self.c == byref or a.n <= self.c then
-                    self.n = set(self.p, self.s, { p = a.p, n = a.n })
+                    set_inplace(self, { p = a.p, n = a.n }, a.s)
                 else
-                    allocate(self, a.n, { p = a.p, n = a.n })
+                    allocate(self, a.n, { p = a.p, n = a.n }, a.s)
                 end
             elseif vectorish(a) and b == nil then
                 -- from vector-ish object
                 if self.c == byref and #a ~= self.n then byref_error("assign") end
+                local src_sexp = (type(a) ~= "table") and a.s or R.NilValue
                 if self.c == byref or #a <= self.c then
-                    self.n = set(self.p, self.s, { copy = a, n = #a })
+                    set_inplace(self, { copy = a, n = #a }, src_sexp)
                 else
-                    allocate(self, #a, { copy = a, n = #a })
+                    allocate(self, #a, { copy = a, n = #a }, src_sexp)
                 end
             else
                 error("cannot use vector:assign with argument types " ..
                     type(a) .. ", " .. type(b) .. ".", 2)
-            end
-        end,
-
-        print = function(self)
-            for k,v in pairs(self) do
-                print(k,v)
             end
         end,
 
@@ -254,6 +393,7 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
             elseif self.c == alias then
                 allocate(self, 0, { n = 0 })
             else
+                self:unname()
                 self.n = 0
             end
         end,
@@ -270,6 +410,10 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
                     if n > self.c then
                         allocate(self, n, { p = self.p, n = self.n })
                     end
+                    local names = get_names(self.s)
+                    if names then
+                        for j = self.n, n - 1 do R.SET_STRING_ELT(names, j, R.BlankString) end
+                    end
                     self.n = n
                 end
             end
@@ -278,14 +422,15 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
         push_back = function(self, value)
             if value == nil then error("push_back: value must not be nil", 2) end
             if self.c == byref then byref_error("push_back") end
-            -- If no capacity, reallocate double the space (min. 1)
             if self.c == alias then
                 allocate(self, math.max(1, self.n * 2), { p = self.p, n = self.n })
             elseif self.c < self.n + 1 then
                 allocate(self, math.max(1, self.c * 2), { p = self.p, n = self.n })
             end
             self.n = self.n + 1
-            op_write(self, self.n, value)
+            op_writev(self, self.n, value)
+            local names = get_names(self.s)
+            if names then R.SET_STRING_ELT(names, self.n - 1, R.BlankString) end
         end,
 
         pop_back = function(self)
@@ -308,31 +453,16 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
             if type(a) == "number" and is_val(b) then
                 -- a copies of b
                 if a < 0 then error("insert: count must be non-negative", 2) end
-                if self.n + a <= self.c then
-                    for j = self.n,i,-1 do op_set(self, j + a, self.p[j]) end
-                    self.n = self.n + a
-                else
-                    allocate(self, self.n + a, { insert = i, insert_n = a, outer_p = self.p, outer_n = self.n })
-                end
-                for j = i,i+a-1 do op_write(self, j, b) end
+                insert_shift(self, i, a, nil)
+                for j = i, i+a-1 do op_writev(self, j, b) end
             elseif ffi.istype(self, a) and b == nil then
                 -- from vector
-                if self.n + #a <= self.c then
-                    for j = self.n,i,-1 do op_set(self, j + #a, self.p[j]) end
-                    self.n = self.n + #a
-                else
-                    allocate(self, self.n + #a, { insert = i, insert_n = #a, outer_p = self.p, outer_n = self.n })
-                end
+                insert_shift(self, i, #a, a.s)
                 op_copy(self.p, self.s, i, a.p, #a)
             elseif vectorish(a) and b == nil then
                 -- from vector-ish object
-                if self.n + #a <= self.c then
-                    for j = self.n,i,-1 do op_set(self, j + #a, self.p[j]) end
-                    self.n = self.n + #a
-                else
-                    allocate(self, self.n + #a, { insert = i, insert_n = #a, outer_p = self.p, outer_n = self.n })
-                end
-                for j = 1,#a do op_write(self, i + j - 1, a[j]) end
+                insert_shift(self, i, #a, (type(a) ~= "table") and a.s or R.NilValue)
+                for j = 1, #a do op_writev(self, i + j - 1, a[j]) end
             else
                 error("cannot use vector:insert with argument types " ..
                     type(a) .. ", " .. type(b) .. ".", 2)
@@ -349,8 +479,9 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
             if self.c == alias then
                 allocate(self, self.n - ndel, { erase = first, erase_last = last, outer_p = self.p, outer_n = self.n })
             else
-                for j = first, self.n - ndel do op_set(self, j, self.p[j + ndel]) end
-                self.n = self.n - ndel
+                local names = get_names(self.s)
+                self.n = set(self.p, self.s, { erase = first, erase_last = last, outer_p = self.p, outer_n = self.n,
+                    names_src = names, names_dst = names })
             end
         end,
 
@@ -359,14 +490,75 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
         end,
 
         -- Attributes
-        attr = function(self, k, v)
+        get_attr = function(self, k)
+            if type(k) ~= "string" then
+                error("Can only get string-keyed attributes.", 2)
+            end
+            return sexp_get_attr(self.s, k)
+        end,
+
+        set_attr = function(self, k, v)
             if type(k) ~= "string" then
                 error("Can only set string-keyed attributes.", 2)
             end
-            if v == nil then
-                return sexp_get_attr(self.s, k)
+            if self.c == alias then self:detach() end
+            if k == "names" and luajr.is_character(v) then
+                local cap = (self.c >= 0) and self.c or self.n
+                if v.n == cap then
+                    R.setAttrib(self.s, R.NamesSymbol, v.s)
+                else
+                    local ns = R.PROTECT(R.allocVector(R.STRSXP, cap))
+                    for i = 0, math.min(self.n, v.n) - 1 do
+                        R.SET_STRING_ELT(ns, i, R.STRING_ELT(v.s, i))
+                    end
+                    R.setAttrib(self.s, R.NamesSymbol, ns)
+                    R.UNPROTECT(1)
+                end
             else
                 sexp_set_attr(self.s, k, v)
+            end
+        end,
+
+        unname = function(self)
+            if self.c == alias then self:detach() end
+            R.setAttrib(self.s, R.NamesSymbol, R.NilValue)
+        end,
+
+        -- Named element access
+        find = function(self, name)
+            local names = R.getAttrib(self.s, R.NamesSymbol)
+            if R.TYPEOF(names) ~= R.STRSXP then return nil end
+            local nn = math.min(R.length(names), self.n)
+            local p = R.STRING_PTR(names)
+            for i = 0, nn - 1 do
+                if from_charsxp(p[i]) == name then
+                    return i + 1
+                end
+            end
+            return nil
+        end,
+
+        get = function(self, name)
+            local i = self:find(name)
+            if i == nil then return nil end
+            return op_readv(self, i)
+        end,
+
+        set = function(self, name, v)
+            local i = self:find(name)
+            if i ~= nil then
+                if self.c == alias then self:detach() end
+                op_writev(self, i, v)
+            else
+                if self.c == byref then byref_error("set") end
+                self:push_back(v)
+                local names = R.getAttrib(self.s, R.NamesSymbol)
+                if R.TYPEOF(names) ~= R.STRSXP then -- if no names / invalid names
+                    names = R.PROTECT(R.allocVector(R.STRSXP, self.c))
+                    R.setAttrib(self.s, R.NamesSymbol, names)
+                    R.UNPROTECT(1)
+                end
+                R.SET_STRING_ELT(names, self.n - 1, to_charsxp(name))
             end
         end
     }
@@ -378,7 +570,7 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
             self.p = nullptr
             self.s = R.NilValue
             if ffi.istype(R.sexp, a) and type(b) == "number" and (b == byref or b == alias) then
-                -- reference or alias
+                -- direct construction of reference or alias
                 self.p = dataptr(a) - 1
                 self.s = a
                 self.c = b
@@ -392,10 +584,11 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
                 allocate(self, a, { fill = b, n = a })
             elseif ffi.istype(ctype, a) and b == nil then
                 -- from vector to copy
-                allocate(self, a.n, { p = a.p, n = a.n })
+                allocate(self, a.n, { p = a.p, n = a.n }, a.s)
             elseif vectorish(a) and b == nil then
                 -- from vector-ish object
-                allocate(self, #a, { copy = a, n = #a })
+                local src_sexp = (type(a) ~= "table") and a.s or R.NilValue
+                allocate(self, #a, { copy = a, n = #a }, src_sexp)
             else
                 error("cannot construct vector with argument types " ..
                     type(a) .. ", " .. type(b) .. ".", 2)
@@ -415,17 +608,43 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
 
         __index = function(self, k)
             if type(k) == "number" then
-                return op_read(self.p, k)
+                return op_readv(self, k)
             else
                 return methods[k]
             end
         end,
 
         __newindex = function(self, k, v)
-            if self.c == alias then
-                allocate(self, self.n, { p = self.p, n = self.n })
+            if self.c == alias then self:detach() end
+            op_writev(self, k, v)
+        end,
+
+        __tostring = function(self)
+            local limit = 100
+            local n = math.min(self.n, limit)
+            local ns = get_names(self.s)
+            local parts = {}
+            local fmt
+            if stype == R.VECSXP then
+                local tnames = { [R.LGLSXP] = "lgl", [R.INTSXP] = "int",
+                    [R.REALSXP] = "num", [R.STRSXP] = "chr", [R.VECSXP] = "list" }
+                fmt = function(i)
+                    local elem = self.p[i]
+                    local tn = tnames[R.TYPEOF(elem)]
+                    if tn then return tn .. "[" .. R.length(elem) .. "]"
+                    else return ffi.string(R.type2char(R.TYPEOF(elem))) end
+                end
+            else
+                fmt = function(i) return tostring(self[i]) end
             end
-            op_write(self, k, v)
+            if ns then
+                local p = R.STRING_PTR(ns)
+                for i = 1, n do parts[i] = from_charsxp(p[i - 1]) .. " = " .. fmt(i) end
+            else
+                for i = 1, n do parts[i] = fmt(i) end
+            end
+            if self.n > limit then parts[n + 1] = "... (" .. self.n .. " elements)" end
+            return table.concat(parts, ", ")
         end,
 
         __pairs = function(self)
@@ -444,15 +663,23 @@ local mt_vector_template = function(is_char, ct, stype, dataptr)
 end
 
 -- Vector type definitions
-luajr.logical   = ffi.metatype("logical_t",   mt_vector_template(false, "int",    R.LGLSXP,  R.LOGICAL))
-luajr.integer   = ffi.metatype("integer_t",   mt_vector_template(false, "int",    R.INTSXP,  R.INTEGER))
-luajr.numeric   = ffi.metatype("numeric_t",   mt_vector_template(false, "double", R.REALSXP, R.REAL))
-luajr.character = ffi.metatype("character_t", mt_vector_template(true,  "SEXP",   R.STRSXP,  R.STRING_PTR))
+luajr.logical   = ffi.metatype("logical_t",   mt_vector_template("int",    R.LGLSXP,  R.LOGICAL))
+luajr.integer   = ffi.metatype("integer_t",   mt_vector_template("int",    R.INTSXP,  R.INTEGER))
+luajr.numeric   = ffi.metatype("numeric_t",   mt_vector_template("double", R.REALSXP, R.REAL))
+luajr.character = ffi.metatype("character_t", mt_vector_template("SEXP",   R.STRSXP,  R.STRING_PTR))
+luajr.list      = ffi.metatype("list_t",      mt_vector_template("SEXP",   R.VECSXP,  function(s) return ffi.cast(sexpp, R.DATAPTR(s)) end))
 
 -- Vector type checkers
 luajr.is_logical   = function(obj) return ffi.istype(luajr.logical, obj) end
 luajr.is_integer   = function(obj) return ffi.istype(luajr.integer, obj) end
 luajr.is_numeric   = function(obj) return ffi.istype(luajr.numeric, obj) end
 luajr.is_character = function(obj) return ffi.istype(luajr.character, obj) end
+luajr.is_list      = function(obj) return ffi.istype(luajr.list, obj) end
+
+-- Typed NA constructors: return length-1 vectors containing NA
+luajr.NA_logical   = function() return luajr.logical(1, luajr.NA_logical_) end
+luajr.NA_integer   = function() return luajr.integer(1, luajr.NA_integer_) end
+luajr.NA_real      = function() return luajr.numeric(1, luajr.NA_real_) end
+luajr.NA_character = function() return luajr.character(1, luajr.NA_character_) end
 
 

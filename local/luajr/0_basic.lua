@@ -5,10 +5,8 @@
 -- 1. INTERNAL API --
 -- 2. LUAJR API BASICS --
 -- 3. VECTOR TYPES --
--- 4. LIST TYPE --
--- 5. PASS TO / RETURN FROM LUA --
--- 6. EXTRA TYPES --
--- 7. DEBUGGER --
+-- 4. EXTRA TYPES --
+-- 5. DEBUGGER --
 
 
 
@@ -38,6 +36,9 @@ local nullptr = ffi.cast("void*", 0)
 -- Pointer-to-pointer type for writing pointer values
 local voidpp = ffi.typeof("void**")
 
+-- Pointer-to-sexp type for writing SEXP values
+local sexpp  = ffi.typeof("SEXP*")
+
 -- "Hidden" sentinel object (unused)
 ffi.cdef[[ typedef struct { int a; } HIDDEN_t; ]]
 local hidden = ffi.new("HIDDEN_t")
@@ -59,6 +60,7 @@ typedef struct { int* p;    SEXP s; double n; double c; } logical_t;
 typedef struct { int* p;    SEXP s; double n; double c; } integer_t;
 typedef struct { double* p; SEXP s; double n; double c; } numeric_t;
 typedef struct { SEXP* p;   SEXP s; double n; double c; } character_t;
+typedef struct { SEXP* p;   SEXP s; double n; double c; } list_t;
 
 // C functions
 void* memcpy(void* dest, const void* src, size_t count);

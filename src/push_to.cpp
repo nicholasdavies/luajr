@@ -113,42 +113,12 @@ static void push_R_list(lua_State* L, SEXP x, char as)
     {
         case 'r':
         case 'v':
-            // Get luajr.construct_list() on the stack
-            lua_pushlightuserdata(L, (void*)&luajr_construct_list);
-            lua_rawget(L, LUA_REGISTRYINDEX);
-
-            // Push two arguments for luajr.construct_list:
-            // 1. A table containing all elements of the list.
-            lua_createtable(L, len, 0);
-
-            // Add each element to table in turn
-            for (int i = 0; i < len; ++i)
-            {
-                luajr_pushsexp(L, VECTOR_ELT(x, i), as);
-                lua_rawseti(L, -2, i + 1);
-            }
-
-            // 2. A table with mappings from names to integer keys
-            lua_createtable(L, 0, n_named);
-
-            // Add each name
-            if (names != R_NilValue)
-            {
-                for (int i = 0; i < len; ++i)
-                {
-                    if (LENGTH(STRING_ELT(names, i)) > 0)
-                    {
-                        lua_pushstring(L, CHAR(STRING_ELT(names, i)));
-                        lua_pushinteger(L, i + 1);
-                        lua_rawset(L, -3);
-                    }
-                }
-            }
-
-            // Call luajr.construct_list
-            luajr_pcall(L, 2, 1, "luajr.construct_list() from push_R_list()", LUAJR_TOOLING_NONE);
-
+        {
+            void* p = (void*)((SEXP*)DATAPTR(x) - 1);
+            double c_val = (as == 'r') ? -1.0 : -2.0;
+            luajr_push_vector_cdata(L, VECSXP, p, (void*)x, (double)xlen, c_val);
             break;
+        }
 
         case 's':
             // Create a table on the stack with len elements, len - n_named of
@@ -295,163 +265,54 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
         }
         case LUA_TTABLE:
         {
-            // Get luajr.return_info() on the stack
-            lua_pushlightuserdata(L, (void*)&luajr_return_info);
-            lua_rawget(L, LUA_REGISTRYINDEX);
-
-            // Call it with table arg
-            lua_pushvalue(L, index);
-            luajr_pcall(L, 1, 2, "luajr.return_info() from luajr_tosexp() [1]", LUAJR_TOOLING_NONE);
-
-            // If not a known table type, return normal table
-            if (lua_isnil(L, -2))
+            // First pass: count table entries of each type.
+            size_t narr = 0, nrec = 0;
+            lua_pushnil(L);
+            while (lua_next(L, index) != 0)
             {
-                // Add each entry to a list
-                lua_pop(L, 2); // clear two return values
-
-                // First pass: count table entries of each type.
-                size_t narr = 0, nrec = 0;
-                lua_pushnil(L);
-                while (lua_next(L, index) != 0)
-                {
-                    if      (lua_type(L, -2) == LUA_TNUMBER) ++narr;
-                    else if (lua_type(L, -2) == LUA_TSTRING) ++nrec;
-                    else
-                        luajr_pop_stop(L, 2, "Lua type %s keys cannot be represented in an R list.",
-                            lua_typename(L, lua_type(L, -2)));
-                    lua_pop(L, 1);
-                }
-
-                if (narr + nrec >= LJ_MAX_ASIZE)
-                    Rf_error("Table is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
-                        LJ_MAX_ASIZE - 1, (double)(narr + nrec));
-
-                // Create list and names
-                SEXP retval = PROTECT(Rf_allocVector(VECSXP, narr + nrec));
-                SEXP names = R_NilValue;
-                if (nrec > 0)
-                    names = PROTECT(Rf_allocVector(STRSXP, narr + nrec));
-
-                // Second pass: add all entries to list.
-                int arr_i = 0, rec_i = narr;
-                lua_pushnil(L);
-                while (lua_next(L, index) != 0)
-                {
-                    SEXP val = PROTECT(luajr_tosexp(L, -1));
-                    if (lua_type(L, -2) == LUA_TNUMBER)
-                    {
-                        SET_VECTOR_ELT(retval, arr_i, val);
-                        ++arr_i;
-                    }
-                    else
-                    {
-                        SET_VECTOR_ELT(retval, rec_i, val);
-                        SET_STRING_ELT(names, rec_i, Rf_mkChar(lua_tostring(L, -2)));
-                        ++rec_i;
-                    }
-                    lua_pop(L, 1);
-                    UNPROTECT(1);
-                }
-
-                // Name and return
-                Rf_setAttrib(retval, R_NamesSymbol, names);
-                UNPROTECT(1 + (nrec > 0));
-                return retval;
+                if      (lua_type(L, -2) == LUA_TNUMBER) ++narr;
+                else if (lua_type(L, -2) == LUA_TSTRING) ++nrec;
+                else
+                    luajr_pop_stop(L, 2, "Lua type %s keys cannot be represented in an R list.",
+                        lua_typename(L, lua_type(L, -2)));
+                lua_pop(L, 1);
             }
 
-            // If is a known table type
-            int type = lua_tointeger(L, -2);
-            R_xlen_t size = lua_tonumber(L, -1);
-            lua_pop(L, 2);
+            if (narr + nrec >= LJ_MAX_ASIZE)
+                Rf_error("Table is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
+                    LJ_MAX_ASIZE - 1, (double)(narr + nrec));
 
-            // List type
-            if (type == VECSXP)
+            // Create list and names
+            SEXP retval = PROTECT(Rf_allocVector(VECSXP, narr + nrec));
+            SEXP names = R_NilValue;
+            if (nrec > 0)
+                names = PROTECT(Rf_allocVector(STRSXP, narr + nrec));
+
+            // Second pass: add all entries to list.
+            int arr_i = 0, rec_i = narr;
+            lua_pushnil(L);
+            while (lua_next(L, index) != 0)
             {
-                if (size >= LJ_MAX_ASIZE)
-                    Rf_error("List is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
-                        LJ_MAX_ASIZE - 1, (double)size);
-
-                // Add each entry to a list
-                SEXP retval = PROTECT(Rf_allocVector(VECSXP, size));
-
-                // Get the list contents on the stack
-                lua_rawgeti(L, index, 0); // get list[0]
-
-                // Put all entries into the list
-                lua_pushnil(L);
-                while (lua_next(L, -2) != 0)
+                SEXP val = PROTECT(luajr_tosexp(L, -1));
+                if (lua_type(L, -2) == LUA_TNUMBER)
                 {
-                    SEXP val = PROTECT(luajr_tosexp(L, -1));
-                    if (lua_type(L, -2) == LUA_TNUMBER) // List element
-                    {
-                        SET_VECTOR_ELT(retval, lua_tointeger(L, -2) - 1, val);
-                    }
-                    else if (lua_type(L, -2) == LUA_TSTRING) // Attribute
-                    {
-                        const char* attr_name = lua_tostring(L, -2);
-                        if (std::strcmp(attr_name, "names") == 0) // Special behaviour for names attribute
-                        {
-                            if (size > 0)
-                            {
-                                if (TYPEOF(val) != VECSXP)
-                                    luajr_pop_stop(L, 3, "Malformed luajr list: names mapping is not a VECSXP.");
-                                if (Rf_length(val) > 0)
-                                {
-                                    SEXP setnames = Rf_getAttrib(val, R_NamesSymbol);
-                                    if (setnames == R_NilValue || TYPEOF(setnames) != STRSXP)
-                                        luajr_pop_stop(L, 3, "Malformed luajr list: names mapping has no names attribute.");
-                                    SEXP names = PROTECT(Rf_allocVector(STRSXP, size));
-                                    for (int i = 0; i < Rf_length(val); ++i) {
-                                        SEXP elt = VECTOR_ELT(val, i);
-                                        if (TYPEOF(elt) != REALSXP || Rf_xlength(elt) < 1)
-                                            luajr_pop_stop(L, 3, "Malformed luajr list: names mapping element is not a scalar real.");
-                                        int nm_index = REAL(elt)[0] - 1;
-                                        if (nm_index < 0 || nm_index >= size)
-                                            luajr_pop_stop(L, 3, "Malformed luajr list: names index %d out of bounds [0, %d).", nm_index, (int)size);
-                                        SET_STRING_ELT(names, nm_index, STRING_ELT(setnames, i));
-                                    }
-                                    Rf_setAttrib(retval, R_NamesSymbol, names);
-                                    UNPROTECT(1);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Rf_setAttrib(retval, Rf_install(attr_name), val);
-                        }
-                    }
-                    else
-                    {
-                        luajr_pop_stop(L, 3, "Lua type %s keys cannot be represented in an R list.",
-                            lua_typename(L, lua_type(L, -2)));
-                    }
-                    UNPROTECT(1);
-                    lua_pop(L, 1);
+                    SET_VECTOR_ELT(retval, arr_i, val);
+                    ++arr_i;
                 }
-
-                // Special check: ensure data.frame has rownames attribute
-                // If retval is data.frame with at least one column, but no row names:
-                if (Rf_inherits(retval, "data.frame") && size > 0 &&
-                    Rf_getAttrib(retval, R_RowNamesSymbol) == R_NilValue)
+                else
                 {
-                    // R has a special shorthand for "short" rownames: c(NA_integer_, nrow) (see attrib.c)
-                    // TODO This will fail if the number of rows is 2^31 or higher. However, it also seems
-                    // that R itself cannot handle such long data.frames either (as of R 4.5.1).
-                    SEXP rownames = PROTECT(Rf_allocVector(INTSXP, 2));
-                    INTEGER(rownames)[0] = NA_INTEGER;
-                    INTEGER(rownames)[1] = Rf_length(VECTOR_ELT(retval, 0));
-                    Rf_setAttrib(retval, R_RowNamesSymbol, rownames);
-                    UNPROTECT(1);
+                    SET_VECTOR_ELT(retval, rec_i, val);
+                    SET_STRING_ELT(names, rec_i, Rf_mkChar(lua_tostring(L, -2)));
+                    ++rec_i;
                 }
-
-                // Return
-                lua_pop(L, 1); // pop list[0]
+                lua_pop(L, 1);
                 UNPROTECT(1);
-                return retval;
             }
 
-            // Unknown table type
-            Rf_error("Unknown table type");
+            // Name and return
+            Rf_setAttrib(retval, R_NamesSymbol, names);
+            UNPROTECT(1 + (nrec > 0));
+            return retval;
         }
         case LUA_TLIGHTUSERDATA:
         case LUA_TUSERDATA:
@@ -469,19 +330,31 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
         }
         case LUA_TCDATA:
         {
-            // Recognized cdata: bare SEXP, one of the four luajr vector
-            // types, or any null pointer cdata (which becomes R_NilValue).
-            void* sptr = NULL;
-            ptrdiff_t status = luajr_get_sexp_cdata(L, index, &sptr);
+            // Recognized cdata: bare SEXP, a luajr vector type or any null
+            // pointer cdata (which becomes R_NilValue).
+            SEXP s = NULL;
+            ptrdiff_t status = luajr_get_sexp_cdata(L, index, (void**)&s);
             if (status == -2)
                 Rf_error("Cannot return cdata of this type to R.");
-            if (sptr == NULL) return R_NilValue;
-            SEXP s = (SEXP)sptr;
-            if (status >= 0)
-                // Shrink: Rf_xlengthgets allocates a new SEXP, copies
-                // elements, truncates names, and copies remaining
-                // attributes (excluding dim/dimnames) via copyMostAttrib.
-                return Rf_xlengthgets(s, (R_xlen_t)status);
+            if (s == NULL)
+                return R_NilValue;
+
+            if (status >= 0 && Rf_xlength(s) != status)
+            {
+                // Shrink (truncates names, copyMostAttrib for others)
+                s = Rf_xlengthgets(s, (R_xlen_t)status);
+            }
+            // For data.frame, supply a row.names attribute if missing.
+            if (TYPEOF(s) == VECSXP && Rf_length(s) > 0 && Rf_inherits(s, "data.frame") &&
+                Rf_getAttrib(s, R_RowNamesSymbol) == R_NilValue)
+            {
+                // Short-form rownames: c(NA_integer_, nrow) (see attrib.c).
+                SEXP rownames = PROTECT(Rf_allocVector(INTSXP, 2));
+                INTEGER(rownames)[0] = NA_INTEGER;
+                INTEGER(rownames)[1] = Rf_length(VECTOR_ELT(s, 0));
+                Rf_setAttrib(s, R_RowNamesSymbol, rownames);
+                UNPROTECT(1);
+            }
             return s;
         }
         default:

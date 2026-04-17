@@ -19,7 +19,7 @@ test_that("pass by reference works", {
     expect_identical(lua_func("function(x) x[1] = 0 return x end", "r")(c(1L, rep(0L, 9))), rep(0L, 10))
     expect_identical(lua_func("function(x) x[1] = x[1] + 1 return x end", "r")(pi - 1), pi)
     expect_identical(lua_func("function(x) x[1] = 'a' return x end", "r")(c('b', 'b', 'c')), letters[1:3])
-    expect_identical(lua_func("function(x) x.b[1] = math.pi return x end", "r")(list(a = 1, b = 0, letters)), list(a = 1, b = pi, letters))
+    expect_identical(lua_func("function(x) x:set('b', math.pi) return x end", "r")(list(a = 1, b = 0, letters)), list(a = 1, b = pi, letters))
 })
 
 test_that("pass by value works", {
@@ -36,7 +36,7 @@ test_that("pass by value works", {
     expect_identical(lua_func("function(x) x[1] = 0 return x end", "v")(c(1L, rep(0L, 9))), rep(0L, 10))
     expect_identical(lua_func("function(x) x[1] = x[1] + 1 return x end", "v")(pi - 1), pi)
     expect_identical(lua_func("function(x) x[1] = 'a' return x end", "v")(c('b', 'b', 'c')), letters[1:3])
-    expect_identical(lua_func("function(x) x.b[1] = math.pi return x end", "v")(list(a = 1, b = 0, letters)), list(a = 1, b = pi, letters))
+    expect_identical(lua_func("function(x) x:set('b', math.pi) return x end", "v")(list(a = 1, b = 0, letters)), list(a = 1, b = pi, letters))
 })
 
 # In testing argument passing, check the 7 R types that luajr can pass to Lua:

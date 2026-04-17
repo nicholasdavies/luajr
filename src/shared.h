@@ -10,8 +10,6 @@ struct lua_State;
 extern lua_State* L0;
 
 // luajr Lua module API registry keys
-extern int luajr_construct_list;
-extern int luajr_return_info;
 extern int luajr_get_func_info;
 
 // We declare all functions to have C linkage to avoid name mangling and allow

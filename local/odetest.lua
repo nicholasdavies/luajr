@@ -56,16 +56,20 @@ function run()
 
     -- Solution storage
     local df = luajr.dataframe()
-    df.time = luajr.numeric(1000, 0)
-    df.S = luajr.numeric(1000, 0)
-    df.I = luajr.numeric(1000, 0)
-    df.R = luajr.numeric(1000, 0)
+    local d_time = luajr.numeric(1000, 0)
+    local d_S = luajr.numeric(1000, 0)
+    local d_I = luajr.numeric(1000, 0)
+    local d_R = luajr.numeric(1000, 0)
+    df:set("time", d_time)
+    df:set("S", d_S)
+    df:set("I", d_I)
+    df:set("R", d_R)
 
     for t = 1,1000 do
-        df.time[t] = t
-        df.S[t] = x.S
-        df.I[t] = x.I
-        df.R[t] = x.R
+        d_time[t] = t
+        d_S[t] = x.S
+        d_I[t] = x.I
+        d_R[t] = x.R
 
         rk4_step(t, 1.0, x, k1, k2, k3, k4, q)
     end

@@ -1,5 +1,5 @@
 --------------------
--- 6. EXTRA TYPES --
+-- 4. EXTRA TYPES --
 --------------------
 
 -- Attribute set/getters
@@ -8,29 +8,33 @@ sexp_get_attr = function(s, k)
     local t = R.TYPEOF(a)
     if t == R.NILSXP then return nil end
     if t == R.LGLSXP then
-        return luajr.logical(a, byref)
+        return luajr.logical(a, alias)
     elseif t == R.INTSXP then
-        return luajr.integer(a, byref)
+        return luajr.integer(a, alias)
     elseif t == R.REALSXP then
-        return luajr.numeric(a, byref)
+        return luajr.numeric(a, alias)
     elseif t == R.STRSXP then
-        return luajr.character(a, byref)
+        return luajr.character(a, alias)
+    elseif t == R.VECSXP then
+        return luajr.list(a, alias)
     else
         error("Cannot get attribute of type " .. R.type_string(a))
     end
 end
 
 sexp_set_attr = function(s, k, v)
-    if k == "/matrix/colnames" and luajr.is_character(v) then
-        local dimnames = R.allocVector(R.VECSXP, 2)
-        R.PROTECT(dimnames)
-        R.SET_VECTOR_ELT(dimnames, 0, R.NilValue)
-        R.SET_VECTOR_ELT(dimnames, 1, v.s)
-        R.dimnamesgets(s, dimnames)
-        R.UNPROTECT(1)
-    elseif luajr.is_logical(v) or luajr.is_integer(v) or
-           luajr.is_numeric(v) or luajr.is_character(v) then
+    if luajr.is_logical(v) or luajr.is_integer(v) or
+       luajr.is_numeric(v) or luajr.is_character(v) or
+       luajr.is_list(v) then
         R.setAttrib(s, R.install(k), v.s)
+    elseif ffi.istype(R.sexp, v) then
+        R.setAttrib(s, R.install(k), v)
+    elseif type(v) == "number" then
+        R.setAttrib(s, R.install(k), R.ScalarReal(v))
+    elseif type(v) == "boolean" then
+        R.setAttrib(s, R.install(k), R.ScalarLogical(v))
+    elseif type(v) == "string" then
+        R.setAttrib(s, R.install(k), R.ScalarString(R.mkChar(v)))
     else
         error("No attribute setter for type " .. type(v) .. ".")
     end
@@ -45,33 +49,35 @@ end
 -- dataframe type
 function luajr.dataframe()
     local df = luajr.list()
-    df[0].class = "data.frame"
-
+    df:set_attr("class", "data.frame")
     return df
 end
 
--- matrix reference type: specify nrow and ncol
-function luajr.matrix_r(nrow, ncol)
+-- matrix type: specify nrow and ncol
+function luajr.matrix(nrow, ncol)
     local m = luajr.numeric(nrow * ncol, 0.0)
 
     -- Make dimensions
     local dim = luajr.integer(2)
     dim[1] = nrow
     dim[2] = ncol
-    m:attr("dim", dim)
+    m:set_attr("dim", dim)
 
     return m
 end
 
--- datamatrix reference type: specify nrow, ncol, and column names
-function luajr.datamatrix_r(nrow, ncol, names)
-    local m = luajr.matrix_r(nrow, ncol)
+-- datamatrix type: specify nrow, ncol, and column names
+function luajr.datamatrix(nrow, ncol, names)
+    local m = luajr.matrix(nrow, ncol)
 
-    -- Make column names
-    if #names > ncol then error("Supplied more names than columns to luajr.datamatrix_r.") end
+    -- Make column names via dimnames list
+    if #names > ncol then error("Supplied more names than columns to luajr.datamatrix.") end
     local colnames = luajr.character(ncol)
     for i = 1,#names do colnames[i] = names[i] end
-    m:attr("/matrix/colnames", colnames)
+    local dimnames = luajr.list()
+    dimnames:push_back(R.NilValue)
+    dimnames:push_back(colnames)
+    R.dimnamesgets(m.s, dimnames.s)
 
     return m
 end
@@ -79,7 +85,7 @@ end
 
 
 -----------------
--- 7. DEBUGGER --
+-- 5. DEBUGGER --
 -----------------
 
 -- Debugger module

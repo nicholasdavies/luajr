@@ -19,8 +19,9 @@
 #define INTSXP   13
 #define REALSXP  14
 #define STRSXP   16
+#define VECSXP   19
 
-/* Cached CTypeIDs for SEXP and the four luajr vector types. Populated on
+/* Cached CTypeIDs for SEXP and the five luajr vector types. Populated on
  * first use; consistent across states because R.lua / luajr.lua's cdef order is
  * deterministic (these typedefs are among the very first declared). */
 static CTypeID luajr_sexp_ctype_id = 0;
@@ -28,9 +29,10 @@ static CTypeID luajr_logical_ctype_id = 0;
 static CTypeID luajr_integer_ctype_id = 0;
 static CTypeID luajr_numeric_ctype_id = 0;
 static CTypeID luajr_character_ctype_id = 0;
+static CTypeID luajr_list_ctype_id = 0;
 
-/* Common memory layout for all four luajr vector types (logical_t,
- * integer_t, numeric_t, character_t). They differ only in the type of
+/* Common memory layout for all five luajr vector types (logical_t,
+ * integer_t, numeric_t, character_t, list_t). They differ only in the type of
  * their first field (a data pointer), but the offsets of s, n, c are
  * the same. */
 typedef struct {
@@ -64,6 +66,7 @@ static void luajr_ensure_ctype_ids(lua_State *L)
     luajr_integer_ctype_id   = luajr_lookup_typedef(cts, lj_str_newlit(L, "integer_t"));
     luajr_numeric_ctype_id   = luajr_lookup_typedef(cts, lj_str_newlit(L, "numeric_t"));
     luajr_character_ctype_id = luajr_lookup_typedef(cts, lj_str_newlit(L, "character_t"));
+    luajr_list_ctype_id      = luajr_lookup_typedef(cts, lj_str_newlit(L, "list_t"));
 }
 
 /* Push a SEXP (passed as void*) onto the Lua stack as a cdata of type SEXP. */
@@ -102,6 +105,7 @@ extern void luajr_push_vector_cdata(lua_State *L, int sxp_type,
         case INTSXP:  id = luajr_integer_ctype_id;   break;
         case REALSXP: id = luajr_numeric_ctype_id;   break;
         case STRSXP:  id = luajr_character_ctype_id; break;
+        case VECSXP:  id = luajr_list_ctype_id;      break;
         default: return;  /* unknown: leave stack unchanged */
     }
     GCcdata *cd = lj_cdata_new(cts, id, sizeof(luajr_vector_t));
@@ -147,7 +151,8 @@ extern ptrdiff_t luajr_get_sexp_cdata(lua_State *L, int index, void **out_s)
         return -1;
     }
     if (id == luajr_logical_ctype_id || id == luajr_integer_ctype_id ||
-        id == luajr_numeric_ctype_id || id == luajr_character_ctype_id)
+        id == luajr_numeric_ctype_id || id == luajr_character_ctype_id ||
+        id == luajr_list_ctype_id)
     {
         /* Stored value follows luajr_vector_t layout. */
         luajr_vector_t *v = (luajr_vector_t *)cdataptr(cd);

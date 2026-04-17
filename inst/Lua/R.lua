@@ -22,6 +22,7 @@ typedef unsigned int SEXPTYPE;
 typedef unsigned char Rbyte;
 
 // === R API declarations ===
+void* DATAPTR(SEXP x);
 void DUPLICATE_ATTRIB(SEXP to, SEXP from);
 int* INTEGER(SEXP x);
 int* LOGICAL(SEXP x);
@@ -44,6 +45,7 @@ SEXP Rf_mkCharLen(const char *, int);
 SEXP Rf_protect(SEXP);
 SEXP Rf_ScalarLogical(int);
 SEXP Rf_ScalarReal(double);
+SEXP Rf_ScalarString(SEXP);
 SEXP Rf_setAttrib(SEXP, SEXP, SEXP);
 const char* Rf_type2char(SEXPTYPE);
 void Rf_unprotect(int);
@@ -123,6 +125,7 @@ end
 R.allocVector = C.Rf_allocVector
 R.CHAR = C.R_CHAR
 R.copyMostAttrib = C.Rf_copyMostAttrib
+R.DATAPTR = C.DATAPTR
 R.dimnamesgets = C.Rf_dimnamesgets
 R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
 R.ExternalPtrAddr = C.R_ExternalPtrAddr
@@ -142,6 +145,7 @@ R.REAL = C.REAL
 R.ReleaseObject = C.R_ReleaseObject
 R.ScalarLogical = C.Rf_ScalarLogical
 R.ScalarReal = C.Rf_ScalarReal
+R.ScalarString = C.Rf_ScalarString
 R.SET_STRING_ELT = C.SET_STRING_ELT
 R.SET_VECTOR_ELT = C.SET_VECTOR_ELT
 R.setAttrib = C.Rf_setAttrib
