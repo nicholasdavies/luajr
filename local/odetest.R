@@ -92,8 +92,8 @@ bench(
 #   <bch:expr>                   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list>     <list>     <list>     <list>
 # 1 g <- gradient(0, yini, c())     656ns 820.03ns   695200.        0B    27.8  100000     4    143.8ms <list [1]> <Rprofmem> <bench_tm> <tibble>
 # 2 g <- gradient2(0, yini, c())    328ns    410ns  1948302.        0B    39.0  100000     2     51.3ms <list [1]> <Rprofmem> <bench_tm> <tibble>
-# 3 g <- gradient3(0, yini, c())    287ns    451ns   781558.        0B     7.82 100000     1      128ms <list [1]> <Rprofmem [0 × 3]> <bench_tm> <tibble>
-# 4 g <- gradient4(0, yini, c())    205ns    328ns  2419934.        0B    24.2  100000     1     41.3ms <list [1]> <Rprofmem [0 × 3]> <bench_tm> <tibble>
+# 3 g <- gradient3(0, yini, c())    287ns    410ns   977340.        0B     9.77 100000     1    102.3ms <list [1]> <Rprofmem> <bench_tm> <tibble>
+# 4 g <- gradient4(0, yini, c())    205ns    287ns  2510105.        0B    24.2  100000     1     41.3ms <list [1]> <Rprofmem [0 × 3]> <bench_tm> <tibble>
 
 bench(
     out <- ode(yini, times, gradient, c(), method = "rk4"),

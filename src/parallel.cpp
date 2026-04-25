@@ -14,6 +14,9 @@ extern "C" {
 #include "lauxlib.h"
 }
 
+// Workers struct (matches workers_t in luajr.lua)
+struct workers_t { lua_State** l; int n; };
+
 // Open [threads] new Lua states (or use [threads] if a list of states), run
 // code [pre] in each one, then run "return [func]" to get a function. Call the
 // func(i) with i in 1 to n.
@@ -232,4 +235,199 @@ extern "C" SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre)
 
     UNPROTECT(nprotect);
     return result;
+}
+
+
+
+
+// lua_CFunction: load a function + args into all worker states.
+// Lua args: (workers_t, function, args...)
+extern "C" int luajr_parallel_load(lua_State* L)
+{
+    workers_t* w = (workers_t*)lua_topointer(L, 1);
+    int nvalues = lua_gettop(L) - 1;
+
+    for (int t = 0; t < w->n; ++t)
+    {
+        lua_settop(w->l[t], 0);
+        for (int a = 1; a <= nvalues; ++a)
+            luajr_xpush(L, 1 + a, w->l[t]);
+    }
+    return 0;
+}
+
+// Get a hint as to the number of concurrent threads.
+extern "C" int luajr_parallel_ncores()
+{
+    return std::thread::hardware_concurrency();
+}
+
+// Initialise workers: open w->n states.
+// May reduce w->n in debug/profile mode.
+extern "C" void luajr_parallel_newworkers(workers_t* w)
+{
+    // Don't multi-thread in debug mode
+    bool single_thread = false;
+    if (luajr_debug_mode()) {
+        single_thread = true;
+        Rf_warningcall_immediate(R_NilValue, "luajr debugger is active, so luajr.workers will only use one thread.");
+    } else if (luajr_profile_mode()) {
+        single_thread = true;
+        Rf_warningcall_immediate(R_NilValue, "luajr profiler is active, so luajr.workers will only use one thread.");
+    }
+
+    w->n = single_thread ? 1 : w->n;
+    if (w->n <= 0)
+        Rf_error("Invalid number of threads.");
+
+    w->l = new lua_State*[w->n];
+    for (int t = 0; t < w->n; ++t)
+        w->l[t] = luajr_newstate();
+}
+
+// Close workers and free state array.
+extern "C" void luajr_parallel_closeworkers(workers_t* w)
+{
+    for (int t = 0; t < w->n; ++t)
+        lua_close(w->l[t]);
+    delete[] w->l;
+    w->l = NULL;
+    w->n = 0;
+}
+
+// Run the preloaded function in each worker, sequentially.
+// Each worker's stack has [function, arg1, arg2, ...] from parallel_load.
+// Calls function(arg1, arg2, ..., thread_id) with 1-based thread_id as last arg.
+extern "C" void luajr_parallel_srun(workers_t* w)
+{
+    for (int t = 0; t < w->n; ++t)
+    {
+        int nargs = lua_gettop(w->l[t]) - 1;
+        for (int i = 1; i <= nargs + 1; ++i)
+            lua_pushvalue(w->l[t], i);
+        lua_pushinteger(w->l[t], t + 1);
+        int err = luajr_pcall(w->l[t], nargs + 1, 0, "parallel_srun", LUAJR_TOOLING_ALL);
+        if (err)
+        {
+            const char* msg = lua_tostring(w->l[t], -1);
+            Rf_error("parallel_srun: error in worker %d: %s", t, msg ? msg : "(unknown)");
+        }
+        luajr_profile_collect(w->l[t]);
+    }
+}
+
+// Run the preloaded function in each worker, in parallel.
+// Each worker's stack has [function, arg1, arg2, ...] from parallel_load.
+// Calls function(arg1, arg2, ..., thread_id) with 1-based thread_id as last arg.
+extern "C" void luajr_parallel_prun(workers_t* w)
+{
+    static const int tflags = LUAJR_NO_PROFILE_COLLECT | LUAJR_NO_ERROR_HANDLING | LUAJR_TOOLING_ALL;
+    std::string error_msg;
+    std::mutex pm;
+
+    auto work = [&](int t)
+    {
+        int nargs = lua_gettop(w->l[t]) - 1;
+        for (int i = 1; i <= nargs + 1; ++i)
+            lua_pushvalue(w->l[t], i);
+        lua_pushinteger(w->l[t], t + 1);
+        int err = luajr_pcall(w->l[t], nargs + 1, 0, "parallel_prun", tflags);
+        if (err)
+        {
+            std::lock_guard<std::mutex> lock { pm };
+            if (error_msg.empty())
+            {
+                error_msg.assign(1024, ' ');
+                luajr_handle_lua_error(w->l[t], err, "parallel_prun", error_msg.data());
+            }
+        }
+    };
+
+    // During parallel execution, console input is not available.
+    // Use single thread if only one worker (allows debugger to work).
+    if (w->n > 1)
+    {
+        std::vector<std::thread> thr;
+        for (int t = 0; t < w->n; ++t)
+            thr.emplace_back(work, t);
+        for (int t = 0; t < w->n; ++t)
+            thr[t].join();
+    }
+    else
+    {
+        work(0);
+    }
+
+    // Collect any profiler data
+    for (int t = 0; t < w->n; ++t)
+        luajr_profile_collect(w->l[t]);
+
+    if (!error_msg.empty())
+        Rf_error("%s", error_msg.c_str());
+}
+
+// Run the preloaded function across a range of iterations, distributed
+// across workers using atomic work-stealing.
+// Each worker's stack has [function, arg1, arg2, ...] from parallel_load.
+// Calls function(i, arg1, arg2, ..., thread_id) for each iteration i in [i0, i1].
+extern "C" void luajr_parallel_pfor(workers_t* w, int i0, int i1)
+{
+    static const int tflags = LUAJR_NO_PROFILE_COLLECT | LUAJR_NO_ERROR_HANDLING | LUAJR_TOOLING_ALL;
+    std::atomic<int> iter { i0 };
+    std::string error_msg;
+    std::mutex pm;
+
+    auto work = [&](int t)
+    {
+        int nargs = lua_gettop(w->l[t]) - 1;
+
+        for (int i = iter++; i <= i1; i = iter++)
+        {
+            // Copy function and preloaded args
+            for (int j = 1; j <= nargs + 1; ++j)
+                lua_pushvalue(w->l[t], j);
+            // Insert iteration index as first arg (after function)
+            lua_pushinteger(w->l[t], i);
+            // Move i before the preloaded args: swap it into position
+            // Stack is now: [...base...] [func] [arg1] ... [argN] [i]
+            // Want:         [...base...] [func] [i] [arg1] ... [argN] [thread_id]
+            lua_insert(w->l[t], lua_gettop(w->l[t]) - nargs);
+            // Append thread_id as last arg
+            lua_pushinteger(w->l[t], t + 1);
+
+            int err = luajr_pcall(w->l[t], nargs + 2, 0, "parallel_pfor", tflags);
+            if (err)
+            {
+                std::lock_guard<std::mutex> lock { pm };
+                if (error_msg.empty())
+                {
+                    error_msg.assign(1024, ' ');
+                    luajr_handle_lua_error(w->l[t], err, "parallel_pfor", error_msg.data());
+                }
+            }
+            if (!error_msg.empty())
+                return;
+        }
+    };
+
+    // Single-thread path for debugger compatibility
+    if (w->n > 1)
+    {
+        std::vector<std::thread> thr;
+        for (int t = 0; t < w->n; ++t)
+            thr.emplace_back(work, t);
+        for (int t = 0; t < w->n; ++t)
+            thr[t].join();
+    }
+    else
+    {
+        work(0);
+    }
+
+    // Collect any profiler data
+    for (int t = 0; t < w->n; ++t)
+        luajr_profile_collect(w->l[t]);
+
+    if (!error_msg.empty())
+        Rf_error("%s", error_msg.c_str());
 }

@@ -6,7 +6,8 @@
 -- 2. LUAJR API BASICS --
 -- 3. VECTOR TYPES --
 -- 4. EXTRA TYPES --
--- 5. DEBUGGER --
+-- 5. PARALLEL --
+-- 6. DEBUGGER --
 
 
 
@@ -53,18 +54,35 @@ local hidden = ffi.new("HIDDEN_t")
 ffi.cdef[[
 // Forward declarations
 struct SEXPREC;
+struct lua_State;
+typedef struct lua_State lua_State;
 typedef struct SEXPREC* SEXP;
 
-// Vector types
+// R vector types
 typedef struct { int* p;    SEXP s; double n; double c; } logical_t;
 typedef struct { int* p;    SEXP s; double n; double c; } integer_t;
 typedef struct { double* p; SEXP s; double n; double c; } numeric_t;
 typedef struct { SEXP* p;   SEXP s; double n; double c; } character_t;
 typedef struct { SEXP* p;   SEXP s; double n; double c; } list_t;
 
+// Other R types
+typedef struct { SEXP s; } environment_t;
+typedef struct { SEXP s; SEXP cached; } function_t;
+
+// Other luajr types
+typedef struct { lua_State** l; int n; } workers_t;
+
 // C functions
 void* memcpy(void* dest, const void* src, size_t count);
 size_t strlen(const char* str);
+
+// Parallel functionality
+int luajr_parallel_ncores();
+void luajr_parallel_newworkers(workers_t* w);
+void luajr_parallel_closeworkers(workers_t* w);
+void luajr_parallel_srun(workers_t* w);
+void luajr_parallel_prun(workers_t* w);
+void luajr_parallel_pfor(workers_t* w, int i0, int i1);
 ]]
 local internal = ffi.load(luajr_dylib_path)
 
@@ -92,8 +110,8 @@ luajr.NA_character_ = R.NA_STRING
 luajr.NULL          = R.NilValue
 
 -- Forward declarations
-local sexp_get_attr
-local sexp_set_attr
+local from_sexp
+local to_sexp
 local vectorish
 
 -- Buffer for luajr.readline
@@ -213,38 +231,7 @@ local mt_vector_template = function(ct, stype, dataptr)
         -- the same across the alias->owned transition that happens when an
         -- alias list is first mutated.
         op_readv = function(self, k)
-            local elem = self.p[k]
-            local mode = (self.c == byref) and byref or alias
-            local typ = R.TYPEOF(elem)
-            if     typ == R.LGLSXP  then return luajr.logical(elem, mode)
-            elseif typ == R.INTSXP  then return luajr.integer(elem, mode)
-            elseif typ == R.REALSXP then return luajr.numeric(elem, mode)
-            elseif typ == R.STRSXP  then return luajr.character(elem, mode)
-            elseif typ == R.VECSXP  then return luajr.list(elem, mode)
-            else return elem  -- bare SEXP
-            end
-        end
-        -- Coerce a Lua value to a SEXP for storage in a list.
-        local to_sexp = function(v)
-            if v == nil then return R.NilValue end
-            local t = type(v)
-            if t == "cdata" then
-                if luajr.is_logical(v) or luajr.is_integer(v) or
-                   luajr.is_numeric(v) or luajr.is_character(v) or
-                   luajr.is_list(v) then
-                    return v.s
-                elseif ffi.istype(R.sexp, v) then
-                    return v
-                else
-                    error("cannot store cdata of this type in a list", 3)
-                end
-            elseif t == "boolean" then return R.ScalarLogical(v)
-            elseif t == "number" then return R.ScalarReal(v)
-            elseif t == "string" then
-                return R.ScalarString(R.mkChar(v))
-            else
-                error("cannot store " .. t .. " in a list", 3)
-            end
+            return from_sexp(self.p[k], (self.c == byref) and byref or alias)
         end
         op_writev = function(self, k, v) R.SET_VECTOR_ELT(self.s, k - 1, to_sexp(v)) end
         op_write = function(p, s, k, v) R.SET_VECTOR_ELT(s, k - 1, v) end
@@ -399,7 +386,7 @@ local mt_vector_template = function(ct, stype, dataptr)
         self.n = set(new_p, new_s, set_params)
 
         -- release current sexp
-        if self.p ~= nullptr and self.c >= 0 then
+        if self.p ~= nullptr and self.c ~= byref then
             R.ReleaseObject(self.s)
         end
 
@@ -625,7 +612,7 @@ local mt_vector_template = function(ct, stype, dataptr)
             if type(k) ~= "string" then
                 error("Can only get string-keyed attributes.", 2)
             end
-            return sexp_get_attr(self.s, k)
+            return from_sexp(R.getAttrib(self.s, R.install(k)))
         end,
 
         set_attr = function(self, k, v)
@@ -646,7 +633,7 @@ local mt_vector_template = function(ct, stype, dataptr)
                     R.UNPROTECT(1)
                 end
             else
-                sexp_set_attr(self.s, k, v)
+                R.setAttrib(self.s, R.install(k), to_sexp(v))
             end
         end,
 
@@ -706,6 +693,19 @@ local mt_vector_template = function(ct, stype, dataptr)
                 self.s = a
                 self.c = b
                 self.n = R.length(a)
+                -- preserve object if alias
+                if self.c == alias then R.PreserveObject(self.s) end
+            elseif ffi.istype(R.sexp, a) and b == nil then
+                -- direct construction from SEXP alias (by user)
+                if R.TYPEOF(a) ~= stype then
+                    error("cannot construct " .. ffi.string(R.type2char(stype)) ..
+                        " vector from " .. R.type_string(a))
+                end
+                self.p = dataptr(a) - 1
+                self.s = a
+                self.c = alias
+                self.n = R.length(a)
+                R.PreserveObject(self.s)
             elseif a == nil and b == nil then
                 -- empty vector
                 allocate(self, 0, { n = 0 })
@@ -728,7 +728,7 @@ local mt_vector_template = function(ct, stype, dataptr)
         end,
 
         __gc = function(self)
-            if self.p ~= nullptr and self.c >= 0 then
+            if self.p ~= nullptr and self.c ~= byref then
                 R.ReleaseObject(self.s)
             end
         end,
@@ -818,48 +818,55 @@ luajr.NA_character = function() return luajr.character(1, luajr.NA_character_) e
 -- 4. EXTRA TYPES --
 --------------------
 
--- Attribute set/getters
-sexp_get_attr = function(s, k)
-    local a = R.getAttrib(s, R.install(k))
-    local t = R.TYPEOF(a)
-    if t == R.NILSXP then return nil end
-    if t == R.LGLSXP then
-        return luajr.logical(a, alias)
-    elseif t == R.INTSXP then
-        return luajr.integer(a, alias)
-    elseif t == R.REALSXP then
-        return luajr.numeric(a, alias)
-    elseif t == R.STRSXP then
-        return luajr.character(a, alias)
-    elseif t == R.VECSXP then
-        return luajr.list(a, alias)
-    else
-        error("Cannot get attribute of type " .. R.type_string(a))
+-- Convert SEXP to luajr type by TYPEOF dispatch
+from_sexp = function(s, mode)
+    mode = mode or alias
+    local t = R.TYPEOF(s)
+    if     t == R.NILSXP  then return R.NilValue
+    elseif t == R.LGLSXP  then return luajr.logical(s, mode)
+    elseif t == R.INTSXP  then return luajr.integer(s, mode)
+    elseif t == R.REALSXP then return luajr.numeric(s, mode)
+    elseif t == R.STRSXP  then return luajr.character(s, mode)
+    elseif t == R.VECSXP  then return luajr.list(s, mode)
+    elseif t == R.CLOSXP or t == R.SPECIALSXP or t == R.BUILTINSXP then
+        return luajr.rfunction(s)
+    elseif t == R.ENVSXP  then return luajr.environment(s)
+    else return s
     end
 end
+luajr.from_sexp = from_sexp
 
-sexp_set_attr = function(s, k, v)
-    if luajr.is_logical(v) or luajr.is_integer(v) or
-       luajr.is_numeric(v) or luajr.is_character(v) or
-       luajr.is_list(v) then
-        R.setAttrib(s, R.install(k), v.s)
-    elseif ffi.istype(R.sexp, v) then
-        R.setAttrib(s, R.install(k), v)
-    elseif type(v) == "number" then
-        R.setAttrib(s, R.install(k), R.ScalarReal(v))
-    elseif type(v) == "boolean" then
-        R.setAttrib(s, R.install(k), R.ScalarLogical(v))
-    elseif type(v) == "string" then
-        R.setAttrib(s, R.install(k), R.ScalarString(R.mkChar(v)))
+-- Convert luajr type or Lua scalar to SEXP
+to_sexp = function(v)
+    if v == nil then return R.NilValue end
+    local t = type(v)
+    if t == "cdata" then
+        if luajr.is_logical(v) or luajr.is_integer(v) or
+           luajr.is_numeric(v) or luajr.is_character(v) or
+           luajr.is_list(v) then
+            return v.s
+        elseif ffi.istype(R.sexp, v) then
+            return v
+        elseif ffi.istype(luajr.rfunction, v) then
+            return v.s
+        elseif ffi.istype(luajr.environment, v) then
+            return v.s
+        else
+            error("cannot convert cdata of this type to SEXP", 2)
+        end
+    elseif t == "boolean" then return R.ScalarLogical(v)
+    elseif t == "number" then return R.ScalarReal(v)
+    elseif t == "string" then return R.ScalarString(R.mkChar(v))
     else
-        error("No attribute setter for type " .. type(v) .. ".")
+        error("cannot convert " .. t .. " to SEXP", 2)
     end
 end
+luajr.to_sexp = to_sexp
 
 -- Does obj have indexing and length capabilities?
 vectorish = function(obj)
     return type(obj) == "table" or luajr.is_logical(obj) or luajr.is_integer(obj) or
-        luajr.is_numeric(obj) or luajr.is_character(obj)
+        luajr.is_numeric(obj) or luajr.is_character(obj) or luajr.is_list(obj)
 end
 
 -- dataframe type
@@ -898,10 +905,185 @@ function luajr.datamatrix(nrow, ncol, names)
     return m
 end
 
+-- environment type
+-- typedef struct { SEXP s; } environment_t;
+local methods_environment = {
+    get = function(self, k)
+        local val = R.get_var(k, self.s)
+        if val then return from_sexp(val) end
+    end,
+
+    set = function(self, k, v)
+        R.defineVar(R.install(k), to_sexp(v), self.s)
+    end,
+
+    exists = function(self, k)
+        return R.get_var(k, self.s) ~= nil
+    end,
+
+    remove = function(self, k)
+        R.removeVarFromFrame(R.install(k), self.s)
+    end,
+
+    get_parent = function(self)
+        return luajr.environment(R.ENCLOS(self.s))
+    end,
+
+    set_parent = function(self, env)
+        if ffi.istype(luajr.environment, env) then
+            R.SET_ENCLOS(self.s, env.s)
+        elseif ffi.istype(R.sexp, env) and R.TYPEOF(env) == R.ENVSXP then
+            R.SET_ENCLOS(self.s, env)
+        end
+    end,
+
+    ls = function(self, all)
+        return luajr.character(R.lsInternal(self.s, all and 1 or 0))
+    end
+}
+
+local mt_environment = {
+    __new = function(ctype, a)
+        local self = ffi.new(ctype)
+        if a == nil then
+            self.s = R.new_env()
+        elseif ffi.istype(R.sexp, a) and R.TYPEOF(a) == R.ENVSXP then
+            self.s = a
+        elseif type(a) == "string" then
+            self.s = R.get_namespace(a)
+        else
+            error("cannot construct R environment from type " .. type(a))
+        end
+        R.PreserveObject(self.s)
+        return self
+    end,
+
+    __gc = function(self)
+        R.ReleaseObject(self.s)
+    end,
+
+    __index = function(self, k)
+        return methods_environment[k]
+    end,
+
+    __newindex = function(self, k, v)
+        error("use :get(k) and :set(k, v) to access environment.")
+    end
+}
+
+luajr.environment = ffi.metatype("environment_t", mt_environment)
+
+-- R function type
+-- typedef struct { SEXP s; SEXP cached; } function_t;
+local mt_rfunction = {
+    __new = function(ctype, a, b)
+        local self = ffi.new(ctype)
+        if ffi.istype(R.sexp, a) then
+            local typ = R.TYPEOF(a)
+            if typ == R.CLOSXP or typ == R.SPECIALSXP or typ == R.BUILTINSXP then
+                self.s = a
+            else
+                error("cannot construct R function from SXPTYPE " .. R.type_string(a) .. ".", 2)
+            end
+        elseif type(a) == "string" then
+            local env = luajr.environment(b or R.GlobalEnv)
+            self.s = R.findFun(R.install(a), env.s)
+        else
+            error("cannot construct R function with argument types " .. type(a) ..
+                ", " ..type(b) .. ".", 2)
+        end
+        R.PreserveObject(self.s)
+        self.cached = R.NilValue
+        return self
+    end,
+
+    __gc = function(self)
+        R.ReleaseObject(self.s)
+    end,
+
+    __call = function(self, ...)
+        return luajr.Rcall(self.s, ...)
+    end
+}
+
+luajr.rfunction = ffi.metatype("function_t", mt_rfunction)
+
+luajr.is_environment = function(obj) return ffi.istype(luajr.environment, obj) end
+luajr.is_rfunction   = function(obj) return ffi.istype(luajr.rfunction, obj) end
+
 
 
 -----------------
--- 5. DEBUGGER --
+-- 5. PARALLEL --
+-----------------
+
+-- Query number of cores
+luajr.ncores = function()
+    return internal.luajr_parallel_ncores()
+end
+
+-- Workers type
+-- typedef struct { lua_State** l; int n; } workers_t;
+local methods_workers = {
+    preload = function(self, f, ...)
+        luajr.parallel_load(self, f, ...)
+    end,
+
+    srun = function(self, f, ...)
+        if f ~= nil then self:preload(f, ...) end
+        internal.luajr_parallel_srun(self)
+    end,
+
+    prun = function(self, f, ...)
+        if f ~= nil then self:preload(f, ...) end
+        internal.luajr_parallel_prun(self)
+    end,
+
+    pfor = function(self, i0, i1, f, ...)
+        if f ~= nil then self:preload(f, ...) end
+        internal.luajr_parallel_pfor(self, i0, i1)
+    end,
+
+    close = function(self)
+        if self.l ~= nullptr then
+            internal.luajr_parallel_closeworkers(self)
+        end
+    end
+}
+
+local mt_workers = {
+    __new = function(ctype, n)
+        local self = ffi.new(ctype)
+        if n == nil then
+            self.n = luajr.ncores()
+        elseif type(n) == "number" and n >= 1 then
+            self.n = n
+        else
+            error("worker number must be a positive integer or nil", 2)
+        end
+        internal.luajr_parallel_newworkers(self)
+        return self
+    end,
+
+    __gc = function(self)
+        self:close()
+    end,
+
+    __index = function(self, k)
+        return methods_workers[k]
+    end,
+
+    __len = function(self)
+        return self.n
+    end
+}
+
+luajr.workers = ffi.metatype("workers_t", mt_workers)
+
+
+
+-----------------
+-- 6. DEBUGGER --
 -----------------
 
 -- Debugger module

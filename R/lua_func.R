@@ -159,3 +159,131 @@ lua_func = function(func, argcode = "s", L = NULL)
 
     return (compiler::cmpfun(f))
 }
+
+# New argcodes
+# ⏺ 1. named — Like table but preserves R names as string keys. c(a=1, b=2) → {a=1, b=2}. Currently atomic vector → table conversion drops names. Lists already
+#   preserve names via the existing push_R_list logic, but atomic vectors don't. Very common need when passing configuration or parameter sets.
+#   2. splat — Unpack a list into multiple Lua stack values. list(1, "two", TRUE) → three separate arguments. Enables forwarding R's ... to a Lua variadic function.
+#   Only valid as the last argcode position. Niche but enables a pattern that's otherwise impossible.
+
+#enum Argcodes {
+#    ac_luajr_value = 0,             .   value           any
+#    ac_luajr_sexp = 1,              X   sexp            userdata (of sexp)
+#    ac_luajr_symbol = 2,                symbol          -
+#    ac_luajr_pairlist = 3,              pairlist        table
+#    ac_luajr_function = 4,          F   rfunction       function
+#    ac_luajr_environment = 5,       E   environment     -
+#    ac_luajr_language = 6,              language        -
+#    ac_luajr_logical = 7,           L   logical         boolean
+#    ac_luajr_integer = 8,           I   integer         number
+#    ac_luajr_numeric = 9,           N   numeric         number
+#    ac_luajr_complex = 10,          Z   complex         -
+#    ac_luajr_character = 11,        C   character       string
+#    ac_luajr_list = 12,             V   list            table
+#    ac_luajr_expression = 13,           expression      -
+#    ac_luajr_raw = 14,                  raw             -
+#    ac_luajr_obj = 15,              O   obj             -
+#
+#    ac_luajr_factor = 16,           A   factor          -
+#    ac_luajr_matrix = 17,           M   matrix          -
+#    ac_luajr_array = 18,                array           -
+#    ac_luajr_dataframe = 19,        D   dataframe       table
+#
+#    ac_luajr_pointer = 31,          P   pointer         userdata (of dataptr)
+#
+#    ac_modifier_native = 32,        ^
+#    ac_modifier_byref = 64,         &
+#    ac_modifier_strict = 128        !
+#};
+
+
+argcodes_short = c(
+    "." = 0,
+    "X" = 1,
+    "F" = 4,
+    "E" = 5,
+    "L" = 7,
+    "I" = 8,
+    "N" = 9,
+    "C" = 11,
+    "V" = 12
+    # others
+)
+
+argcodes_long = c(
+    value = 0,
+    sexp = 1,
+    symbol = 2,
+    pairlist = 3,
+    rfunction = 4,
+    "function" = 4,
+    environment = 5,
+    language = 6,
+    logical = 7,
+    integer = 8,
+    numeric = 9,
+    complex = 10,
+    character = 11,
+    list = 12,
+    expression = 13,
+    raw = 14,
+    obj = 15
+    # others
+)
+
+argcodes_mod = c(
+    "^" = 32,  # native
+    "&" = 64,  # byref
+    "!" = 128  # strict
+)
+
+interpret_argcode = function(ac)
+{
+    ac = paste(ac, collapse = ",")
+
+    pos = 1
+    code = 0
+    output = integer(0)
+
+    while (pos <= nchar(ac)) {
+        ch = substr(ac, pos, pos)
+        if (ch %in% c(' ', ',', ';')) {
+            pos = pos + 1
+            next
+        } else if (ch %in% names(argcodes_mod)) {
+            code = bitwOr(code, argcodes_mod[ch])
+            pos = pos + 1
+            next
+        } else if (ch == toupper(ch)) {
+            if (!ch %in% names(argcodes_short)) {
+                stop("Cannot find short code `", ch, "`.")
+            }
+            code = bitwOr(code, argcodes_short[ch])
+            pos = pos + 1
+            output = c(output, as.integer(code))
+            code = 0
+            next
+        } else {
+            pos_end = regexpr("[,; ]", substr(ac, pos, nchar(ac)))[1]
+            if (pos_end == -1) {
+                pos_end = nchar(ac)
+            } else {
+                pos_end = pos_end + pos - 2
+            }
+            sub_ac = substr(ac, pos, pos_end)
+
+            if (sub_ac %in% names(argcodes_long)) {
+                code = bitwOr(code, argcodes_long[sub_ac])
+                pos = pos_end + 1
+                output = c(output, as.integer(code))
+                code = 0
+                next
+            } else {
+                stop("Cannot find long code `", sub_ac, "`.")
+            }
+        }
+    }
+
+    return (as.raw(output))
+}
+

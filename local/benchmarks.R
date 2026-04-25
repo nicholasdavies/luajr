@@ -152,10 +152,8 @@ logistic_map_L = lua_func(
     "function(x0, burn, iter, A)
     local dflen = #A * iter
     local result = luajr.dataframe()
-    result.a = luajr.numeric_r(dflen, 0)
-    result.x = luajr.numeric_r(dflen, 0)
-    local aa = result.a._p
-    local xx = result.x._p
+    local aa = luajr.numeric(dflen, 0)
+    local xx = luajr.numeric(dflen, 0)
 
     local j = 1
     for k,a in pairs(A) do
@@ -171,8 +169,12 @@ logistic_map_L = lua_func(
         end
     end
 
+    result:set('a', aa)
+    result:set('x', xx)
+
     return result
 end", "sssr")
+
 
 logistic_map_Rcpp_src = '
 DataFrame logistic_map(double x0, unsigned int burn, unsigned int iter, NumericVector A) {
@@ -250,3 +252,45 @@ bench::mark(
 
 cr = logistic_map_C(0.5, 100, 100, 200:385/100)
 plot(cr, pch = ".")
+
+# Parallel logistic map using luajr.workers
+logistic_map_P = lua_func("function(x0, burn, iter, A)
+    local nA = #A
+    local dflen = nA * iter
+    local aa = luajr.numeric(dflen, 0)
+    local xx = luajr.numeric(dflen, 0)
+
+    local pool = luajr.workers(10)
+    pool:pfor(1, nA, function(k, x0, burn, iter, A, aa, xx)
+        local a = A[k]
+        local x = x0
+        for i = 1, burn do
+            x = a * x * (1 - x)
+        end
+        local base = (k - 1) * iter
+        for i = 1, iter do
+            aa[base + i] = a
+            xx[base + i] = x
+            x = a * x * (1 - x)
+        end
+    end, x0, burn, iter, A, aa, xx)
+    pool:close()
+
+    local result = luajr.dataframe()
+    result:set('a', aa)
+    result:set('x', xx)
+    return result
+end", "sssr")
+
+# Verify correctness
+cr_p = logistic_map_P(0.5, 100, 100, 200:385/100)
+identical(cr, cr_p)
+
+# Benchmark serial vs parallel
+# Note: had to massively increase computation burden to see a benefit.
+bench::mark(
+    serial   = logistic_map_L(0.5, 1000000, 1000, 200:385/100),
+    parallel = logistic_map_P(0.5, 1000000, 1000, 200:385/100),
+    rcpp     = logistic_map_C(0.5, 1000000, 1000, 200:385/100),
+    check = FALSE
+)

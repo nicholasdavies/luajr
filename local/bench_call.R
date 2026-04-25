@@ -73,7 +73,7 @@ bench(
     identity_R(x),
     identity_L(x),
     identity_C(x),
-    n = 1e7
+    n = 1e6
 )
 
 # # A tibble: 3 × 13

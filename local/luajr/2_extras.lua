@@ -2,48 +2,55 @@
 -- 4. EXTRA TYPES --
 --------------------
 
--- Attribute set/getters
-sexp_get_attr = function(s, k)
-    local a = R.getAttrib(s, R.install(k))
-    local t = R.TYPEOF(a)
-    if t == R.NILSXP then return nil end
-    if t == R.LGLSXP then
-        return luajr.logical(a, alias)
-    elseif t == R.INTSXP then
-        return luajr.integer(a, alias)
-    elseif t == R.REALSXP then
-        return luajr.numeric(a, alias)
-    elseif t == R.STRSXP then
-        return luajr.character(a, alias)
-    elseif t == R.VECSXP then
-        return luajr.list(a, alias)
-    else
-        error("Cannot get attribute of type " .. R.type_string(a))
+-- Convert SEXP to luajr type by TYPEOF dispatch
+from_sexp = function(s, mode)
+    mode = mode or alias
+    local t = R.TYPEOF(s)
+    if     t == R.NILSXP  then return R.NilValue
+    elseif t == R.LGLSXP  then return luajr.logical(s, mode)
+    elseif t == R.INTSXP  then return luajr.integer(s, mode)
+    elseif t == R.REALSXP then return luajr.numeric(s, mode)
+    elseif t == R.STRSXP  then return luajr.character(s, mode)
+    elseif t == R.VECSXP  then return luajr.list(s, mode)
+    elseif t == R.CLOSXP or t == R.SPECIALSXP or t == R.BUILTINSXP then
+        return luajr.rfunction(s)
+    elseif t == R.ENVSXP  then return luajr.environment(s)
+    else return s
     end
 end
+luajr.from_sexp = from_sexp
 
-sexp_set_attr = function(s, k, v)
-    if luajr.is_logical(v) or luajr.is_integer(v) or
-       luajr.is_numeric(v) or luajr.is_character(v) or
-       luajr.is_list(v) then
-        R.setAttrib(s, R.install(k), v.s)
-    elseif ffi.istype(R.sexp, v) then
-        R.setAttrib(s, R.install(k), v)
-    elseif type(v) == "number" then
-        R.setAttrib(s, R.install(k), R.ScalarReal(v))
-    elseif type(v) == "boolean" then
-        R.setAttrib(s, R.install(k), R.ScalarLogical(v))
-    elseif type(v) == "string" then
-        R.setAttrib(s, R.install(k), R.ScalarString(R.mkChar(v)))
+-- Convert luajr type or Lua scalar to SEXP
+to_sexp = function(v)
+    if v == nil then return R.NilValue end
+    local t = type(v)
+    if t == "cdata" then
+        if luajr.is_logical(v) or luajr.is_integer(v) or
+           luajr.is_numeric(v) or luajr.is_character(v) or
+           luajr.is_list(v) then
+            return v.s
+        elseif ffi.istype(R.sexp, v) then
+            return v
+        elseif ffi.istype(luajr.rfunction, v) then
+            return v.s
+        elseif ffi.istype(luajr.environment, v) then
+            return v.s
+        else
+            error("cannot convert cdata of this type to SEXP", 2)
+        end
+    elseif t == "boolean" then return R.ScalarLogical(v)
+    elseif t == "number" then return R.ScalarReal(v)
+    elseif t == "string" then return R.ScalarString(R.mkChar(v))
     else
-        error("No attribute setter for type " .. type(v) .. ".")
+        error("cannot convert " .. t .. " to SEXP", 2)
     end
 end
+luajr.to_sexp = to_sexp
 
 -- Does obj have indexing and length capabilities?
 vectorish = function(obj)
     return type(obj) == "table" or luajr.is_logical(obj) or luajr.is_integer(obj) or
-        luajr.is_numeric(obj) or luajr.is_character(obj)
+        luajr.is_numeric(obj) or luajr.is_character(obj) or luajr.is_list(obj)
 end
 
 -- dataframe type
@@ -82,10 +89,185 @@ function luajr.datamatrix(nrow, ncol, names)
     return m
 end
 
+-- environment type
+-- typedef struct { SEXP s; } environment_t;
+local methods_environment = {
+    get = function(self, k)
+        local val = R.get_var(k, self.s)
+        if val then return from_sexp(val) end
+    end,
+
+    set = function(self, k, v)
+        R.defineVar(R.install(k), to_sexp(v), self.s)
+    end,
+
+    exists = function(self, k)
+        return R.get_var(k, self.s) ~= nil
+    end,
+
+    remove = function(self, k)
+        R.removeVarFromFrame(R.install(k), self.s)
+    end,
+
+    get_parent = function(self)
+        return luajr.environment(R.ENCLOS(self.s))
+    end,
+
+    set_parent = function(self, env)
+        if ffi.istype(luajr.environment, env) then
+            R.SET_ENCLOS(self.s, env.s)
+        elseif ffi.istype(R.sexp, env) and R.TYPEOF(env) == R.ENVSXP then
+            R.SET_ENCLOS(self.s, env)
+        end
+    end,
+
+    ls = function(self, all)
+        return luajr.character(R.lsInternal(self.s, all and 1 or 0))
+    end
+}
+
+local mt_environment = {
+    __new = function(ctype, a)
+        local self = ffi.new(ctype)
+        if a == nil then
+            self.s = R.new_env()
+        elseif ffi.istype(R.sexp, a) and R.TYPEOF(a) == R.ENVSXP then
+            self.s = a
+        elseif type(a) == "string" then
+            self.s = R.get_namespace(a)
+        else
+            error("cannot construct R environment from type " .. type(a))
+        end
+        R.PreserveObject(self.s)
+        return self
+    end,
+
+    __gc = function(self)
+        R.ReleaseObject(self.s)
+    end,
+
+    __index = function(self, k)
+        return methods_environment[k]
+    end,
+
+    __newindex = function(self, k, v)
+        error("use :get(k) and :set(k, v) to access environment.")
+    end
+}
+
+luajr.environment = ffi.metatype("environment_t", mt_environment)
+
+-- R function type
+-- typedef struct { SEXP s; SEXP cached; } function_t;
+local mt_rfunction = {
+    __new = function(ctype, a, b)
+        local self = ffi.new(ctype)
+        if ffi.istype(R.sexp, a) then
+            local typ = R.TYPEOF(a)
+            if typ == R.CLOSXP or typ == R.SPECIALSXP or typ == R.BUILTINSXP then
+                self.s = a
+            else
+                error("cannot construct R function from SXPTYPE " .. R.type_string(a) .. ".", 2)
+            end
+        elseif type(a) == "string" then
+            local env = luajr.environment(b or R.GlobalEnv)
+            self.s = R.findFun(R.install(a), env.s)
+        else
+            error("cannot construct R function with argument types " .. type(a) ..
+                ", " ..type(b) .. ".", 2)
+        end
+        R.PreserveObject(self.s)
+        self.cached = R.NilValue
+        return self
+    end,
+
+    __gc = function(self)
+        R.ReleaseObject(self.s)
+    end,
+
+    __call = function(self, ...)
+        return luajr.Rcall(self.s, ...)
+    end
+}
+
+luajr.rfunction = ffi.metatype("function_t", mt_rfunction)
+
+luajr.is_environment = function(obj) return ffi.istype(luajr.environment, obj) end
+luajr.is_rfunction   = function(obj) return ffi.istype(luajr.rfunction, obj) end
+
 
 
 -----------------
--- 5. DEBUGGER --
+-- 5. PARALLEL --
+-----------------
+
+-- Query number of cores
+luajr.ncores = function()
+    return internal.luajr_parallel_ncores()
+end
+
+-- Workers type
+-- typedef struct { lua_State** l; int n; } workers_t;
+local methods_workers = {
+    preload = function(self, f, ...)
+        luajr.parallel_load(self, f, ...)
+    end,
+
+    srun = function(self, f, ...)
+        if f ~= nil then self:preload(f, ...) end
+        internal.luajr_parallel_srun(self)
+    end,
+
+    prun = function(self, f, ...)
+        if f ~= nil then self:preload(f, ...) end
+        internal.luajr_parallel_prun(self)
+    end,
+
+    pfor = function(self, i0, i1, f, ...)
+        if f ~= nil then self:preload(f, ...) end
+        internal.luajr_parallel_pfor(self, i0, i1)
+    end,
+
+    close = function(self)
+        if self.l ~= nullptr then
+            internal.luajr_parallel_closeworkers(self)
+        end
+    end
+}
+
+local mt_workers = {
+    __new = function(ctype, n)
+        local self = ffi.new(ctype)
+        if n == nil then
+            self.n = luajr.ncores()
+        elseif type(n) == "number" and n >= 1 then
+            self.n = n
+        else
+            error("worker number must be a positive integer or nil", 2)
+        end
+        internal.luajr_parallel_newworkers(self)
+        return self
+    end,
+
+    __gc = function(self)
+        self:close()
+    end,
+
+    __index = function(self, k)
+        return methods_workers[k]
+    end,
+
+    __len = function(self)
+        return self.n
+    end
+}
+
+luajr.workers = ffi.metatype("workers_t", mt_workers)
+
+
+
+-----------------
+-- 6. DEBUGGER --
 -----------------
 
 -- Debugger module

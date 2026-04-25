@@ -36,7 +36,7 @@ usethis::use_vignette("luajr")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("R_ExternalPtrAddr")
+add_rapi("R_getVar")
 
 
 # BUILD CYCLE

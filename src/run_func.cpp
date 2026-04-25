@@ -93,9 +93,6 @@ extern "C" SEXP luajr_func_create(SEXP func, SEXP Lx)
 // Call a Lua function
 extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 {
-    ////CheckSEXP(alist, VECSXP);
-    ////CheckSEXPLen(acode, STRSXP, 1);
-
     // Get Lua state
     lua_State* L = luajr_getstate(Lx);
 
@@ -251,18 +248,4 @@ extern "C" void luajr_pushfunc(SEXP fx)
 
     // Get function on stack
     re->Get();
-}
-
-// Lua-callable: take a Lua function and return its R external pointer SEXP
-// as a lightuserdata. Used by to_sexp() in luajr.lua to wrap a returned
-// Lua function for handover to R.
-extern "C" int luajr_wrap_function(lua_State* L)
-{
-    if (lua_type(L, 1) != LUA_TFUNCTION)
-        return luaL_error(L, "luajr.wrap_function expects a Lua function.");
-    lua_pushvalue(L, 1);
-    RegistryEntry* re = new RegistryEntry(L);
-    SEXP ptr = luajr_makepointer(re, LUAJR_REGFUNC_CODE, RegistryEntry::Finalize);
-    lua_pushlightuserdata(L, ptr);
-    return 1;
 }

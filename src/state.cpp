@@ -172,9 +172,12 @@ extern "C" lua_State* luajr_newstate()
         lua_rawset(l, LUA_REGISTRYINDEX);
     }
 
-    // Add the C-defined luajr.wrap_function to the luajr table.
-    lua_pushcfunction(l, luajr_wrap_function);
-    lua_setfield(l, -2, "wrap_function");
+    // Add C-defined lua_CFunctions to the luajr table.
+    lua_pushcfunction(l, luajr_Rcall);
+    lua_setfield(l, -2, "Rcall");
+
+    lua_pushcfunction(l, luajr_parallel_load);
+    lua_setfield(l, -2, "parallel_load");
 
     lua_pop(l, 1); // luajr
 

@@ -22,6 +22,7 @@ extern void (*luajr_pushsexp)(lua_State* L, SEXP x, char as);
 extern SEXP (*luajr_tosexp)(lua_State* L, int index);
 extern void (*luajr_pass)(lua_State* L, SEXP args, const char* acode);
 extern SEXP (*luajr_return)(lua_State* L, int nret);
+extern void (*luajr_xpush)(lua_State* L, int index, lua_State* dst);
 extern SEXP (*luajr_run_code)(SEXP code, SEXP Lx);
 extern SEXP (*luajr_run_file)(SEXP filename, SEXP Lx);
 extern SEXP (*luajr_func_create)(SEXP func, SEXP Lx);

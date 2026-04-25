@@ -6,7 +6,8 @@
 -- 2. LUAJR API BASICS --
 -- 3. VECTOR TYPES --
 -- 4. EXTRA TYPES --
--- 5. DEBUGGER --
+-- 5. PARALLEL --
+-- 6. DEBUGGER --
 
 
 
@@ -53,18 +54,35 @@ local hidden = ffi.new("HIDDEN_t")
 ffi.cdef[[
 // Forward declarations
 struct SEXPREC;
+struct lua_State;
+typedef struct lua_State lua_State;
 typedef struct SEXPREC* SEXP;
 
-// Vector types
+// R vector types
 typedef struct { int* p;    SEXP s; double n; double c; } logical_t;
 typedef struct { int* p;    SEXP s; double n; double c; } integer_t;
 typedef struct { double* p; SEXP s; double n; double c; } numeric_t;
 typedef struct { SEXP* p;   SEXP s; double n; double c; } character_t;
 typedef struct { SEXP* p;   SEXP s; double n; double c; } list_t;
 
+// Other R types
+typedef struct { SEXP s; } environment_t;
+typedef struct { SEXP s; SEXP cached; } function_t;
+
+// Other luajr types
+typedef struct { lua_State** l; int n; } workers_t;
+
 // C functions
 void* memcpy(void* dest, const void* src, size_t count);
 size_t strlen(const char* str);
+
+// Parallel functionality
+int luajr_parallel_ncores();
+void luajr_parallel_newworkers(workers_t* w);
+void luajr_parallel_closeworkers(workers_t* w);
+void luajr_parallel_srun(workers_t* w);
+void luajr_parallel_prun(workers_t* w);
+void luajr_parallel_pfor(workers_t* w, int i0, int i1);
 ]]
 local internal = ffi.load(luajr_dylib_path)
 
@@ -92,8 +110,8 @@ luajr.NA_character_ = R.NA_STRING
 luajr.NULL          = R.NilValue
 
 -- Forward declarations
-local sexp_get_attr
-local sexp_set_attr
+local from_sexp
+local to_sexp
 local vectorish
 
 -- Buffer for luajr.readline

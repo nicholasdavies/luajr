@@ -1,12 +1,12 @@
 test_that("SEXP round-trip works for language objects", {
-    f = lua_func("function(x) return x end", "r")
+    f = lua_func("function(x) return x end", "x")
     expr = quote(a + b * c)
     result = f(expr)
     expect_identical(result, expr)
 })
 
 test_that("SEXP preserves attributes on environment round-trip", {
-    f = lua_func("function(x) return x end", "r")
+    f = lua_func("function(x) return x end", "x")
     e = new.env(parent = emptyenv())
     e$x = 42
     attr(e, "custom") = "hello"
@@ -18,15 +18,15 @@ test_that("SEXP preserves attributes on environment round-trip", {
 test_that("SEXP can be inspected via R module", {
     lua("R = require('R')")
     # Types that naturally become SEXP (no dedicated R type)
-    expect_identical(lua_func("function(x) return R.length(x) end", "r")(quote(a + b * c)), 3)
-    expect_identical(lua_func("function(x) return R.length(x) end", "r")(as.name("foo")), 1)
+    expect_identical(lua_func("function(x) return R.length(x) end", "x")(quote(a + b * c)), 3)
+    expect_identical(lua_func("function(x) return R.length(x) end", "x")(as.name("foo")), 1)
     # Types that have dedicated R types, passed explicitly as SEXP via "x" arg code
     expect_identical(lua_func("function(x) return R.length(x) end", "x")(1:10), 10)
     expect_identical(lua_func("function(x) return R.length(x) end", "x")(factor(letters)), 26)
 })
 
 test_that("SEXP works with function type", {
-    f = lua_func("function(x) return x end", "r")
+    f = lua_func("function(x) return x end", "x")
     result = f(mean)
     expect_identical(result(1:10), 5.5)
 })

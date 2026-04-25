@@ -82,38 +82,7 @@ local mt_vector_template = function(ct, stype, dataptr)
         -- the same across the alias->owned transition that happens when an
         -- alias list is first mutated.
         op_readv = function(self, k)
-            local elem = self.p[k]
-            local mode = (self.c == byref) and byref or alias
-            local typ = R.TYPEOF(elem)
-            if     typ == R.LGLSXP  then return luajr.logical(elem, mode)
-            elseif typ == R.INTSXP  then return luajr.integer(elem, mode)
-            elseif typ == R.REALSXP then return luajr.numeric(elem, mode)
-            elseif typ == R.STRSXP  then return luajr.character(elem, mode)
-            elseif typ == R.VECSXP  then return luajr.list(elem, mode)
-            else return elem  -- bare SEXP
-            end
-        end
-        -- Coerce a Lua value to a SEXP for storage in a list.
-        local to_sexp = function(v)
-            if v == nil then return R.NilValue end
-            local t = type(v)
-            if t == "cdata" then
-                if luajr.is_logical(v) or luajr.is_integer(v) or
-                   luajr.is_numeric(v) or luajr.is_character(v) or
-                   luajr.is_list(v) then
-                    return v.s
-                elseif ffi.istype(R.sexp, v) then
-                    return v
-                else
-                    error("cannot store cdata of this type in a list", 3)
-                end
-            elseif t == "boolean" then return R.ScalarLogical(v)
-            elseif t == "number" then return R.ScalarReal(v)
-            elseif t == "string" then
-                return R.ScalarString(R.mkChar(v))
-            else
-                error("cannot store " .. t .. " in a list", 3)
-            end
+            return from_sexp(self.p[k], (self.c == byref) and byref or alias)
         end
         op_writev = function(self, k, v) R.SET_VECTOR_ELT(self.s, k - 1, to_sexp(v)) end
         op_write = function(p, s, k, v) R.SET_VECTOR_ELT(s, k - 1, v) end
@@ -268,7 +237,7 @@ local mt_vector_template = function(ct, stype, dataptr)
         self.n = set(new_p, new_s, set_params)
 
         -- release current sexp
-        if self.p ~= nullptr and self.c >= 0 then
+        if self.p ~= nullptr and self.c ~= byref then
             R.ReleaseObject(self.s)
         end
 
@@ -494,7 +463,7 @@ local mt_vector_template = function(ct, stype, dataptr)
             if type(k) ~= "string" then
                 error("Can only get string-keyed attributes.", 2)
             end
-            return sexp_get_attr(self.s, k)
+            return from_sexp(R.getAttrib(self.s, R.install(k)))
         end,
 
         set_attr = function(self, k, v)
@@ -515,7 +484,7 @@ local mt_vector_template = function(ct, stype, dataptr)
                     R.UNPROTECT(1)
                 end
             else
-                sexp_set_attr(self.s, k, v)
+                R.setAttrib(self.s, R.install(k), to_sexp(v))
             end
         end,
 
@@ -575,6 +544,19 @@ local mt_vector_template = function(ct, stype, dataptr)
                 self.s = a
                 self.c = b
                 self.n = R.length(a)
+                -- preserve object if alias
+                if self.c == alias then R.PreserveObject(self.s) end
+            elseif ffi.istype(R.sexp, a) and b == nil then
+                -- direct construction from SEXP alias (by user)
+                if R.TYPEOF(a) ~= stype then
+                    error("cannot construct " .. ffi.string(R.type2char(stype)) ..
+                        " vector from " .. R.type_string(a))
+                end
+                self.p = dataptr(a) - 1
+                self.s = a
+                self.c = alias
+                self.n = R.length(a)
+                R.PreserveObject(self.s)
             elseif a == nil and b == nil then
                 -- empty vector
                 allocate(self, 0, { n = 0 })
@@ -597,7 +579,7 @@ local mt_vector_template = function(ct, stype, dataptr)
         end,
 
         __gc = function(self)
-            if self.p ~= nullptr and self.c >= 0 then
+            if self.p ~= nullptr and self.c ~= byref then
                 R.ReleaseObject(self.s)
             end
         end,

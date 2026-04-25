@@ -30,6 +30,8 @@ static CTypeID luajr_integer_ctype_id = 0;
 static CTypeID luajr_numeric_ctype_id = 0;
 static CTypeID luajr_character_ctype_id = 0;
 static CTypeID luajr_list_ctype_id = 0;
+static CTypeID luajr_environment_ctype_id = 0;
+static CTypeID luajr_function_ctype_id = 0;
 
 /* Common memory layout for all five luajr vector types (logical_t,
  * integer_t, numeric_t, character_t, list_t). They differ only in the type of
@@ -61,12 +63,14 @@ static void luajr_ensure_ctype_ids(lua_State *L)
     /* ctype_cts(L) returns this VM's per-state CType table. */
     CTState *cts = ctype_cts(L);
     /* lj_str_newlit interns the literal as a GCstr (cheap on later calls). */
-    luajr_sexp_ctype_id      = luajr_lookup_typedef(cts, lj_str_newlit(L, "SEXP"));
-    luajr_logical_ctype_id   = luajr_lookup_typedef(cts, lj_str_newlit(L, "logical_t"));
-    luajr_integer_ctype_id   = luajr_lookup_typedef(cts, lj_str_newlit(L, "integer_t"));
-    luajr_numeric_ctype_id   = luajr_lookup_typedef(cts, lj_str_newlit(L, "numeric_t"));
-    luajr_character_ctype_id = luajr_lookup_typedef(cts, lj_str_newlit(L, "character_t"));
-    luajr_list_ctype_id      = luajr_lookup_typedef(cts, lj_str_newlit(L, "list_t"));
+    luajr_sexp_ctype_id        = luajr_lookup_typedef(cts, lj_str_newlit(L, "SEXP"));
+    luajr_logical_ctype_id     = luajr_lookup_typedef(cts, lj_str_newlit(L, "logical_t"));
+    luajr_integer_ctype_id     = luajr_lookup_typedef(cts, lj_str_newlit(L, "integer_t"));
+    luajr_numeric_ctype_id     = luajr_lookup_typedef(cts, lj_str_newlit(L, "numeric_t"));
+    luajr_character_ctype_id   = luajr_lookup_typedef(cts, lj_str_newlit(L, "character_t"));
+    luajr_list_ctype_id        = luajr_lookup_typedef(cts, lj_str_newlit(L, "list_t"));
+    luajr_environment_ctype_id = luajr_lookup_typedef(cts, lj_str_newlit(L, "environment_t"));
+    luajr_function_ctype_id    = luajr_lookup_typedef(cts, lj_str_newlit(L, "function_t"));
 }
 
 /* Push a SEXP (passed as void*) onto the Lua stack as a cdata of type SEXP. */
@@ -119,6 +123,32 @@ extern void luajr_push_vector_cdata(lua_State *L, int sxp_type,
     lj_gc_check(L);
 }
 
+/* Push an environment_t cdata { SEXP s; } onto the Lua stack. */
+extern void luajr_push_environment_cdata(lua_State *L, void *s)
+{
+    luajr_ensure_ctype_ids(L);
+    CTState *cts = ctype_cts(L);
+    GCcdata *cd = lj_cdata_new(cts, luajr_environment_ctype_id, sizeof(void *));
+    *(void **)cdataptr(cd) = s;
+    setcdataV(L, L->top, cd);
+    incr_top(L);
+    lj_gc_check(L);
+}
+
+/* Push a function_t cdata { SEXP s; SEXP cached; } onto the Lua stack. */
+extern void luajr_push_function_cdata(lua_State *L, void *s)
+{
+    luajr_ensure_ctype_ids(L);
+    CTState *cts = ctype_cts(L);
+    GCcdata *cd = lj_cdata_new(cts, luajr_function_ctype_id, 2 * sizeof(void *));
+    void **fields = (void **)cdataptr(cd);
+    fields[0] = s;
+    fields[1] = NULL;
+    setcdataV(L, L->top, cd);
+    incr_top(L);
+    lj_gc_check(L);
+}
+
 /* Extract a SEXP from the cdata at the given Lua stack index. Handles bare
  * SEXP cdata, the four luajr vector types (logical_t/integer_t/numeric_t/
  * character_t), and any pointer-type cdata with a NULL value (the `nullptr`
@@ -159,6 +189,18 @@ extern ptrdiff_t luajr_get_sexp_cdata(lua_State *L, int index, void **out_s)
         *out_s = v->s;
         return (v->n < v->c) ? (ptrdiff_t)v->n : -1;
     }
+    if (id == luajr_environment_ctype_id)
+    {
+        /* environment_t: single SEXP field. */
+        *out_s = *(void **)cdataptr(cd);
+        return -1;
+    }
+    if (id == luajr_function_ctype_id)
+    {
+        /* function_t: first field is the SEXP. */
+        *out_s = *(void **)cdataptr(cd);
+        return -1;
+    }
     /* Any other pointer-type cdata with a NULL value is treated as R_NilValue.
      * This covers the `nullptr` (void* with 0) idiom used in luajr.lua. */
     {
@@ -172,6 +214,44 @@ extern ptrdiff_t luajr_get_sexp_cdata(lua_State *L, int index, void **out_s)
         }
     }
     return -2;
+}
+
+/* Try to extract a raw pointer from any pointer-type cdata at the given stack
+ * index. Writes the pointer value to *out_p. Returns 0 on success, -1 if not
+ * a pointer-type cdata. */
+extern int luajr_get_pointer_cdata(lua_State *L, int index, void **out_p)
+{
+    TValue *o = L->base + (index - 1);
+    o = o < L->top ? o : niltv(L);
+    if (!tviscdata(o)) return -1;
+    GCcdata *cd = cdataV(o);
+    CTState *cts = ctype_cts(L);
+    CType *ct = ctype_get(cts, cd->ctypeid);
+    if (ctype_isptr(ct->info))
+    {
+        *out_p = *(void **)cdataptr(cd);
+        return 0;
+    }
+    return -1;
+}
+
+/* Get the array part size and hash part size of a table at the given
+ * stack index. Returns via out-params for use from push_to.cpp. */
+extern void luajr_table_sizes(lua_State *L, int index, uint32_t *asize, uint32_t *hsize)
+{
+    TValue *o = L->base + (index - 1);
+    o = o < L->top ? o : niltv(L);
+    if (tvistab(o))
+    {
+        GCtab *t = tabV(o);
+        *asize = t->asize > 0 ? t->asize - 1 : 0;
+        *hsize = t->hmask + 1;
+    }
+    else
+    {
+        *asize = 0;
+        *hsize = 0;
+    }
 }
 
 #endif /* _BUILDVM_H */

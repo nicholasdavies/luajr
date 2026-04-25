@@ -5,6 +5,7 @@
 
 // Forward declarations
 struct lua_State;
+struct workers_t;
 
 // The shared global Lua state
 extern lua_State* L0;
@@ -32,24 +33,25 @@ void luajr_pushsexp(lua_State* L, SEXP x, char as);
 SEXP luajr_tosexp(lua_State* L, int index);
 void luajr_pass(lua_State* L, SEXP args, const char* acode);
 SEXP luajr_return(lua_State* L, int nret);
+void luajr_xpush(lua_State* L, int index, lua_State* to);
+int luajr_Rcall(lua_State* L); // Not in public API
 
 // Run Lua code and functions (run_func.cpp)
 SEXP luajr_run_code(SEXP code, SEXP Lx);
 SEXP luajr_run_file(SEXP filename, SEXP Lx);
 SEXP luajr_func_create(SEXP func, SEXP Lx);
 SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
-SEXP luajr_func_call0(SEXP fx, SEXP acode, SEXP Lx);
-SEXP luajr_func_call1(SEXP fx, SEXP a1, SEXP acode, SEXP Lx);
-SEXP luajr_func_call2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx);
-SEXP luajr_func_call3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode, SEXP Lx);
-SEXP luajr_func_call4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP acode, SEXP Lx);
-SEXP luajr_func_call5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP acode, SEXP Lx);
-SEXP luajr_func_call6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP acode, SEXP Lx);
-SEXP luajr_func_call7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP acode, SEXP Lx);
-SEXP luajr_func_call8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP acode, SEXP Lx);
-SEXP luajr_func_info(SEXP fx);  // Not in public API
+SEXP luajr_func_call0(SEXP fx, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call1(SEXP fx, SEXP a1, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_call8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_func_info(SEXP fx); // Not in public API
 void luajr_pushfunc(SEXP fx);
-int luajr_wrap_function(lua_State* L);  // lua_CFunction; not in public API
 
 // Load and access Lua modules (module.cpp)
 SEXP luajr_module_load(SEXP filename, SEXP Lx);
@@ -58,6 +60,10 @@ SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value);
 
 // Run Lua code in parallel (parallel.cpp)
 SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre);
+int luajr_parallel_ncores(); // Not in public API
+int luajr_parallel_load(lua_State* L); // Not in public API
+void luajr_parallel_newworkers(workers_t* w); // Not in public API
+void luajr_parallel_closeworkers(workers_t* w); // Not in public API
 
 // Load and call Lua code, and control tooling (tools.cpp)
 void luajr_loadstring(lua_State* L, const char* str);
@@ -83,6 +89,18 @@ void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...); // Not in public
 
 // Access to Lua C API (lua_internal.cpp)
 SEXP luajr_lua_gettop(SEXP Lx); // Not in public API
+
+// LuaJIT internal helpers (luajit/src/lj_luajr.c)
+void luajr_push_sexp_cdata(lua_State* L, void* x);
+void luajr_push_vector_cdata(lua_State* L, int sxp_type, void* p, void* s, double n, double c);
+ptrdiff_t luajr_get_sexp_cdata(lua_State* L, int index, void** out_s);
+void luajr_push_environment_cdata(lua_State* L, void* s);
+void luajr_push_function_cdata(lua_State* L, void* s);
+void luajr_table_sizes(lua_State* L, int index, uint32_t* asize, uint32_t* hsize);
+int luajr_get_pointer_cdata(lua_State* L, int index, void** out_p);
+void luajr_parallel_srun(workers_t* w);
+void luajr_parallel_prun(workers_t* w);
+void luajr_parallel_pfor(workers_t* w, int i0, int i1);
 
 } // end of extern "C"
 

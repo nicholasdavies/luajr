@@ -20,26 +20,35 @@ typedef struct SEXPREC* SEXP;
 typedef ptrdiff_t R_xlen_t;
 typedef unsigned int SEXPTYPE;
 typedef unsigned char Rbyte;
+typedef int Rboolean;
 
 // === R API declarations ===
 void* DATAPTR(SEXP x);
 void DUPLICATE_ATTRIB(SEXP to, SEXP from);
+SEXP ENCLOS(SEXP x);
 int* INTEGER(SEXP x);
 int* LOGICAL(SEXP x);
 const char* R_CHAR(SEXP x);
 void *R_ExternalPtrAddr(SEXP s);
 void R_FlushConsole(void);
+SEXP R_lsInternal(SEXP, Rboolean);
 SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot);
 void R_PreserveObject(SEXP);
 int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
 void R_ReleaseObject(SEXP);
+void R_removeVarFromFrame(SEXP, SEXP);
 Rbyte *RAW(SEXP x);
 double* REAL(SEXP x);
 SEXP Rf_allocVector(SEXPTYPE, R_xlen_t);
+SEXP Rf_cons(SEXP, SEXP);
 void Rf_copyMostAttrib(SEXP, SEXP);
+void Rf_defineVar(SEXP, SEXP, SEXP);
 SEXP Rf_dimnamesgets(SEXP, SEXP);
+SEXP Rf_eval(SEXP, SEXP);
+SEXP Rf_findFun(SEXP, SEXP);
 SEXP Rf_getAttrib(SEXP, SEXP);
 SEXP Rf_install(const char*);
+SEXP Rf_lcons(SEXP, SEXP);
 SEXP Rf_mkChar(const char*);
 SEXP Rf_mkCharLen(const char *, int);
 SEXP Rf_protect(SEXP);
@@ -49,6 +58,7 @@ SEXP Rf_ScalarString(SEXP);
 SEXP Rf_setAttrib(SEXP, SEXP, SEXP);
 const char* Rf_type2char(SEXPTYPE);
 void Rf_unprotect(int);
+void SET_ENCLOS(SEXP x, SEXP v);
 void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v);
 SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v);
 void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from);
@@ -58,7 +68,18 @@ int TYPEOF(SEXP x);
 SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 // === end R API declarations ===
 
-R_xlen_t Rf_xlength(SEXP); // Wrapped manually below to convert to number
+// Not in public API, included for workarounds with old versions of R.
+SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.get_namespace, pre-4.5.0
+SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.new_env, pre-4.1.0
+
+// Added post-4.0.0, kept out of the main list above for version-specific loading
+SEXP R_NewEnv(SEXP, int, int); // added in 4.1.0
+SEXP R_getVar(SEXP, SEXP, Rboolean); // added in 4.5.0
+SEXP R_getVarEx(SEXP, SEXP, Rboolean, SEXP); // added in 4.5.0
+SEXP R_getRegisteredNamespace(const char*); // added in 4.6.0
+
+// Wrapped below for generic R.length (unexposed to avoid user confusion)
+R_xlen_t Rf_xlength(SEXP);
 
 // R constants -- bound manually below
 extern SEXP R_NilValue;
@@ -76,6 +97,7 @@ extern SEXP R_ClassSymbol;
 extern SEXP R_DimSymbol;
 extern SEXP R_DimNamesSymbol;
 extern SEXP R_RowNamesSymbol;
+extern SEXP R_NamespaceRegistry;
 ]]
 
 -- Resolve R API symbols. On Windows, the luajr dylib doesn't re-export R's
@@ -124,16 +146,24 @@ end
 -- === R API bindings ===
 R.allocVector = C.Rf_allocVector
 R.CHAR = C.R_CHAR
+R.cons = C.Rf_cons
 R.copyMostAttrib = C.Rf_copyMostAttrib
 R.DATAPTR = C.DATAPTR
+R.defineVar = C.Rf_defineVar
 R.dimnamesgets = C.Rf_dimnamesgets
 R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
+R.ENCLOS = C.ENCLOS
+R.eval = C.Rf_eval
 R.ExternalPtrAddr = C.R_ExternalPtrAddr
+R.findFun = C.Rf_findFun
 R.FlushConsole = C.R_FlushConsole
 R.getAttrib = C.Rf_getAttrib
+R.getVarEx = C.R_getVarEx
 R.install = C.Rf_install
 R.INTEGER = C.INTEGER
+R.lcons = C.Rf_lcons
 R.LOGICAL = C.LOGICAL
+R.lsInternal = C.R_lsInternal
 R.MakeExternalPtr = C.R_MakeExternalPtr
 R.mkChar = C.Rf_mkChar
 R.mkCharLen = C.Rf_mkCharLen
@@ -143,9 +173,11 @@ R.RAW = C.RAW
 R.ReadConsole = C.R_ReadConsole
 R.REAL = C.REAL
 R.ReleaseObject = C.R_ReleaseObject
+R.removeVarFromFrame = C.R_removeVarFromFrame
 R.ScalarLogical = C.Rf_ScalarLogical
 R.ScalarReal = C.Rf_ScalarReal
 R.ScalarString = C.Rf_ScalarString
+R.SET_ENCLOS = C.SET_ENCLOS
 R.SET_STRING_ELT = C.SET_STRING_ELT
 R.SET_VECTOR_ELT = C.SET_VECTOR_ELT
 R.setAttrib = C.Rf_setAttrib
@@ -158,6 +190,20 @@ R.UNPROTECT = C.Rf_unprotect
 R.VECTOR_ELT = C.VECTOR_ELT
 -- === end R API bindings ===
 
+-- R API bindings introduced in specific versions > 4.0.0
+if R_version >= 40100 then
+    R.NewEnv = C.R_NewEnv
+end
+
+if R_version >= 40500 then
+    R.getVar = C.R_getVar
+    R.getVarEx = C.R_getVarEx
+end
+
+if R_version >= 40600 then
+    R.getRegisteredNamespace = C.R_getRegisteredNamespace
+end
+
 -- Convert 64-bit length to Lua number
 R.length = function(sexp)
     return tonumber(C.Rf_xlength(sexp))
@@ -166,6 +212,47 @@ end
 -- SEXP type name as string
 R.type_string = function(sexp)
     return ffi.string(C.Rf_type2char(C.TYPEOF(sexp)))
+end
+
+R.get_var = function(name, env)
+    local val
+    if R_version < 40500 then
+        -- pre 4.5.0: Rf_findVarInFrame (non-API)
+        val = C.Rf_findVarInFrame(env, R.install(name))
+    else
+        -- 4.5.0 and later: R.getVarEx
+        val = R.getVarEx(R.install(name), env, 0, R.UnboundValue)
+    end
+    if val == R.UnboundValue then return nil end
+    return val
+end
+
+R.get_namespace = function(name)
+    local env
+    if R_version < 40600 then
+        -- pre 4.6.0: R.get_var
+        env = R.get_var(name, R.NamespaceRegistry)
+    else
+        -- 4.6.0 and later: R.getRegisteredNamespace
+        env = R.getRegisteredNamespace(name)
+    end
+
+    if not env or env == R.NilValue then
+        error("could not find namespace " .. name)
+    end
+
+    return env
+end
+
+R.new_env = function(parent)
+    parent = parent or C.R_EmptyEnv
+    if R_version < 40100 then
+        -- pre 4.1.0: Rf_NewEnvironment (non-API)
+        return C.Rf_NewEnvironment(R.NilValue, R.NilValue, parent)
+    else
+        -- 4.1.0 and later: R.NewEnv
+        return R.NewEnv(parent, 1, 29)
+    end
 end
 
 -- R constants
@@ -185,6 +272,7 @@ R.ClassSymbol = C.R_ClassSymbol
 R.DimSymbol = C.R_DimSymbol
 R.DimNamesSymbol = C.R_DimNamesSymbol
 R.RowNamesSymbol = C.R_RowNamesSymbol
+R.NamespaceRegistry = C.R_NamespaceRegistry
 
 -- LuaJIT SEXP type
 R.sexp = ffi.typeof("SEXP")
