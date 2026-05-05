@@ -34,7 +34,7 @@ test_that("logical vector push_back and insert work", {
 test_that("logical vector NA values", {
     # Returning a single NA element doesn't round-trip as NA (it's INT_MIN as a double).
     # Test via the vector return path instead.
-    expect_equal(lua_func("function(x) return x end", "r")(c(TRUE, NA, FALSE)),
+    expect_equal(lua_func("function(x) return x end", ".")(c(TRUE, NA, FALSE)),
                  c(TRUE, NA, FALSE))
     lua_reset()
 })

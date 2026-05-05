@@ -46,9 +46,9 @@ v7 = rnorm(1e7)
 
 lua("sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end")
 sum2 = function(x) sum(x*x)
-sum2_r = lua_func("sum2", "r")
-sum2_v = lua_func("sum2", "v")
-sum2_s = lua_func("sum2", "s")
+sum2_r = lua_func("sum2", "&.")
+sum2_v = lua_func("sum2", ".")
+sum2_s = lua_func("sum2", "$.")
 
 # Comparing the results of each function:
 sum2(v1)    # Pure R version
@@ -173,7 +173,7 @@ logistic_map_L = lua_func(
     result:set('x', xx)
 
     return result
-end", "sssr")
+end", "$.$.$.N")
 
 
 logistic_map_Rcpp_src = '
@@ -280,7 +280,7 @@ logistic_map_P = lua_func("function(x0, burn, iter, A)
     result:set('a', aa)
     result:set('x', xx)
     return result
-end", "sssr")
+end", "$.$.$.N")
 
 # Verify correctness
 cr_p = logistic_map_P(0.5, 100, 100, 200:385/100)

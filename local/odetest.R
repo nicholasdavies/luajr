@@ -60,7 +60,7 @@ gradient3 = lua_func("function(t, x, pars)
     R.SET_VECTOR_ELT(l, 0, d.s)
     R.UNPROTECT(1)
     return l
-end", "xrx")
+end", "S&NS")
 
 lua("R = require('R')")
 lua("save_d = luajr.numeric(3, 0)")
@@ -73,7 +73,7 @@ gradient4 = lua_func("function(t, x, pars)
     save_d[2] =  0.05 * x[2] * x[1] - 0.025 * x[2]
     save_d[3] =                       0.025 * x[2]
     return save_l
-end", "xrx")
+end", "S&NS")
 
 yini = c(S = 0.999, I = 0.001, R = 0.000)
 times = seq(1, 1000, by = 1)

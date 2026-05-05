@@ -99,7 +99,7 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
     // Assemble function call
     int top0 = lua_gettop(L);
     luajr_pushfunc(fx);
-    luajr_pass(L, alist, CHAR(STRING_ELT(acode, 0)));
+    luajr_pass(L, alist, acode);
 
     // Call function
     luajr_pcall(L, Rf_length(alist), LUA_MULTRET, "user function from luajr_func_call()", LUAJR_TOOLING_ALL);
@@ -112,7 +112,7 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 // Specialized call functions for 0-8 arguments, avoiding list() construction.
 // Validation and recycling of argcode is done in R (lua_func).
 #define FUNC_CALL_BEGIN \
-    const char* ac = CHAR(STRING_ELT(acode, 0)); \
+    const unsigned char* ac = RAW(acode); (void)ac; \
     lua_State* L = luajr_getstate(Lx); \
     int top0 = lua_gettop(L); \
     luajr_pushfunc(fx);

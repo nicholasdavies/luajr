@@ -113,12 +113,12 @@ end
 # Wrap them
 fA = lua_func("bench_A")
 fB = lua_func("bench_B")
-fC = lua_func("bench_C", "x")
-fD = lua_func("bench_D", "x")
+fC = lua_func("bench_C", "S")
+fD = lua_func("bench_D", "S")
 fE = lua_func("bench_E")
 fF = lua_func("bench_F")
-fG = lua_func("bench_G", "x")
-fH = lua_func("bench_H", "x")
+fG = lua_func("bench_G", "S")
+fH = lua_func("bench_H", "S")
 
 cat("=== Component costs (1000 iterations each, in Lua) ===\n")
 print(bench(
@@ -139,7 +139,7 @@ gradient4 = lua_func("function(t, x, pars)
     save_d[2] =  0.05 * x[2] * x[1] - 0.025 * x[2]
     save_d[3] =                       0.025 * x[2]
     return save_l
-end", "xrx")
+end", "S&NS")
 
 cat("\n=== Full gradient call ===\n")
 print(bench(

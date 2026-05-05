@@ -188,7 +188,10 @@ lua_import = function(module, name, argcode)
     load_module(module)
 
     # Get module entry
-    fx = .Call(`_luajr_module_get`, module[["mod"]], list(name), "function");
+    fx = .Call(`_luajr_module_get`, module[["mod"]], list(name), "function")
+
+    # Interpret argcode
+    argcode = interpret_argcode(argcode)
 
     # Create new body for R function which directly calls the Lua function
     R_body = quote({
@@ -256,12 +259,15 @@ print.luajr_module = function(x, ...)
 
 #' @keywords internal
 #' @export
-`[<-.luajr_module` = function(x, ..., as = "s", value)
+`[<-.luajr_module` = function(x, ..., as = "$.", value)
 {
     stopifnot(inherits(x, "luajr_module"))
 
     # Ensure module is initialized
     load_module(x)
+
+    # Interpret argcode
+    as = interpret_argcode(as)
 
     # This seems to be needed for the [ method.
     if (missing(..1)) {

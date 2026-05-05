@@ -107,7 +107,7 @@ logistic_map_L = lua_func(
     end
 
     return result
-end", "sssr")
+end", "$.$.$.N")
 
 lua_mode(profile = TRUE, logistic_map_L(0.5, 10000, 1000, 20000:38500/10000))
 prof = lua_profile()

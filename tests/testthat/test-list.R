@@ -66,8 +66,8 @@ test_that("luajr.list integer index assignment overwrites in place", {
 })
 
 test_that("luajr.list round-trips R lists by reference and value", {
-    identity_r = lua_func("function(x) return x end", "r")
-    identity_v = lua_func("function(x) return x end", "v")
+    identity_r = lua_func("function(x) return x end", "&V")
+    identity_v = lua_func("function(x) return x end", "V")
 
     expect_identical(identity_r(list(1, 2, 3)),               list(1, 2, 3))
     expect_identical(identity_v(list(1, 2, 3)),               list(1, 2, 3))

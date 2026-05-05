@@ -2,7 +2,7 @@ test_that("R.length works", {
     lua("R = require('R')")
     expect_identical(lua("return R.length(R.NilValue)"), 0)
     expect_identical(
-        lua_func("function(x) return R.length(x) end", "x")(1:10),
+        lua_func("function(x) return R.length(x) end", "S")(1:10),
         10
     )
 })
@@ -10,23 +10,23 @@ test_that("R.length works", {
 test_that("R.type_string works", {
     lua("R = require('R')")
     expect_identical(
-        lua_func("function(x) return R.type_string(x) end", "x")(1:5),
+        lua_func("function(x) return R.type_string(x) end", "S")(1:5),
         "integer"
     )
     expect_identical(
-        lua_func("function(x) return R.type_string(x) end", "x")(c(1.0, 2.0)),
+        lua_func("function(x) return R.type_string(x) end", "S")(c(1.0, 2.0)),
         "double"
     )
     expect_identical(
-        lua_func("function(x) return R.type_string(x) end", "x")(TRUE),
+        lua_func("function(x) return R.type_string(x) end", "S")(TRUE),
         "logical"
     )
     expect_identical(
-        lua_func("function(x) return R.type_string(x) end", "x")(letters),
+        lua_func("function(x) return R.type_string(x) end", "S")(letters),
         "character"
     )
     expect_identical(
-        lua_func("function(x) return R.type_string(x) end", "x")(list()),
+        lua_func("function(x) return R.type_string(x) end", "S")(list()),
         "list"
     )
 })
@@ -50,7 +50,7 @@ test_that("R constants are accessible", {
 
 test_that("R SEXPTYPEs match TYPEOF", {
     lua("R = require('R')")
-    typeof_x = lua_func("function(x) return R.TYPEOF(x) end", "x")
+    typeof_x = lua_func("function(x) return R.TYPEOF(x) end", "S")
 
     # Core types
     expect_identical(typeof_x(NULL),                    lua("return R.NILSXP"))      # 0

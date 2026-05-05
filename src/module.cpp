@@ -73,7 +73,7 @@ extern "C" SEXP luajr_module_get(SEXP module, SEXP keys, SEXP typecheck)
         lua_insert(L, -2);
 
         // Get key on stack
-        luajr_pushsexp(L, VECTOR_ELT(keys, k), 's');
+        luajr_pushsexp(L, VECTOR_ELT(keys, k), AC::value | AC::native);
 
         // Now have on stack: getter, table, keys[k]
         // Get table[keys[k]], catching any error
@@ -102,9 +102,7 @@ extern "C" SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value)
     size_t klen = Rf_length(keys);
     if (klen < 1)
         Rf_error("Must provide at least one index to set value.");
-    CheckSEXPLen(as, STRSXP, 1);
-    if (strlen(CHAR(STRING_ELT(as, 0))) != 1)
-        Rf_error("`as' must be a single character.");
+    CheckSEXPLen(as, RAWSXP, 1);
 
     // Get registry entry
     RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(module, LUAJR_MODULE_CODE));
@@ -117,7 +115,7 @@ extern "C" SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value)
     // Put module table and first key on stack to check type.
     lua_State* L = re->GetState();
     re->Get();
-    luajr_pushsexp(L, VECTOR_ELT(keys, 0), 's');
+    luajr_pushsexp(L, VECTOR_ELT(keys, 0), AC::value | AC::native);
     lua_gettable(L, -2);
     if (lua_type(L, -1) == LUA_TFUNCTION)
         luajr_pop_stop(L, 2, "Cannot overwrite a top-level module function.");
@@ -132,7 +130,7 @@ extern "C" SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value)
         lua_insert(L, -2);
 
         // Get key on stack
-        luajr_pushsexp(L, VECTOR_ELT(keys, k), 's');
+        luajr_pushsexp(L, VECTOR_ELT(keys, k), AC::value | AC::native);
 
         // Now have on stack: getter, table, keys[k]
         // Get table[keys[k]], catching any error
@@ -145,8 +143,8 @@ extern "C" SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value)
     lua_insert(L, -2);
 
     // Get final key on stack, then value
-    luajr_pushsexp(L, VECTOR_ELT(keys, klen - 1), 's');
-    luajr_pushsexp(L, value, CHAR(STRING_ELT(as, 0))[0]);
+    luajr_pushsexp(L, VECTOR_ELT(keys, klen - 1), AC::value | AC::native);
+    luajr_pushsexp(L, value, RAW(as)[0]);
 
     // Now have on stack: setter, table, final key, value
     // Set table[final key] = value, catching any error

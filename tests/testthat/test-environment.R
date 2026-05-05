@@ -123,26 +123,26 @@ test_that("invalid environment construction errors", {
     lua_reset()
 })
 
-test_that("R environment passed via 'r' argcode arrives as environment", {
-    f = lua_func("function(e) return luajr.is_environment(e) end", "r")
+test_that("R environment passed via '&.' argcode arrives as environment", {
+    f = lua_func("function(e) return luajr.is_environment(e) end", "&.")
     expect_true(f(new.env(parent = emptyenv())))
 
     lua_reset()
 })
 
-test_that("R environment passed via 'v' argcode is usable", {
+test_that("R environment passed via 'E' argcode is usable", {
     e = new.env(parent = emptyenv())
     e$x = 42
-    f = lua_func("function(e) return e:get('x') end", "v")
+    f = lua_func("function(e) return e:get('x') end", "E")
     expect_identical(f(e), 42)
 
     lua_reset()
 })
 
-test_that("R environment round-trips via 'r' argcode", {
+test_that("R environment round-trips via '&E' argcode", {
     e = new.env(parent = emptyenv())
     e$x = "hello"
-    f = lua_func("function(e) return e end", "r")
+    f = lua_func("function(e) return e end", "&E")
     r = f(e)
     expect_identical(r$x, "hello")
 
@@ -151,7 +151,7 @@ test_that("R environment round-trips via 'r' argcode", {
 
 test_that("environment set from Lua is visible in R", {
     e = new.env(parent = emptyenv())
-    f = lua_func("function(e) e:set('y', 99) end", "r")
+    f = lua_func("function(e) e:set('y', 99) end", ".")
     f(e)
     expect_identical(e$y, 99)
 

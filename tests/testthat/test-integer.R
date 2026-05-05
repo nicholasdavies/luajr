@@ -41,7 +41,7 @@ test_that("integer vector push_back and insert work", {
 test_that("integer vector NA values", {
     # Returning a single NA element doesn't round-trip as NA (it's INT_MIN as a double).
     # Test via the vector return path instead.
-    expect_equal(lua_func("function(x) return x end", "r")(c(0L, NA_integer_, 0L)),
+    expect_equal(lua_func("function(x) return x end", "&integer")(c(0L, NA_integer_, 0L)),
                  c(0L, NA_integer_, 0L))
     lua_reset()
 })

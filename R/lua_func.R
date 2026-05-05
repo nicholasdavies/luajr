@@ -98,7 +98,7 @@
 #' times2 <- lua_func(times2ptr)
 #' print(times2(14))
 #' @export
-lua_func = function(func, argcode = "s", L = NULL)
+lua_func = function(func, argcode = ".", L = NULL)
 {
     # Get function and information
     fx = .Call(`_luajr_func_create`, func, L)
@@ -107,11 +107,17 @@ lua_func = function(func, argcode = "s", L = NULL)
     isvararg = info[2]
 
     # Validate parameters
-    if (!is.character(argcode) || length(argcode) != 1) {
+    if (!is.character(argcode)) {
         stop("argcode must be a string.")
     }
-    if ((isvararg || nparams > 0) && nchar(argcode) == 0) {
+    argcode = interpret_argcode(argcode)
+    if ((isvararg || nparams > 0) && length(argcode) == 0) {
         stop("argcode must be a non-empty string for Lua functions with arguments.")
+    }
+
+    # Recycle argcode to match nparams for non-vararg functions
+    if (!isvararg && nparams > 0 && length(argcode) > 0) {
+        argcode = rep_len(argcode, nparams)
     }
 
     # Select caller
@@ -120,11 +126,6 @@ lua_func = function(func, argcode = "s", L = NULL)
     } else {
         call_name = paste0("_luajr_func_call", nparams)
     }
-
-    # TODO this doesn't work for vararg functions
-    # # Recycle argcode to match nparams for non-vararg functions
-    # if (!isvararg && nparams > 0 && nparams <= 8)
-    #     argcode = substr(strrep(argcode, ceiling(nparams / nchar(argcode))), 1, nparams)
 
     if (isvararg) {
         f = function(...) .Call(placeholder, fx, list(...), argcode, L)
@@ -199,7 +200,7 @@ lua_func = function(func, argcode = "s", L = NULL)
 
 argcodes_short = c(
     "." = 0,
-    "X" = 1,
+    "S" = 1,
     "F" = 4,
     "E" = 5,
     "L" = 7,
@@ -211,7 +212,6 @@ argcodes_short = c(
 )
 
 argcodes_long = c(
-    value = 0,
     sexp = 1,
     symbol = 2,
     pairlist = 3,
@@ -232,8 +232,8 @@ argcodes_long = c(
 )
 
 argcodes_mod = c(
-    "^" = 32,  # native
-    "&" = 64,  # byref
+    "$" = 32,  # native/scalar
+    "&" = 64,  # reference
     "!" = 128  # strict
 )
 

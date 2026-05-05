@@ -129,7 +129,7 @@ test_that("character vector NA values", {
     lua("x[2] = luajr.NA_character_")
     # Returning a single NA_character_ element doesn't round-trip to R correctly
     # (it's a CHARSXP cdata, not a Lua string). Test via the vector return path instead.
-    expect_identical(lua_func("function(x) return x end", "r")(c("a", NA_character_, "a")),
+    expect_identical(lua_func("function(x) return x end", "&.")(c("a", NA_character_, "a")),
                      c("a", NA_character_, "a"))
     expect_identical(lua("return x[1]"), "a")
     lua_reset()

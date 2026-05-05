@@ -1,7 +1,7 @@
 library(luajr)
 
 mymod = lua_module(file = "Lua/example.lua", package = "luajr")
-greet = function(name) lua_import(mymod, "greet", "s")
+greet = function(name) lua_import(mymod, "greet", "$.")
 
 mymod[]
 
@@ -38,8 +38,8 @@ mymod["x"]
 mymod["x"] <- 1
 mymod["x"]
 
-mymod["x", as = "a"] <- 1
-mymod["bah", as = "a"] <- 1
+mymod["x", as = "$V"] <- 1
+mymod["bah", as = "$V"] <- 1
 mymod["bah"]
 
 mymod["koo"]
@@ -65,8 +65,8 @@ mymod = lua_module(code = "", file = "", package = "")
 
 # suppose mymod contains two functions, times_two(x) and lua_sum_vector(v, init)
 
-times_two = function(x) lua_import(mymod, "s")
-sum_vector = function(v, init = 0) lua_import(mymod, "r1", "lua_sum_vector")
+times_two = function(x) lua_import(mymod, "$.")
+sum_vector = function(v, init = 0) lua_import(mymod, "N,$N", "lua_sum_vector")
 
 sum_vector(1:5, 0)
 

@@ -309,7 +309,7 @@ test_that("erase single element shifts names (in-place)", {
 })
 
 test_that("erase on alias vector shifts names (allocate path)", {
-    identity_v = lua_func("function(x) x:erase(2); return x end", "v")
+    identity_v = lua_func("function(x) x:erase(2); return x end", ".")
     x = c(a = 10, b = 20, c = 30)
     r = identity_v(x)
     expect_identical(names(r), c("a", "c"))
@@ -452,7 +452,7 @@ test_that("names work with list vectors", {
 })
 
 test_that("lua_func byref round-trip preserves names", {
-    identity_r = lua_func("function(x) return x end", "r")
+    identity_r = lua_func("function(x) return x end", "&.")
     x = c(a = 1, b = 2, c = 3)
     expect_identical(identity_r(x), x)
 
@@ -460,7 +460,7 @@ test_that("lua_func byref round-trip preserves names", {
 })
 
 test_that("lua_func alias round-trip preserves names", {
-    identity_v = lua_func("function(x) return x end", "v")
+    identity_v = lua_func("function(x) return x end", ".")
     x = c(a = 1, b = 2, c = 3)
     expect_identical(identity_v(x), x)
 
@@ -516,7 +516,7 @@ test_that("unname on unnamed vector is a no-op", {
 })
 
 test_that("unname on alias vector detaches and drops names", {
-    identity_v = lua_func("function(x) x:unname(); return x end", "v")
+    identity_v = lua_func("function(x) x:unname(); return x end", ".")
     x = c(a = 1, b = 2, c = 3)
     r = identity_v(x)
     expect_null(names(r))
@@ -528,7 +528,7 @@ test_that("unname on alias vector detaches and drops names", {
 })
 
 test_that("pop_back on alias preserves names", {
-    identity_v = lua_func("function(x) x:pop_back(); return x end", "v")
+    identity_v = lua_func("function(x) x:pop_back(); return x end", ".")
     x = c(a = 10, b = 20, c = 30)
     r = identity_v(x)
     expect_identical(names(r), c("a", "b"))
@@ -538,7 +538,7 @@ test_that("pop_back on alias preserves names", {
 })
 
 test_that("clear on alias drops names", {
-    identity_v = lua_func("function(x) x:clear(); x:push_back(99); return x end", "v")
+    identity_v = lua_func("function(x) x:clear(); x:push_back(99); return x end", ".")
     x = c(a = 10, b = 20)
     r = identity_v(x)
     expect_null(names(r))
@@ -578,7 +578,7 @@ test_that("assign Lua table clears names (allocate path)", {
 })
 
 test_that("__newindex on alias preserves names after COW", {
-    identity_v = lua_func("function(x) x[2] = 99; return x end", "v")
+    identity_v = lua_func("function(x) x[2] = 99; return x end", ".")
     x = c(a = 10, b = 20, c = 30)
     r = identity_v(x)
     expect_identical(names(r), c("a", "b", "c"))

@@ -7,12 +7,11 @@
         getLoadedDLLs()[["luajr"]][["path"]],
         # Path to R shared library (only used on Windows)
         if (.Platform$OS.type == "windows") {
-            # R 4.2+ dropped multi-arch: R.home("bin") already includes arch.
-            # R 4.0-4.1 had R.dll in R.home("bin")/r_arch/.
-            if (getRversion() >= "4.2.0")
+            if (getRversion() >= "4.2.0") {
                 file.path(R.home("bin"), "R.dll")
-            else
+            } else {
                 file.path(R.home("bin"), .Platform$r_arch, "R.dll")
+            }
         } else "",
         # Path to luajr module
         system.file("Lua", "luajr.lua", package = "luajr"),

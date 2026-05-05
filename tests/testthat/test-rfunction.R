@@ -1,7 +1,7 @@
 test_that("rfunction from SEXP is callable", {
     lua("R = require('R')")
     # Pass mean as bare SEXP, wrap in rfunction, call it from Lua, return result
-    f = lua_func("function(x) local m = luajr.rfunction(x); return m(luajr.numeric({1, 2, 3, 4, 5})) end", "x")
+    f = lua_func("function(x) local m = luajr.rfunction(x); return m(luajr.numeric({1, 2, 3, 4, 5})) end", "S")
     expect_identical(f(mean), 3)
 
     lua_reset()
@@ -88,22 +88,22 @@ test_that("rfunction retrieved from environment is callable", {
     lua_reset()
 })
 
-test_that("R function passed via 'r' argcode arrives as rfunction", {
-    f = lua_func("function(fn) return luajr.is_rfunction(fn) end", "r")
+test_that("R function passed via '&.' argcode arrives as rfunction", {
+    f = lua_func("function(fn) return luajr.is_rfunction(fn) end", "&.")
     expect_true(f(mean))
 
     lua_reset()
 })
 
-test_that("R function passed via 'v' argcode is callable", {
-    f = lua_func("function(fn) return fn(luajr.numeric({1, 2, 3})) end", "v")
+test_that("R function passed via '.' argcode is callable", {
+    f = lua_func("function(fn) return fn(luajr.numeric({1, 2, 3})) end", ".")
     expect_identical(f(sum), 6)
 
     lua_reset()
 })
 
-test_that("R function round-trips via 'r' argcode", {
-    f = lua_func("function(fn) return fn end", "r")
+test_that("R function round-trips via '!F' argcode", {
+    f = lua_func("function(fn) return fn end", "!F")
     r = f(mean)
     expect_identical(r(1:10), 5.5)
 

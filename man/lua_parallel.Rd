@@ -49,12 +49,11 @@ library functions are thread-safe, except for certain functions in the
 built-in \strong{os} and \strong{io} libraries (search for "thread safe" in the
 \href{https://www.lua.org/manual/5.2/manual.html}{Lua 5.2 reference manual}).
 
-Additionally, use of luajr reference types is \strong{not} thread-safe because
+Additionally, use of luajr vector types is \strong{not} thread-safe because
 these use R to allocate and manage memory, and R is not thread-safe. This
-means that you cannot safely use \code{luajr.logical_r}, \code{luajr.integer_r},
-\code{luajr.numeric_r}, \code{luajr.character_r}, or other reference types within
-\code{func}. \code{luajr.list} and \code{luajr.dataframe} are fine, provided the list
-entries / dataframe columns are value types.
+means that you cannot safely use \code{luajr.logical}, \code{luajr.integer},
+\code{luajr.numeric}, \code{luajr.character}, or other vector types within
+\code{func}.
 
 There is overhead associated with creating new Lua states and with gathering
 all the function results in an R list. It is advisable to check whether

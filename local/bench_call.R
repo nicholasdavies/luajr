@@ -66,7 +66,7 @@ bench(
 
 x = rnorm(100)
 identity_R = function(x) x
-identity_L = lua_func("function(x) return x end", "x")
+identity_L = lua_func("function(x) return x end", "S")
 identity_C = cppFunction("SEXP cpp_identity(SEXP x) { return x; }")
 
 bench(

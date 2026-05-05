@@ -29,9 +29,9 @@ lua_State* luajr_newstate();
 lua_State* luajr_getstate(SEXP Lx);
 
 // Move values between R and Lua (push_to.cpp)
-void luajr_pushsexp(lua_State* L, SEXP x, char as);
+void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as);
 SEXP luajr_tosexp(lua_State* L, int index);
-void luajr_pass(lua_State* L, SEXP args, const char* acode);
+void luajr_pass(lua_State* L, SEXP args, SEXP acode);
 SEXP luajr_return(lua_State* L, int nret);
 void luajr_xpush(lua_State* L, int index, lua_State* to);
 int luajr_Rcall(lua_State* L); // Not in public API
@@ -103,6 +103,32 @@ void luajr_parallel_prun(workers_t* w);
 void luajr_parallel_pfor(workers_t* w, int i0, int i1);
 
 } // end of extern "C"
+
+// Argcode values: type in bits 0-4, modifiers in bits 5-7.
+namespace AC {
+    enum {
+        value       = 0,
+        sexp        = 1,
+        symbol      = 2,
+        pairlist    = 3,
+        function    = 4,
+        environment = 5,
+        language    = 6,
+        logical     = 7,
+        integer     = 8,
+        numeric     = 9,
+        complex     = 10,
+        character   = 11,
+        list        = 12,
+        expression  = 13,
+        raw         = 14,
+        obj         = 15,
+        type_mask   = 31,
+        native      = 32,
+        reference   = 64,
+        strict      = 128
+    };
+}
 
 // External pointer code tags, for use with luajr_makepointer and luajr_getpointer
 enum
