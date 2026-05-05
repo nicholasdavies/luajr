@@ -20,7 +20,6 @@ inlineCxxPlugin = function(...)
 #' * [lua_module()], [lua_import()]: load Lua modules
 #' * [lua_open()]: create a new Lua state
 #' * [lua_reset()]: reset the default Lua state
-#' * [lua_parallel()]: run Lua code in parallel
 #' * [lua_mode()], [lua_profile()]: debugger, profiler, and JIT options
 #'
 #' @section Further reading:

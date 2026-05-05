@@ -1,5 +1,7 @@
 # luajr (development version)
 
+-   Removed `lua_parallel()`.
+
 -   Added a new `'x'` argcode which allows passing any R variable to Lua 
     functions through R's SEXP interface.
 

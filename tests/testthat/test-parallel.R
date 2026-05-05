@@ -1,18 +1,3 @@
-test_that("parallel code works", {
-    # This is just a basic test to ensure the features of lua_parallel() work
-    # while its interface is still being developed.
-    expect_identical(
-        lua_parallel("test", n = 8, threads = 4, pre = "test = function(i) return i * 2 end"),
-        as.list(c(2, 4, 6, 8, 10, 12, 14, 16))
-    )
-
-    thr = list(lua_open(), lua_open(), lua_open(), NULL)
-    expect_identical(
-        lua_parallel("test", n = 8, threads = thr, pre = "test = function(i) return i end"),
-        as.list(c(1, 2, 3, 4, 5, 6, 7, 8))
-    )
-})
-
 test_that("workers can be created and closed", {
     lua("pool = luajr.workers(2)")
     expect_identical(lua("return #pool"), 2)
@@ -134,6 +119,43 @@ test_that("workers:pfor with single worker works", {
     lua("pool = luajr.workers(1)")
     lua("pool:pfor(1, 10, function(i, output) output[i] = i * i end, output)")
     expect_identical(lua("return output"), as.numeric((1:10)^2))
+    lua("pool:close()")
+
+    lua_reset()
+})
+
+test_that("workers:srun recovers from error", {
+    lua("pool = luajr.workers(2)")
+    lua("output = luajr.numeric(2, 0)")
+    expect_error(lua("pool:srun(function(thread_id) error('test error') end)"))
+    # Pool should be usable after error (stacks cleared, need to preload again)
+    lua("pool:srun(function(output, thread_id) output[thread_id] = thread_id end, output)")
+    expect_identical(lua("return output"), c(1, 2))
+    lua("pool:close()")
+
+    lua_reset()
+})
+
+test_that("workers:prun recovers from error", {
+    lua("pool = luajr.workers(2)")
+    lua("output = luajr.numeric(2, 0)")
+    expect_error(lua("pool:prun(function(thread_id) error('test error') end)"))
+    # Pool should be usable after error
+    lua("pool:prun(function(output, thread_id) output[thread_id] = thread_id * 10 end, output)")
+    r = lua("return output")
+    expect_identical(sort(r), c(10, 20))
+    lua("pool:close()")
+
+    lua_reset()
+})
+
+test_that("workers:pfor recovers from error", {
+    lua("pool = luajr.workers(2)")
+    lua("output = luajr.numeric(10, 0)")
+    expect_error(lua("pool:pfor(1, 10, function(i) error('test error') end)"))
+    # Pool should be usable after error
+    lua("pool:pfor(1, 10, function(i, output) output[i] = i end, output)")
+    expect_identical(lua("return output"), as.numeric(1:10))
     lua("pool:close()")
 
     lua_reset()

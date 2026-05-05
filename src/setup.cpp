@@ -36,7 +36,6 @@ static const R_CallMethodDef CallEntries[] =
     { "_luajr_module_load",     (DL_FUNC)&luajr_module_load,     2 },
     { "_luajr_module_get",      (DL_FUNC)&luajr_module_get,      3 },
     { "_luajr_module_set",      (DL_FUNC)&luajr_module_set,      4 },
-    { "_luajr_run_parallel",    (DL_FUNC)&luajr_run_parallel,    4 },
     { "_luajr_profile_data",    (DL_FUNC)&luajr_profile_data,    1 },
     { "_luajr_set_mode",        (DL_FUNC)&luajr_set_mode,        3 },
     { "_luajr_get_mode",        (DL_FUNC)&luajr_get_mode,        0 },

@@ -31,7 +31,6 @@ extern void (*luajr_pushfunc)(SEXP fx);
 extern SEXP (*luajr_module_load)(SEXP filename, SEXP Lx);
 extern SEXP (*luajr_module_get)(SEXP module, SEXP keys, SEXP typecheck);
 extern SEXP (*luajr_module_set)(SEXP module, SEXP keys, SEXP as, SEXP value);
-extern SEXP (*luajr_run_parallel)(SEXP func, SEXP n, SEXP threads, SEXP pre);
 extern void (*luajr_loadstring)(lua_State* L, const char* str);
 extern void (*luajr_dostring)(lua_State* L, const char* str, int tooling);
 extern void (*luajr_loadfile)(lua_State* L, const char* filename);

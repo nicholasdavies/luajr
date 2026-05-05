@@ -59,11 +59,13 @@ SEXP luajr_module_get(SEXP module, SEXP keys, SEXP typecheck);
 SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value);
 
 // Run Lua code in parallel (parallel.cpp)
-SEXP luajr_run_parallel(SEXP func, SEXP n, SEXP threads, SEXP pre);
 int luajr_parallel_ncores(); // Not in public API
 int luajr_parallel_load(lua_State* L); // Not in public API
 void luajr_parallel_newworkers(workers_t* w); // Not in public API
 void luajr_parallel_closeworkers(workers_t* w); // Not in public API
+void luajr_parallel_pfor(workers_t* w, int i0, int i1); // Not in public API
+void luajr_parallel_prun(workers_t* w); // Not in public API
+void luajr_parallel_srun(workers_t* w); // Not in public API
 
 // Load and call Lua code, and control tooling (tools.cpp)
 void luajr_loadstring(lua_State* L, const char* str);
