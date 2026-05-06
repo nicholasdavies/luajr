@@ -124,7 +124,7 @@ namespace AC {
         list        = 12,
         expression  = 13,
         raw         = 14,
-        obj         = 15,
+        pointer     = 15,
         type_mask   = 31,
         native      = 32,
         reference   = 64,

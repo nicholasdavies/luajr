@@ -10,8 +10,8 @@
 #' raw.
 #'
 #' The parameter `argcode` is a string with one character for each argument of
-#' the Lua function, recycled as needed (e.g. so that a single character would
-#' apply to all arguments regardless of how many there are).
+#' the Lua function. The last character is repeated when there are more arguments
+#' than characters.
 #'
 #' In the following, the corresponding character of `argcode` for a specific
 #' argument is referred to as its arg code.
@@ -115,11 +115,6 @@ lua_func = function(func, argcode = ".", L = NULL)
         stop("argcode must be a non-empty string for Lua functions with arguments.")
     }
 
-    # Recycle argcode to match nparams for non-vararg functions
-    if (!isvararg && nparams > 0 && length(argcode) > 0) {
-        argcode = rep_len(argcode, nparams)
-    }
-
     # Select caller
     if (isvararg || nparams > 8) {
         call_name = "_luajr_func_call"
@@ -162,41 +157,8 @@ lua_func = function(func, argcode = ".", L = NULL)
 }
 
 # New argcodes
-# ⏺ 1. named — Like table but preserves R names as string keys. c(a=1, b=2) → {a=1, b=2}. Currently atomic vector → table conversion drops names. Lists already
+#   1. named — Like table but preserves R names as string keys. c(a=1, b=2) → {a=1, b=2}. Currently atomic vector → table conversion drops names. Lists already
 #   preserve names via the existing push_R_list logic, but atomic vectors don't. Very common need when passing configuration or parameter sets.
-#   2. splat — Unpack a list into multiple Lua stack values. list(1, "two", TRUE) → three separate arguments. Enables forwarding R's ... to a Lua variadic function.
-#   Only valid as the last argcode position. Niche but enables a pattern that's otherwise impossible.
-
-#enum Argcodes {
-#    ac_luajr_value = 0,             .   value           any
-#    ac_luajr_sexp = 1,              X   sexp            userdata (of sexp)
-#    ac_luajr_symbol = 2,                symbol          -
-#    ac_luajr_pairlist = 3,              pairlist        table
-#    ac_luajr_function = 4,          F   rfunction       function
-#    ac_luajr_environment = 5,       E   environment     -
-#    ac_luajr_language = 6,              language        -
-#    ac_luajr_logical = 7,           L   logical         boolean
-#    ac_luajr_integer = 8,           I   integer         number
-#    ac_luajr_numeric = 9,           N   numeric         number
-#    ac_luajr_complex = 10,          Z   complex         -
-#    ac_luajr_character = 11,        C   character       string
-#    ac_luajr_list = 12,             V   list            table
-#    ac_luajr_expression = 13,           expression      -
-#    ac_luajr_raw = 14,                  raw             -
-#    ac_luajr_obj = 15,              O   obj             -
-#
-#    ac_luajr_factor = 16,           A   factor          -
-#    ac_luajr_matrix = 17,           M   matrix          -
-#    ac_luajr_array = 18,                array           -
-#    ac_luajr_dataframe = 19,        D   dataframe       table
-#
-#    ac_luajr_pointer = 31,          P   pointer         userdata (of dataptr)
-#
-#    ac_modifier_native = 32,        ^
-#    ac_modifier_byref = 64,         &
-#    ac_modifier_strict = 128        !
-#};
-
 
 argcodes_short = c(
     "." = 0,
@@ -207,7 +169,8 @@ argcodes_short = c(
     "I" = 8,
     "N" = 9,
     "C" = 11,
-    "V" = 12
+    "V" = 12,
+    "P" = 15
     # others
 )
 
@@ -227,7 +190,7 @@ argcodes_long = c(
     list = 12,
     expression = 13,
     raw = 14,
-    obj = 15
+    pointer = 15
     # others
 )
 

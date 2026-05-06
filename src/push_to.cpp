@@ -2,8 +2,6 @@
 
 #include "shared.h"
 #include "registry_entry.h"
-#include <vector>
-#include <string>
 #include <cstring>
 #include <limits>
 extern "C" {
@@ -21,14 +19,6 @@ extern "C" {
 static inline int abs_index(lua_State* L, int index)
 {
     return (index > 0 || index <= LUA_REGISTRYINDEX) ? index : lua_gettop(L) + index + 1;
-}
-
-// Stop if length of chr exceeds LuaJIT limits.
-void CheckStringLength(SEXP chr)
-{
-    R_xlen_t xlen = Rf_xlength(chr);
-    if (xlen >= LJ_MAX_STR)
-        Rf_error("Cannot pass string with more than %d bytes. Requested size: %.0f.", LJ_MAX_STR, (double)xlen);
 }
 
 // Push a single element of an R vector as a native Lua value.
@@ -50,9 +40,15 @@ static void push_native_element(lua_State* L, SEXP x, int sxptype, R_xlen_t i)
             else lua_pushnumber(L, REAL_ELT(x, i));
             break;
         case STRSXP:
-            if (STRING_ELT(x, i) == R_NaString) lua_pushnil(L);
-            else { CheckStringLength(STRING_ELT(x, i));
-                   lua_pushstring(L, CHAR(STRING_ELT(x, i))); }
+            if (STRING_ELT(x, i) == R_NaString)
+                lua_pushnil(L);
+            else
+            {
+                R_xlen_t xlen = Rf_xlength(STRING_ELT(x, i));
+                if (xlen >= LJ_MAX_STR)
+                    Rf_error("Cannot pass string with more than %d bytes. Requested size: %.0f.", LJ_MAX_STR, (double)xlen);
+                lua_pushstring(L, CHAR(STRING_ELT(x, i)));
+            }
             break;
         default:
             lua_pushnil(L);
@@ -60,71 +56,10 @@ static void push_native_element(lua_State* L, SEXP x, int sxptype, R_xlen_t i)
     }
 }
 
-// Helper function to push a vector to the Lua stack.
-template <typename Push>
-static void push_R_vector(lua_State* L, SEXP x, char as, int type, Push push)
-{
-    // Get length of vector
-    R_xlen_t xlen = Rf_xlength(x);
-
-    switch (as)
-    {
-        case 'r':
-        case 'v':
-        {
-            // Compute the data pointer with offset for 1-based indexing
-            void* p;
-            switch (type)
-            {
-                case LGLSXP:  p = (void*)(LOGICAL(x) - 1); break;
-                case INTSXP:  p = (void*)(INTEGER(x) - 1); break;
-                case REALSXP: p = (void*)(REAL(x) - 1);    break;
-                case STRSXP:  p = (void*)(STRING_PTR(x) - 1); break;
-                default: Rf_error("Unknown vector type for push_R_vector.");
-            }
-            // c flag: -1 = byref, -2 = alias; must match 1_vector.lua
-            double c_val = (as == 'r') ? -1.0 : -2.0;
-            luajr_push_vector_cdata(L, type, p, (void*)x, (double)xlen, c_val);
-            break;
-        }
-
-        case 's':
-        case 'a':
-            if (xlen == 0)
-                lua_pushnil(L); // Length 0: push nil
-            else if (xlen == 1 && as == 's')
-                push(L, x, 0);  // Length 1 and 's': push scalar
-            else if (xlen < LJ_MAX_ASIZE) // Strict < needed here.
-            {                   // Length >1 or 'a': push table
-                lua_createtable(L, xlen, 0);
-                for (R_xlen_t i = 0; i < xlen; ++i)
-                {
-                    push(L, x, i);
-                    lua_rawseti(L, -2, i + 1);
-                }
-            }
-            else
-                Rf_error("Cannot create Lua table with more than %d elements. Requested size: %.0f. Use 'r' or 'v' arg code instead.",
-                    LJ_MAX_ASIZE - 1, (double)xlen);
-            break;
-
-        default:
-            if (as >= '1' && as <= '9')
-            {
-                int reqn = as - '0';
-                if (xlen != reqn)
-                    Rf_error("Vector of length %d requested, but passed vector of length %.0f.", reqn, (double)xlen);
-                push_R_vector(L, x, 's', type, push);
-                break;
-            }
-            Rf_error("Unrecognised args code %c for type %s.", as, Rf_type2char(TYPEOF(x)));
-            break;
-    }
-}
-
-// Helper function to push a list to the Lua stack.
-// Push an R list (VECSXP) as a Lua table, preserving names as string keys.
-static void push_list_as_table(lua_State* L, SEXP x)
+// Push an R atomic or VECSXP vector as a Lua table with names.
+// Unnamed elements get sequential integer keys as in Lua.
+// For duplicate names, later entries win, also as in Lua.
+static void push_as_table(lua_State* L, SEXP x)
 {
     // Get length of vector
     R_xlen_t xlen = Rf_xlength(x);
@@ -153,33 +88,31 @@ static void push_list_as_table(lua_State* L, SEXP x)
     // which are 'arr' elements and n_named of which are 'rec' elements.
     lua_createtable(L, len - n_named, n_named);
 
-    // This moves through the vector backwards so that if there are repeated
-    // names, the earlier vector element with that name takes precedence.
-    for (int i = len - 1; i >= 0; --i)
+    // Push all elements
+    int sxptype = TYPEOF(x);
+    int arr_i = 1;
+    for (int i = 0; i < len; ++i)
     {
+        // Push the element
+        if (sxptype == VECSXP)
+            luajr_pushsexp(L, VECTOR_ELT(x, i), AC::value | AC::native);
+        else
+            push_native_element(L, x, sxptype, i);
+
+        // Assign to string key or sequential integer key
         if (names != R_NilValue && LENGTH(STRING_ELT(names, i)) > 0)
         {
-            // Add string-indexed element
             lua_pushstring(L, CHAR(STRING_ELT(names, i)));
-            luajr_pushsexp(L, VECTOR_ELT(x, i), AC::value | AC::native);
+            lua_insert(L, -2); // swap key and value for lua_rawset
             lua_rawset(L, -3);
         }
         else
         {
-            // Add integer-indexed element
-            luajr_pushsexp(L, VECTOR_ELT(x, i), AC::value | AC::native);
-            lua_rawseti(L, -2, i + 1);
+            lua_rawseti(L, -2, arr_i++);
         }
     }
 
     UNPROTECT(1);
-}
-
-// Inline fast path for 'r'/'v' on atomic vector types: skip push_R_vector
-// dispatch entirely and go straight to luajr_push_vector_cdata.
-static inline void push_R_vector_rv(lua_State* L, SEXP x, double c_val, int type, void* p)
-{
-    luajr_push_vector_cdata(L, type, p, (void*)x, (double)Rf_xlength(x), c_val);
 }
 
 // Analogous to Lua's lua_pushXXX(lua_State* L, XXX x) functions, this pushes
@@ -209,10 +142,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
 
     switch (type)
     {
-        case AC::sexp:
-            luajr_push_sexp_cdata(L, (void*)x);
-            break;
-
+        // .
         case AC::value:
         {
             int specific;
@@ -227,6 +157,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                 case CLOSXP:
                 case SPECIALSXP:
                 case BUILTINSXP: specific = AC::function; break;
+                case EXTPTRSXP:  specific = AC::pointer; break;
                 default:         specific = AC::sexp; break;
             }
             if (is_native && Rf_xlength(x) > 1)
@@ -236,38 +167,30 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
             break;
         }
 
-        case AC::list:
-        {
-            if (is_native)
-            {
-                int sxptype = TYPEOF(x);
-                R_xlen_t xlen = Rf_xlength(x);
-                if (xlen >= LJ_MAX_ASIZE)
-                    Rf_error("Cannot create Lua table with more than %d elements.", LJ_MAX_ASIZE - 1);
-                if (sxptype == VECSXP)
-                {
-                    push_list_as_table(L, x);
-                }
-                else
-                {
-                    lua_createtable(L, xlen, 0);
-                    for (R_xlen_t i = 0; i < xlen; ++i)
-                    {
-                        push_native_element(L, x, sxptype, i);
-                        lua_rawseti(L, -2, i + 1);
-                    }
-                }
-            }
-            else
-            {
-                if (TYPEOF(x) != VECSXP)
-                    Rf_error("Expected list, got %s.", Rf_type2char(TYPEOF(x)));
-                double c_val = is_ref ? -1.0 : -2.0;
-                push_R_vector_rv(L, x, c_val, VECSXP, (void*)((SEXP*)DATAPTR(x) - 1));
-            }
+        // sexp / S
+        case AC::sexp:
+            luajr_push_sexp_cdata(L, (void*)x);
             break;
-        }
 
+        // symbol, pairlist: not implemented
+
+        // function / rfunction / F
+        case AC::function:
+            if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
+                Rf_error("Expected function, got %s.", Rf_type2char(TYPEOF(x)));
+            luajr_push_function_cdata(L, (void*)x);
+            break;
+
+        // environment / E
+        case AC::environment:
+            if (TYPEOF(x) != ENVSXP)
+                Rf_error("Expected environment, got %s.", Rf_type2char(TYPEOF(x)));
+            luajr_push_environment_cdata(L, (void*)x);
+            break;
+
+        // language: not implemented
+
+        // logical / L, integer / I, numeric / N, (complex / Z not implemented), character / C
         case AC::logical:
         case AC::integer:
         case AC::numeric:
@@ -316,23 +239,35 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                     case STRSXP:  p = (void*)(STRING_PTR(x) - 1); break;
                     default:      p = nullptr; break;
                 }
-                push_R_vector_rv(L, x, c_val, actual, p);
+                luajr_push_vector_cdata(L, actual, p, (void*)x, (double)Rf_xlength(x), c_val);
             }
 
             if (coerced) UNPROTECT(1);
             break;
         }
 
-        case AC::environment:
-            if (TYPEOF(x) != ENVSXP)
-                Rf_error("Expected environment, got %s.", Rf_type2char(TYPEOF(x)));
-            luajr_push_environment_cdata(L, (void*)x);
+        // list / V
+        case AC::list:
+            if (is_native)
+            {
+                push_as_table(L, x);
+            }
+            else
+            {
+                if (TYPEOF(x) != VECSXP)
+                    Rf_error("Expected list, got %s.", Rf_type2char(TYPEOF(x)));
+                double c_val = is_ref ? -1.0 : -2.0;
+                luajr_push_vector_cdata(L, VECSXP, (void*)((SEXP*)DATAPTR(x) - 1), (void*)x, (double)Rf_xlength(x), c_val);
+            }
             break;
 
-        case AC::function:
-            if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
-                Rf_error("Expected function, got %s.", Rf_type2char(TYPEOF(x)));
-            luajr_push_function_cdata(L, (void*)x);
+        // expression, raw: not implemented
+
+        // pointer / P
+        case AC::pointer:
+            if (TYPEOF(x) != EXTPTRSXP)
+                Rf_error("Expected external pointer, got %s.", Rf_type2char(TYPEOF(x)));
+            lua_pushlightuserdata(L, R_ExternalPtrAddr(x));
             break;
 
         default:
@@ -490,7 +425,7 @@ extern "C" void luajr_pass(lua_State* L, SEXP args, SEXP acode)
         Rf_error("Length of args code is zero.");
     const unsigned char* ac = RAW(acode);
     for (int i = 0; i < Rf_length(args); ++i)
-        luajr_pushsexp(L, VECTOR_ELT(args, i), ac[i % acode_length]);
+        luajr_pushsexp(L, VECTOR_ELT(args, i), ac[i < acode_length ? i : acode_length - 1]);
 }
 
 // Take values returned from Lua and return them to R

@@ -30,8 +30,8 @@ integer vector, numeric vector, string vector, list, external pointer, and
 raw.
 
 The parameter \code{argcode} is a string with one character for each argument of
-the Lua function, recycled as needed (e.g. so that a single character would
-apply to all arguments regardless of how many there are).
+the Lua function. The last character is repeated when there are more arguments
+than characters.
 
 In the following, the corresponding character of \code{argcode} for a specific
 argument is referred to as its arg code.

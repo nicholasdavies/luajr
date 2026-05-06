@@ -180,6 +180,22 @@ test_that("function argcode works", {
     expect_error(f(1:5))
 })
 
+test_that("pointer argcode works", {
+    L = lua_open()
+
+    # P pushes as lightuserdata
+    expect_identical(lua_func("function(x) return type(x) end", "P")(L), "userdata")
+
+    # P round-trips external pointer
+    expect_identical(lua_func("function(x) return x end", "P")(L), L)
+
+    # P rejects non-external-pointer
+    expect_error(lua_func("function(x) return x end", "P")(1:5))
+
+    # . (value) with external pointer also gives lightuserdata
+    expect_identical(lua_func("function(x) return type(x) end", ".")(L), "userdata")
+})
+
 test_that("returning a Lua function works", {
     make_doubler = lua_func("function() return function(x) return x * 2 end end")
     g_ptr = make_doubler()
