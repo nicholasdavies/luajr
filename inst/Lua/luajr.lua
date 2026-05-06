@@ -192,7 +192,7 @@ end
 
 -- Metatable for vector type
 -- typedef struct { ctype* p; SEXP s; double n; double c; } [vector]_t;
-local mt_vector_template = function(ct, stype, dataptr)
+local mt_vector_template = function(ct, stype, notfound, dataptr)
     local vtype = ffi.typeof(ct .. "[?]") -- not used for character
 
     -- Throw an error on an illegal use of a 'byref' vector
@@ -610,14 +610,14 @@ local mt_vector_template = function(ct, stype, dataptr)
         -- Attributes
         get_attr = function(self, k)
             if type(k) ~= "string" then
-                error("Can only get string-keyed attributes.", 2)
+                error("can only get string-keyed attributes", 2)
             end
             return from_sexp(R.getAttrib(self.s, R.install(k)))
         end,
 
         set_attr = function(self, k, v)
             if type(k) ~= "string" then
-                error("Can only set string-keyed attributes.", 2)
+                error("can only set string-keyed attributes", 2)
             end
             if self.c == alias then self:detach() end
             if k == "names" and luajr.is_character(v) then
@@ -750,6 +750,30 @@ local mt_vector_template = function(ct, stype, dataptr)
             op_writev(self, k, v)
         end,
 
+        __call = function(self, j)
+            -- Resolve j to a 1-based index (or nil if not found / out of bounds)
+            local i
+            if type(j) == "number" then
+                if j >= 1 and j <= #self then i = j end
+            elseif type(j) == "string" then
+                i = self:find(j)
+            else
+                error("cannot subset vector with type " .. type(j), 2)
+            end
+            -- Build length-1 result
+            local v = ffi.typeof(self)(1)
+            v[1] = i and self[i] or notfound
+            -- Copy or set name
+            local names = get_names(self.s)
+            if names then
+                local v_names = R.PROTECT(R.allocVector(R.STRSXP, 1))
+                R.SET_STRING_ELT(v_names, 0, i and R.STRING_ELT(names, i - 1) or R.NA_STRING)
+                R.setAttrib(v.s, R.NamesSymbol, v_names)
+                R.UNPROTECT(1)
+            end
+            return v
+        end,
+
         __tostring = function(self)
             local limit = 100
             local n = math.min(self.n, limit)
@@ -794,11 +818,11 @@ local mt_vector_template = function(ct, stype, dataptr)
 end
 
 -- Vector type definitions
-luajr.logical   = ffi.metatype("logical_t",   mt_vector_template("int",    R.LGLSXP,  R.LOGICAL))
-luajr.integer   = ffi.metatype("integer_t",   mt_vector_template("int",    R.INTSXP,  R.INTEGER))
-luajr.numeric   = ffi.metatype("numeric_t",   mt_vector_template("double", R.REALSXP, R.REAL))
-luajr.character = ffi.metatype("character_t", mt_vector_template("SEXP",   R.STRSXP,  R.STRING_PTR))
-luajr.list      = ffi.metatype("list_t",      mt_vector_template("SEXP",   R.VECSXP,  function(s) return ffi.cast(sexpp, R.DATAPTR(s)) end))
+luajr.logical   = ffi.metatype("logical_t",   mt_vector_template("int",    R.LGLSXP,  R.NA_LOGICAL, R.LOGICAL))
+luajr.integer   = ffi.metatype("integer_t",   mt_vector_template("int",    R.INTSXP,  R.NA_INTEGER, R.INTEGER))
+luajr.numeric   = ffi.metatype("numeric_t",   mt_vector_template("double", R.REALSXP, R.NA_REAL,    R.REAL))
+luajr.character = ffi.metatype("character_t", mt_vector_template("SEXP",   R.STRSXP,  R.NA_STRING,  R.STRING_PTR))
+luajr.list      = ffi.metatype("list_t",      mt_vector_template("SEXP",   R.VECSXP,  R.NilValue,   function(s) return ffi.cast(sexpp, R.DATAPTR(s)) end))
 
 -- Vector type checkers
 luajr.is_logical   = function(obj) return ffi.istype(luajr.logical, obj) end

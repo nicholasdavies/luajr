@@ -1,4 +1,4 @@
-// parallel.cpp: Run Lua code in parallel
+// tools.cpp: Tooling for running Lua code
 
 #include "shared.h"
 #include <map>
