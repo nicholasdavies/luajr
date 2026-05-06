@@ -173,7 +173,7 @@ logistic_map_L = lua_func(
     result:set('x', xx)
 
     return result
-end", "$.$.$.N")
+end", "$N$N$NN")
 
 
 logistic_map_Rcpp_src = '
@@ -235,14 +235,6 @@ microbenchmark::microbenchmark(
 )
 
 lua_mode(jit = TRUE)
-bench::mark(
-    logistic_map_R(0.5, 100, 100, 200:385/100),
-    logistic_map_L(0.5, 100, 100, 200:385/100),
-    logistic_map_C(0.5, 100, 100, 200:385/100),
-    logistic_map_D(0.5, 100, 100, 200:385/100)
-)
-
-lua_mode(jit = FALSE)
 bench::mark(
     logistic_map_R(0.5, 100, 100, 200:385/100),
     logistic_map_L(0.5, 100, 100, 200:385/100),

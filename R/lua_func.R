@@ -115,6 +115,11 @@ lua_func = function(func, argcode = ".", L = NULL)
         stop("argcode must be a non-empty string for Lua functions with arguments.")
     }
 
+    # Pad argcode to nparams by holding the last element
+    if (!isvararg && nparams > 0 && length(argcode) < nparams) {
+        argcode = c(argcode, rep(argcode[length(argcode)], nparams - length(argcode)))
+    }
+
     # Select caller
     if (isvararg || nparams > 8) {
         call_name = "_luajr_func_call"
@@ -156,22 +161,10 @@ lua_func = function(func, argcode = ".", L = NULL)
     return (compiler::cmpfun(f))
 }
 
-# New argcodes
-#   1. named — Like table but preserves R names as string keys. c(a=1, b=2) → {a=1, b=2}. Currently atomic vector → table conversion drops names. Lists already
-#   preserve names via the existing push_R_list logic, but atomic vectors don't. Very common need when passing configuration or parameter sets.
-
-argcodes_short = c(
-    "." = 0,
-    "S" = 1,
-    "F" = 4,
-    "E" = 5,
-    "L" = 7,
-    "I" = 8,
-    "N" = 9,
-    "C" = 11,
-    "V" = 12,
-    "P" = 15
-    # others
+argcodes_mod = c(
+    "$" = 32,  # native/scalar
+    "&" = 64,  # reference
+    "!" = 128  # strict
 )
 
 argcodes_long = c(
@@ -179,25 +172,41 @@ argcodes_long = c(
     symbol = 2,
     pairlist = 3,
     rfunction = 4,
-    "function" = 4,
+    "function" = 4 + argcodes_mod[["$"]],
     environment = 5,
     language = 6,
     logical = 7,
+    boolean = 7 + argcodes_mod[["$"]],
     integer = 8,
     numeric = 9,
+    number = 9 + argcodes_mod[["$"]],
     complex = 10,
     character = 11,
+    string = 11 + argcodes_mod[["$"]],
+    vector = 12,
     list = 12,
+    table = 12 + argcodes_mod[["$"]],
     expression = 13,
     raw = 14,
     pointer = 15
     # others
 )
 
-argcodes_mod = c(
-    "$" = 32,  # native/scalar
-    "&" = 64,  # reference
-    "!" = 128  # strict
+# argcodes that have a native Lua interpretation
+argcodes_native = argcodes_long[c("rfunction", "logical", "integer", "numeric", "character", "list")]
+
+argcodes_short = c(
+    "." = 0,
+    "S" = argcodes_long[["sexp"]],
+    "F" = argcodes_long[["rfunction"]],
+    "E" = argcodes_long[["environment"]],
+    "L" = argcodes_long[["logical"]],
+    "I" = argcodes_long[["integer"]],
+    "N" = argcodes_long[["numeric"]],
+    "C" = argcodes_long[["character"]],
+    "V" = argcodes_long[["list"]],
+    "P" = argcodes_long[["pointer"]]
+    # others
 )
 
 interpret_argcode = function(ac)
@@ -222,6 +231,7 @@ interpret_argcode = function(ac)
                 stop("Cannot find short code `", ch, "`.")
             }
             code = bitwOr(code, argcodes_short[ch])
+            validate_argcode(code)
             pos = pos + 1
             output = c(output, as.integer(code))
             code = 0
@@ -237,6 +247,7 @@ interpret_argcode = function(ac)
 
             if (sub_ac %in% names(argcodes_long)) {
                 code = bitwOr(code, argcodes_long[sub_ac])
+                validate_argcode(code)
                 pos = pos_end + 1
                 output = c(output, as.integer(code))
                 code = 0
@@ -248,5 +259,16 @@ interpret_argcode = function(ac)
     }
 
     return (as.raw(output))
+}
+
+validate_argcode = function(code)
+{
+    if (bitwAnd(code, 32) != 0 && bitwAnd(code, 64) != 0)
+        stop("Cannot combine $ (native) and & (reference) modifiers.")
+    if (bitwAnd(code, 32) != 0) {
+        type = bitwAnd(code, 31)
+        if (type != 0 && !type %in% argcodes_native)
+            stop("$ (native) modifier not supported for this type.")
+    }
 }
 

@@ -87,6 +87,12 @@ bench(
     g <- gradient4(0, yini, c())
 )
 
+bench::mark(
+ g <- gradient4(0, yini, c()),
+ min_iterations = 10000000
+)
+
+
 # # A tibble: 4 × 13
 #   expression                        min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result     memory     time       gc
 #   <bch:expr>                   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list>     <list>     <list>     <list>

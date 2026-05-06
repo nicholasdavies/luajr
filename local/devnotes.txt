@@ -2,6 +2,9 @@
 
 Feature plan / to do
 --------------------
+- vector:slice(i, j) for subsetting a range; vector:slice(luajr.logical) for
+  subsetting by TRUE/FALSE; vector:slice(luajr.integer / luajr.numeric) for
+  more subsetting.
 - debug and shell don't mix well
 - wall clock time too in profiler?
 - ReadConsole seems to have a hard limit in the number of characters that can
@@ -16,8 +19,6 @@ Feature plan / to do
   which I guess could use lua_dump...
 - Improve and document using Lua C API from an R package
 - Make sure all API functions can handle NAs, wrong types, etc.
-- For luajr.list:
-    v("/list/order", ord) -- reorder elements (like data.table)
 - Make thread safe, perhaps by locking on any R operations from within Lua
 
 - Mode where name suffix determines type, e.g. xs xb x1, or x_s, x_b, x_1? Or

@@ -178,6 +178,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
         case AC::function:
             if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
                 Rf_error("Expected function, got %s.", Rf_type2char(TYPEOF(x)));
+            R_PreserveObject(x);
             luajr_push_function_cdata(L, (void*)x);
             break;
 
@@ -185,6 +186,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
         case AC::environment:
             if (TYPEOF(x) != ENVSXP)
                 Rf_error("Expected environment, got %s.", Rf_type2char(TYPEOF(x)));
+            R_PreserveObject(x);
             luajr_push_environment_cdata(L, (void*)x);
             break;
 
@@ -239,6 +241,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                     case STRSXP:  p = (void*)(STRING_PTR(x) - 1); break;
                     default:      p = nullptr; break;
                 }
+                if (!is_ref) R_PreserveObject(x);
                 luajr_push_vector_cdata(L, actual, p, (void*)x, (double)Rf_xlength(x), c_val);
             }
 
@@ -257,6 +260,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                 if (TYPEOF(x) != VECSXP)
                     Rf_error("Expected list, got %s.", Rf_type2char(TYPEOF(x)));
                 double c_val = is_ref ? -1.0 : -2.0;
+                if (!is_ref) R_PreserveObject(x);
                 luajr_push_vector_cdata(L, VECSXP, (void*)((SEXP*)DATAPTR(x) - 1), (void*)x, (double)Rf_xlength(x), c_val);
             }
             break;

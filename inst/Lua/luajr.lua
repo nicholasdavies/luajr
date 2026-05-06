@@ -350,6 +350,10 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
         else
             R.setAttrib(self.s, R.NamesSymbol, R.NilValue)
         end
+        -- Always drop dim/dimnames on in-place replacement, matching the
+        -- allocate path (copyMostAttrib also drops these).
+        R.setAttrib(self.s, R.DimSymbol, R.NilValue)
+        R.setAttrib(self.s, R.DimNamesSymbol, R.NilValue)
         self.n = set(self.p, self.s, set_params)
     end
 
@@ -511,7 +515,9 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
             elseif self.c == alias then
                 allocate(self, 0, { n = 0 })
             else
-                self:unname()
+                R.setAttrib(self.s, R.NamesSymbol, R.NilValue)
+                R.setAttrib(self.s, R.DimSymbol, R.NilValue)
+                R.setAttrib(self.s, R.DimNamesSymbol, R.NilValue)
                 self.n = 0
             end
         end,
