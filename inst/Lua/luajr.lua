@@ -78,13 +78,22 @@ size_t strlen(const char* str);
 
 // Parallel functionality
 int luajr_parallel_ncores();
-void luajr_parallel_newworkers(workers_t* w);
+void luajr_parallel_newworkers(lua_State* L, workers_t* w);
 void luajr_parallel_closeworkers(workers_t* w);
-void luajr_parallel_srun(workers_t* w);
-void luajr_parallel_prun(workers_t* w);
-void luajr_parallel_pfor(workers_t* w, int i0, int i1);
+void luajr_parallel_srun(lua_State* L, workers_t* w);
+void luajr_parallel_prun(lua_State* L, workers_t* w);
+void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1);
 ]]
 local internal = ffi.load(luajr_dylib_path)
+
+-- Cache the current lua_State* for FFI calls that need pcall-aware error handling.
+-- luajr.thisstate is registered as a lua_CFunction in state.cpp, after this module
+-- loads, so this must be lazily initialised on first use.
+local thisstate
+local function get_thisstate()
+    if not thisstate then thisstate = ffi.cast("lua_State*", luajr.thisstate()) end
+    return thisstate
+end
 
 
 
@@ -1061,17 +1070,17 @@ local methods_workers = {
 
     srun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_srun(self)
+        internal.luajr_parallel_srun(get_thisstate(), self)
     end,
 
     prun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_prun(self)
+        internal.luajr_parallel_prun(get_thisstate(), self)
     end,
 
     pfor = function(self, i0, i1, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_pfor(self, i0, i1)
+        internal.luajr_parallel_pfor(get_thisstate(), self, i0, i1)
     end,
 
     close = function(self)
@@ -1091,7 +1100,7 @@ local mt_workers = {
         else
             error("worker number must be a positive integer or nil", 2)
         end
-        internal.luajr_parallel_newworkers(self)
+        internal.luajr_parallel_newworkers(get_thisstate(), self)
         return self
     end,
 

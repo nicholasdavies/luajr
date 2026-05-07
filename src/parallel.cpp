@@ -14,6 +14,33 @@ extern "C" {
 // Workers struct (matches workers_t in luajr.lua)
 struct workers_t { lua_State** l; int n; };
 
+// Get a hint as to the number of concurrent threads.
+extern "C" int luajr_parallel_ncores()
+{
+    return std::thread::hardware_concurrency();
+}
+
+// Initialise workers: open w->n states.
+extern "C" void luajr_parallel_newworkers(lua_State* L, workers_t* w)
+{
+    if (w->n <= 0)
+        luajr_error(L, "Invalid number of threads.");
+
+    w->l = new lua_State*[w->n];
+    for (int t = 0; t < w->n; ++t)
+        w->l[t] = luajr_newstate();
+}
+
+// Close workers and free state array.
+extern "C" void luajr_parallel_closeworkers(workers_t* w)
+{
+    for (int t = 0; t < w->n; ++t)
+        lua_close(w->l[t]);
+    delete[] w->l;
+    w->l = NULL;
+    w->n = 0;
+}
+
 // Load a function + args into all worker states (lua_CFunction).
 // The runners below (srun, prun, pfor) use the preloaded functions and arguments.
 // Lua args to this function: (workers_t, function, args...)
@@ -31,33 +58,6 @@ extern "C" int luajr_parallel_load(lua_State* L)
     return 0;
 }
 
-// Get a hint as to the number of concurrent threads.
-extern "C" int luajr_parallel_ncores()
-{
-    return std::thread::hardware_concurrency();
-}
-
-// Initialise workers: open w->n states.
-extern "C" void luajr_parallel_newworkers(workers_t* w)
-{
-    if (w->n <= 0)
-        Rf_error("Invalid number of threads.");
-
-    w->l = new lua_State*[w->n];
-    for (int t = 0; t < w->n; ++t)
-        w->l[t] = luajr_newstate();
-}
-
-// Close workers and free state array.
-extern "C" void luajr_parallel_closeworkers(workers_t* w)
-{
-    for (int t = 0; t < w->n; ++t)
-        lua_close(w->l[t]);
-    delete[] w->l;
-    w->l = NULL;
-    w->n = 0;
-}
-
 // Clear all worker stacks (i.e., on error)
 static void clear_worker_stacks(workers_t* w)
 {
@@ -67,7 +67,7 @@ static void clear_worker_stacks(workers_t* w)
 
 // Sequentially run the preloaded function in each worker.
 // Calls function(arg1, arg2, ..., thread_id) with 1-based thread_id as last arg.
-extern "C" void luajr_parallel_srun(workers_t* w)
+extern "C" void luajr_parallel_srun(lua_State* L, workers_t* w)
 {
     for (int t = 0; t < w->n; ++t)
     {
@@ -84,7 +84,7 @@ extern "C" void luajr_parallel_srun(workers_t* w)
             std::string error_msg(1024, ' ');
             luajr_handle_lua_error(w->l[t], err, "parallel_srun", error_msg.data());
             clear_worker_stacks(w);
-            Rf_error("%s", error_msg.c_str());
+            luajr_error(L, "%s", error_msg.c_str());
         }
         luajr_profile_collect(w->l[t]);
     }
@@ -92,7 +92,7 @@ extern "C" void luajr_parallel_srun(workers_t* w)
 
 // Parallel-run the preloaded function in each worker.
 // Calls function(arg1, arg2, ..., thread_id) with 1-based thread_id as last arg.
-extern "C" void luajr_parallel_prun(workers_t* w)
+extern "C" void luajr_parallel_prun(lua_State* L, workers_t* w)
 {
     // For any call to luajr_pcall: don't automatically collect profile data,
     // don't automatically propagate errors, and allow tooling.
@@ -140,14 +140,14 @@ extern "C" void luajr_parallel_prun(workers_t* w)
     if (!error_msg.empty())
     {
         clear_worker_stacks(w);
-        Rf_error("%s", error_msg.c_str());
+        luajr_error(L, "%s", error_msg.c_str());
     }
 }
 
 // Run the preloaded function across a range of iterations, distributed
 // across workers using atomic work-stealing.
 // Calls function(i, arg1, arg2, ..., thread_id) for each iteration i in [i0, i1].
-extern "C" void luajr_parallel_pfor(workers_t* w, int i0, int i1)
+extern "C" void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1)
 {
     // For any call to luajr_pcall: don't automatically collect profile data,
     // don't automatically propagate errors, and allow tooling.
@@ -211,6 +211,6 @@ extern "C" void luajr_parallel_pfor(workers_t* w, int i0, int i1)
     if (!error_msg.empty())
     {
         clear_worker_stacks(w);
-        Rf_error("%s", error_msg.c_str());
+        luajr_error(L, "%s", error_msg.c_str());
     }
 }

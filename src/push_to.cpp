@@ -46,7 +46,7 @@ static void push_native_element(lua_State* L, SEXP x, int sxptype, R_xlen_t i)
             {
                 R_xlen_t xlen = Rf_xlength(STRING_ELT(x, i));
                 if (xlen >= LJ_MAX_STR)
-                    Rf_error("Cannot pass string with more than %d bytes. Requested size: %.0f.", LJ_MAX_STR, (double)xlen);
+                    luajr_error(L, "Cannot pass string with more than %d bytes. Requested size: %.0f.", LJ_MAX_STR, (double)xlen);
                 lua_pushstring(L, CHAR(STRING_ELT(x, i)));
             }
             break;
@@ -64,7 +64,7 @@ static void push_as_table(lua_State* L, SEXP x)
     // Get length of vector
     R_xlen_t xlen = Rf_xlength(x);
     if (xlen >= LJ_MAX_ASIZE || xlen >= std::numeric_limits<int>::max())
-        Rf_error("List is too large to be passed to Lua. Cannot create Lua table with more than %d elements. Requested size: %.0f.",
+        luajr_error(L, "List is too large to be passed to Lua. Cannot create Lua table with more than %d elements. Requested size: %.0f.",
             LJ_MAX_ASIZE - 1, (double)xlen);
     int len = Rf_length(x);
 
@@ -73,7 +73,7 @@ static void push_as_table(lua_State* L, SEXP x)
     // issuing a false-positive warning.
     SEXP names = PROTECT(Rf_getAttrib(x, R_NamesSymbol));
     if (names != R_NilValue && TYPEOF(names) != STRSXP)
-        Rf_error("Non-character names attribute on vector.");
+        luajr_error(L, "Non-character names attribute on vector.");
 
     // Count number of elements with non-empty names
     unsigned int n_named = 0;
@@ -132,7 +132,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
     if (TYPEOF(x) == NILSXP)
     {
         if (is_strict)
-            Rf_error("NULL passed where a value was required (strict argcode).");
+            luajr_error(L, "NULL passed where a value was required (strict argcode).");
         if (is_native)
             lua_pushnil(L);
         else
@@ -177,7 +177,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
         // function / rfunction / F
         case AC::function:
             if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
-                Rf_error("Expected function, got %s.", Rf_type2char(TYPEOF(x)));
+                luajr_error(L, "Expected function, got %s.", Rf_type2char(TYPEOF(x)));
             R_PreserveObject(x);
             luajr_push_function_cdata(L, (void*)x);
             break;
@@ -185,7 +185,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
         // environment / E
         case AC::environment:
             if (TYPEOF(x) != ENVSXP)
-                Rf_error("Expected environment, got %s.", Rf_type2char(TYPEOF(x)));
+                luajr_error(L, "Expected environment, got %s.", Rf_type2char(TYPEOF(x)));
             R_PreserveObject(x);
             luajr_push_environment_cdata(L, (void*)x);
             break;
@@ -221,13 +221,13 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
             }
 
             if (actual != expected)
-                Rf_error("Expected %s, got %s.", Rf_type2char(expected), Rf_type2char(actual));
+                luajr_error(L, "Expected %s, got %s.", Rf_type2char(expected), Rf_type2char(actual));
 
             if (is_native)
             {
                 R_xlen_t xlen = Rf_xlength(x);
                 if (xlen == 0) { lua_pushnil(L); }
-                else if (xlen != 1) Rf_error("Expected scalar (length 1), got length %.0f.", (double)xlen);
+                else if (xlen != 1) luajr_error(L, "Expected scalar (length 1), got length %.0f.", (double)xlen);
                 else push_native_element(L, x, actual, 0);
             }
             else
@@ -258,7 +258,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
             else
             {
                 if (TYPEOF(x) != VECSXP)
-                    Rf_error("Expected list, got %s.", Rf_type2char(TYPEOF(x)));
+                    luajr_error(L, "Expected list, got %s.", Rf_type2char(TYPEOF(x)));
                 double c_val = is_ref ? -1.0 : -2.0;
                 if (!is_ref) R_PreserveObject(x);
                 luajr_push_vector_cdata(L, VECSXP, (void*)((SEXP*)DATAPTR(x) - 1), (void*)x, (double)Rf_xlength(x), c_val);
@@ -270,12 +270,12 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
         // pointer / P
         case AC::pointer:
             if (TYPEOF(x) != EXTPTRSXP)
-                Rf_error("Expected external pointer, got %s.", Rf_type2char(TYPEOF(x)));
+                luajr_error(L, "Expected external pointer, got %s.", Rf_type2char(TYPEOF(x)));
             lua_pushlightuserdata(L, R_ExternalPtrAddr(x));
             break;
 
         default:
-            Rf_error("Unrecognised argcode type %d.", type);
+            luajr_error(L, "Unrecognised argcode type %d.", type);
     }
 }
 
@@ -335,7 +335,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             }
 
             if (narr + nrec >= LJ_MAX_ASIZE)
-                Rf_error("Table is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
+                luajr_error(L, "Table is too large to be returned to R. Limit is %d elements. Requested size: %.0f.",
                     LJ_MAX_ASIZE - 1, (double)(narr + nrec));
 
             // Create list and names
@@ -391,7 +391,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             SEXP s = NULL;
             ptrdiff_t status = luajr_get_sexp_cdata(L, index, (void**)&s);
             if (status == -2)
-                Rf_error("Cannot return cdata of this type to R.");
+                luajr_error(L, "Cannot return cdata of this type to R.");
             if (s == NULL)
                 return R_NilValue;
 
@@ -415,7 +415,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             return s;
         }
         default:
-            Rf_error("Unknown return type detected: %d", lua_type(L, index));
+            luajr_error(L, "Unknown return type detected: %d", lua_type(L, index));
     }
 }
 
@@ -426,7 +426,7 @@ extern "C" void luajr_pass(lua_State* L, SEXP args, SEXP acode)
 {
     unsigned int acode_length = Rf_length(acode);
     if (acode_length == 0)
-        Rf_error("Length of args code is zero.");
+        luajr_error(L, "Length of args code is zero.");
     const unsigned char* ac = RAW(acode);
     for (int i = 0; i < Rf_length(args); ++i)
         luajr_pushsexp(L, VECTOR_ELT(args, i), ac[i < acode_length ? i : acode_length - 1]);
@@ -474,7 +474,7 @@ extern "C" SEXP luajr_return(lua_State* L, int nret)
 extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
 {
     if (L == dst)
-        Rf_error("Cannot have L == dst in luajr_xpush.");
+        luajr_error(L, "Cannot have L == dst in luajr_xpush.");
 
     switch (lua_type(L, index))
     {
@@ -523,7 +523,7 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
         case LUA_TFUNCTION:
         {
             if (lua_iscfunction(L, index))
-                Rf_error("luajr_xpush: cannot transfer C functions between states.");
+                luajr_error(L, "luajr_xpush: cannot transfer C functions between states.");
             luaL_Buffer buf;
             luaL_buffinit(L, &buf);
             lua_pushvalue(L, index);
@@ -531,7 +531,7 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
                     luaL_addlstring((luaL_Buffer*)ud, (const char*)p, sz);
                     return 0;
                 }, &buf) != 0) {
-                Rf_error("luajr_xpush: failed to dump function bytecode.");
+                luajr_error(L, "luajr_xpush: failed to dump function bytecode.");
             }
             lua_pop(L, 1);
             luaL_pushresult(&buf);
@@ -541,7 +541,7 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
             {
                 lua_pop(dst, 1);
                 lua_pop(L, 1);
-                Rf_error("luajr_xpush: failed to load function in target state.");
+                luajr_error(L, "luajr_xpush: failed to load function in target state.");
             }
             lua_pop(L, 1);
             break;
@@ -564,13 +564,13 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
                 if (luajr_get_pointer_cdata(L, index, &ptr) == 0)
                     lua_pushlightuserdata(dst, ptr);
                 else
-                    Rf_error("luajr_xpush: cannot transfer cdata of this type to target state.");
+                    luajr_error(L, "luajr_xpush: cannot transfer cdata of this type to target state.");
             }
             break;
         }
 
         default:
-            Rf_error("luajr_xpush: cannot transfer %s to another state.",
+            luajr_error(L, "luajr_xpush: cannot transfer %s to another state.",
                 lua_typename(L, lua_type(L, index)));
     }
 }
@@ -583,7 +583,7 @@ extern "C" int luajr_Rcall(lua_State* L)
     // First arg is R function as SEXP cdata
     SEXP f = NULL;
     if (luajr_get_sexp_cdata(L, 1, (void**)&f) != -1 || f == NULL)
-        Rf_error("Rcall: first argument must be an R function SEXP.");
+        luajr_error(L, "Rcall: first argument must be an R function SEXP.");
 
     // Build pairlist of args in reverse order
     SEXP call = R_NilValue;

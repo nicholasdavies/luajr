@@ -215,17 +215,17 @@ local methods_workers = {
 
     srun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_srun(self)
+        internal.luajr_parallel_srun(get_thisstate(), self)
     end,
 
     prun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_prun(self)
+        internal.luajr_parallel_prun(get_thisstate(), self)
     end,
 
     pfor = function(self, i0, i1, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_pfor(self, i0, i1)
+        internal.luajr_parallel_pfor(get_thisstate(), self, i0, i1)
     end,
 
     close = function(self)
@@ -245,7 +245,7 @@ local mt_workers = {
         else
             error("worker number must be a positive integer or nil", 2)
         end
-        internal.luajr_parallel_newworkers(self)
+        internal.luajr_parallel_newworkers(get_thisstate(), self)
         return self
     end,
 

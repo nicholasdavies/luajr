@@ -27,6 +27,7 @@ SEXP luajr_open();
 SEXP luajr_reset();
 lua_State* luajr_newstate();
 lua_State* luajr_getstate(SEXP Lx);
+int luajr_thisstate(lua_State* L); // Not in public API (lua_CFunction)
 
 // Move values between R and Lua (push_to.cpp)
 void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as);
@@ -60,12 +61,12 @@ SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value);
 
 // Run Lua code in parallel (parallel.cpp)
 int luajr_parallel_ncores(); // Not in public API
-int luajr_parallel_load(lua_State* L); // Not in public API
-void luajr_parallel_newworkers(workers_t* w); // Not in public API
+void luajr_parallel_newworkers(lua_State* L, workers_t* w); // Not in public API
 void luajr_parallel_closeworkers(workers_t* w); // Not in public API
-void luajr_parallel_pfor(workers_t* w, int i0, int i1); // Not in public API
-void luajr_parallel_prun(workers_t* w); // Not in public API
-void luajr_parallel_srun(workers_t* w); // Not in public API
+int luajr_parallel_load(lua_State* L); // Not in public API
+void luajr_parallel_srun(lua_State* L, workers_t* w); // Not in public API
+void luajr_parallel_prun(lua_State* L, workers_t* w); // Not in public API
+void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1); // Not in public API
 
 // Load and call Lua code, and control tooling (tools.cpp)
 void luajr_loadstring(lua_State* L, const char* str);
@@ -88,21 +89,20 @@ void* luajr_getpointer(SEXP x, int tag_code);
 int luajr_handle_lua_error(lua_State* L, int err, const char* what, char* buf); // Not in public API
 SEXP luajr_readline(SEXP prompt);   // Not in public API
 void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...); // Not in public API
+void luajr_error(lua_State* L, const char* fmt, ...) __attribute__((noreturn));
 
 // Access to Lua C API (lua_internal.cpp)
 SEXP luajr_lua_gettop(SEXP Lx); // Not in public API
 
-// LuaJIT internal helpers (luajit/src/lj_luajr.c)
-void luajr_push_sexp_cdata(lua_State* L, void* x);
-void luajr_push_vector_cdata(lua_State* L, int sxp_type, void* p, void* s, double n, double c);
-ptrdiff_t luajr_get_sexp_cdata(lua_State* L, int index, void** out_s);
-void luajr_push_environment_cdata(lua_State* L, void* s);
-void luajr_push_function_cdata(lua_State* L, void* s);
-void luajr_table_sizes(lua_State* L, int index, uint32_t* asize, uint32_t* hsize);
-int luajr_get_pointer_cdata(lua_State* L, int index, void** out_p);
-void luajr_parallel_srun(workers_t* w);
-void luajr_parallel_prun(workers_t* w);
-void luajr_parallel_pfor(workers_t* w, int i0, int i1);
+// LuaJIT internal helpers (local/lj_luajr.c -> luajit/src/lj_luajr.c)
+void luajr_push_sexp_cdata(lua_State* L, void* x); // Not in public API
+void luajr_push_vector_cdata(lua_State* L, int sxp_type, void* p, void* s, double n, double c); // Not in public API
+ptrdiff_t luajr_get_sexp_cdata(lua_State* L, int index, void** out_s); // Not in public API
+void luajr_push_environment_cdata(lua_State* L, void* s); // Not in public API
+void luajr_push_function_cdata(lua_State* L, void* s); // Not in public API
+void luajr_table_sizes(lua_State* L, int index, uint32_t* asize, uint32_t* hsize); // Not in public API
+int luajr_get_pointer_cdata(lua_State* L, int index, void** out_p); // Not in public API
+int luajr_state_in_pcall(lua_State* L); // Not in public API
 
 } // end of extern "C"
 

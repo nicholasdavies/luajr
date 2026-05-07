@@ -179,6 +179,9 @@ extern "C" lua_State* luajr_newstate()
     lua_pushcfunction(l, luajr_parallel_load);
     lua_setfield(l, -2, "parallel_load");
 
+    lua_pushcfunction(l, luajr_thisstate);
+    lua_setfield(l, -2, "thisstate");
+
     lua_pop(l, 1); // luajr
 
     // Create luajrx table in registry
@@ -208,4 +211,12 @@ extern "C" lua_State* luajr_getstate(SEXP Lx)
 
     Rf_error("Lua state should be NULL or a value returned from lua_open.");
     return L0;
+}
+
+// lua_CFunction: returns the calling Lua state as a lightuserdata. Used to
+// expose lua_State* to FFI calls that need it for pcall-aware error handling.
+extern "C" int luajr_thisstate(lua_State* L)
+{
+    lua_pushlightuserdata(L, L);
+    return 1;
 }

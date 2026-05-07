@@ -254,4 +254,11 @@ extern void luajr_table_sizes(lua_State *L, int index, uint32_t *asize, uint32_t
     }
 }
 
+/* Returns 1 if L is currently inside a protected call (lua_pcall), 0 otherwise.
+ * Used by luajr_error to decide between luaL_error and Rf_error. */
+extern int luajr_state_in_pcall(lua_State *L)
+{
+    return L->cframe != NULL;
+}
+
 #endif /* _BUILDVM_H */

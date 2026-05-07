@@ -78,13 +78,22 @@ size_t strlen(const char* str);
 
 // Parallel functionality
 int luajr_parallel_ncores();
-void luajr_parallel_newworkers(workers_t* w);
+void luajr_parallel_newworkers(lua_State* L, workers_t* w);
 void luajr_parallel_closeworkers(workers_t* w);
-void luajr_parallel_srun(workers_t* w);
-void luajr_parallel_prun(workers_t* w);
-void luajr_parallel_pfor(workers_t* w, int i0, int i1);
+void luajr_parallel_srun(lua_State* L, workers_t* w);
+void luajr_parallel_prun(lua_State* L, workers_t* w);
+void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1);
 ]]
 local internal = ffi.load(luajr_dylib_path)
+
+-- Cache the current lua_State* for FFI calls that need pcall-aware error handling.
+-- luajr.thisstate is registered as a lua_CFunction in state.cpp, after this module
+-- loads, so this must be lazily initialised on first use.
+local thisstate
+local function get_thisstate()
+    if not thisstate then thisstate = ffi.cast("lua_State*", luajr.thisstate()) end
+    return thisstate
+end
 
 
 

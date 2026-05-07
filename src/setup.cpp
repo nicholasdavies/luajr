@@ -7,6 +7,7 @@ extern "C" {
 }
 #include <string>
 #include <csignal>
+#include <cstdarg>
 
 extern "C" int R_ReadConsole(const char*, unsigned char*, int, int);
 
@@ -117,6 +118,29 @@ static const char* luajr_lua_errtype(int err)
     }
 }
 
+// Raise an error from luajr code. If L is non-null and currently inside a
+// lua_pcall, errors via luaL_error so Lua can clean up its stack frames.
+// Otherwise errors via Rf_error.
+extern "C" void luajr_error(lua_State* L, const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    if (L && luajr_state_in_pcall(L))
+    {
+        lua_pushvfstring(L, fmt, args);
+        va_end(args);
+        lua_error(L);
+        __builtin_unreachable();
+    }
+    else
+    {
+        char buf[1024];
+        vsnprintf(buf, sizeof(buf), fmt, args);
+        va_end(args);
+        Rf_error("%s", buf);
+    }
+}
+
 #define do_error(hide, ...) \
     do { \
         if (buf)       { snprintf(buf, 1024, __VA_ARGS__); return hide ? 2 : 1; } \
@@ -174,7 +198,7 @@ extern "C" SEXP luajr_readline(SEXP prompt)
     return retval;
 }
 
-// Pop n items from the Lua stack, then throw an R error
+// Pop n items from the Lua stack, then throw an error via luajr_error.
 extern "C" void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...)
 {
     char buf[1024];
@@ -183,5 +207,5 @@ extern "C" void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...)
     vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
     lua_pop(L, n);
-    Rf_error("%s", buf);
+    luajr_error(L, "%s", buf);
 }

@@ -45,5 +45,6 @@ extern void (*luajr_profile_collect)(lua_State* L);
 extern SEXP (*luajr_profile_data)(SEXP flush);
 extern SEXP (*luajr_makepointer)(void* ptr, int tag_code, void (*finalize)(SEXP));
 extern void* (*luajr_getpointer)(SEXP x, int tag_code);
+extern void (*luajr_error)(lua_State* L, const char* fmt, ...);
 
 #endif // LUAJR_API_H
