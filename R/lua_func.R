@@ -118,28 +118,34 @@ lua_func = function(func, argcode = ".", L = NULL)
         call_name = paste0("_luajr_func_call", nparams)
     }
 
+    f1 = NULL
+    f2 = NULL
+
     if (isvararg) {
-        f = function(...) .Call(`_luajr_func_call`, fx, list(...), argcode, L)
+        f1 = function(...) .Call(`_luajr_func_call`, fx, list(...), argcode, L)
     } else {
-        f = function() .Call(`_luajr_func_call0`, fx, argcode, L)
+        f2 = function() .Call(`_luajr_func_call0`, fx, argcode, L)
 
         if (nparams > 0) {
             arg_names = paste0("a", seq_len(nparams))
             arg_syms = lapply(arg_names, as.symbol)
             fmls = lapply(arg_names, function(x) quote(expr = ))
             names(fmls) = arg_names
-            formals(f) = fmls
+            formals(f2) = fmls
 
-            # body(f) is the .Call(...) expression
-            b = as.list(body(f))
+            # body(f2) is the .Call(...) expression
+            b = as.list(body(f2))
             if (nparams > 8) {
                 b = append(b, list(as.call(c(quote(list), arg_syms))), after = 3)
             } else {
                 b = append(b, arg_syms, after = 3)
             }
-            body(f) = as.call(b)
+            body(f2) = as.call(b)
         }
     }
+    # Required to avoid a CRAN warning around two local functions with the
+    # same name but different formals...
+    f = f1 %||% f2
 
     # Embed resolved values in the function body
     # Full embedding allows R function compilation, possibly by avoiding environment lookup
