@@ -145,7 +145,7 @@ lua_func = function(func, argcode = ".", L = NULL)
     }
     # Required to avoid a CRAN warning around two local functions with the
     # same name but different formals...
-    f = f1 %||% f2
+    f = if (is.null(f2)) f1 else f2
 
     # Embed resolved values in the function body
     # Full embedding allows R function compilation, possibly by avoiding environment lookup
