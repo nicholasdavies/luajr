@@ -226,9 +226,12 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
             if (is_native)
             {
                 R_xlen_t xlen = Rf_xlength(x);
-                if (xlen == 0) { lua_pushnil(L); }
-                else if (xlen != 1) luajr_error(L, "Expected scalar (length 1), got length %.0f.", (double)xlen);
-                else push_native_element(L, x, actual, 0);
+                if (xlen == 0)
+                    lua_pushnil(L);
+                else if (xlen != 1)
+                    luajr_error(L, "Expected scalar (length 1), got length %.0f.", (double)xlen);
+                else
+                    push_native_element(L, x, actual, 0);
             }
             else
             {
@@ -238,14 +241,16 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                     case LGLSXP:  p = (void*)(LOGICAL(x) - 1); break;
                     case INTSXP:  p = (void*)(INTEGER(x) - 1); break;
                     case REALSXP: p = (void*)(REAL(x) - 1); break;
-                    case STRSXP:  p = (void*)(STRING_PTR(x) - 1); break;
+                    case STRSXP:  p = (void*)(STRING_PTR_RO(x) - 1); break;
                     default:      p = nullptr; break;
                 }
-                if (!is_ref) R_PreserveObject(x);
+                if (!is_ref)
+                    R_PreserveObject(x);
                 luajr_push_vector_cdata(L, actual, p, (void*)x, (double)Rf_xlength(x), c_val);
             }
 
-            if (coerced) UNPROTECT(1);
+            if (coerced)
+                UNPROTECT(1);
             break;
         }
 
@@ -260,8 +265,11 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                 if (TYPEOF(x) != VECSXP)
                     luajr_error(L, "Expected list, got %s.", Rf_type2char(TYPEOF(x)));
                 double c_val = is_ref ? -1.0 : -2.0;
-                if (!is_ref) R_PreserveObject(x);
-                luajr_push_vector_cdata(L, VECSXP, (void*)((SEXP*)DATAPTR(x) - 1), (void*)x, (double)Rf_xlength(x), c_val);
+                if (!is_ref)
+                    R_PreserveObject(x);
+                luajr_push_vector_cdata(L, VECSXP,
+                    (void*)(const_cast<SEXP*>((const SEXP*)DATAPTR_RO(x)) - 1),
+                    (void*)x, (double)Rf_xlength(x), c_val);
             }
             break;
 

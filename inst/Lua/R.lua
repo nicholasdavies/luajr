@@ -23,7 +23,7 @@ typedef unsigned char Rbyte;
 typedef int Rboolean;
 
 // === R API declarations ===
-void* DATAPTR(SEXP x);
+const void *DATAPTR_RO(SEXP x);
 void DUPLICATE_ATTRIB(SEXP to, SEXP from);
 SEXP ENCLOS(SEXP x);
 int* INTEGER(SEXP x);
@@ -63,7 +63,7 @@ void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v);
 SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v);
 void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from);
 SEXP STRING_ELT(SEXP x, R_xlen_t i);
-SEXP* STRING_PTR(SEXP x);
+const SEXP *STRING_PTR_RO(SEXP x);
 int TYPEOF(SEXP x);
 SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 // === end R API declarations ===
@@ -148,7 +148,7 @@ R.allocVector = C.Rf_allocVector
 R.CHAR = C.R_CHAR
 R.cons = C.Rf_cons
 R.copyMostAttrib = C.Rf_copyMostAttrib
-R.DATAPTR = C.DATAPTR
+R.DATAPTR_RO = C.DATAPTR_RO
 R.defineVar = C.Rf_defineVar
 R.dimnamesgets = C.Rf_dimnamesgets
 R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
@@ -183,7 +183,7 @@ R.SET_VECTOR_ELT = C.SET_VECTOR_ELT
 R.setAttrib = C.Rf_setAttrib
 R.SHALLOW_DUPLICATE_ATTRIB = C.SHALLOW_DUPLICATE_ATTRIB
 R.STRING_ELT = C.STRING_ELT
-R.STRING_PTR = C.STRING_PTR
+R.STRING_PTR_RO = C.STRING_PTR_RO
 R.type2char = C.Rf_type2char
 R.TYPEOF = C.TYPEOF
 R.UNPROTECT = C.Rf_unprotect

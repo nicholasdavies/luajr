@@ -504,7 +504,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
             local names = R.getAttrib(self.s, R.NamesSymbol)
             if R.TYPEOF(names) ~= R.STRSXP then return nil end
             local nn = math.min(R.length(names), self.n)
-            local p = R.STRING_PTR(names)
+            local p = ffi.cast(sexpp, R.STRING_PTR_RO(names))
             for i = 0, nn - 1 do
                 if from_charsxp(p[i]) == name then
                     return i + 1
@@ -650,7 +650,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
                 fmt = function(i) return tostring(self[i]) end
             end
             if ns then
-                local p = R.STRING_PTR(ns)
+                local p = ffi.cast(sexpp, R.STRING_PTR_RO(ns))
                 for i = 1, n do parts[i] = from_charsxp(p[i - 1]) .. " = " .. fmt(i) end
             else
                 for i = 1, n do parts[i] = fmt(i) end
@@ -678,8 +678,8 @@ end
 luajr.logical   = ffi.metatype("logical_t",   mt_vector_template("int",    R.LGLSXP,  R.NA_LOGICAL, R.LOGICAL))
 luajr.integer   = ffi.metatype("integer_t",   mt_vector_template("int",    R.INTSXP,  R.NA_INTEGER, R.INTEGER))
 luajr.numeric   = ffi.metatype("numeric_t",   mt_vector_template("double", R.REALSXP, R.NA_REAL,    R.REAL))
-luajr.character = ffi.metatype("character_t", mt_vector_template("SEXP",   R.STRSXP,  R.NA_STRING,  R.STRING_PTR))
-luajr.list      = ffi.metatype("list_t",      mt_vector_template("SEXP",   R.VECSXP,  R.NilValue,   function(s) return ffi.cast(sexpp, R.DATAPTR(s)) end))
+luajr.character = ffi.metatype("character_t", mt_vector_template("SEXP",   R.STRSXP,  R.NA_STRING,  function(s) return ffi.cast(sexpp, R.STRING_PTR_RO(s)) end))
+luajr.list      = ffi.metatype("list_t",      mt_vector_template("SEXP",   R.VECSXP,  R.NilValue,   function(s) return ffi.cast(sexpp, R.DATAPTR_RO(s)) end))
 
 -- Vector type checkers
 luajr.is_logical   = function(obj) return ffi.istype(luajr.logical, obj) end
