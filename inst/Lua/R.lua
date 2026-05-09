@@ -216,9 +216,14 @@ R.get_var = function(name, env)
     if R_version < 40500 then
         -- pre 4.5.0: Rf_findVarInFrame (non-API)
         val = C.Rf_findVarInFrame(env, R.install(name))
+        -- force promises
+        if val ~= R.UnboundValue and R.TYPEOF(val) == R.PROMSXP then
+            val = R.eval(val, R.GlobalEnv)
+        end
     else
         -- 4.5.0 and later: R.getVarEx
-        val = R.getVarEx(R.install(name), env, 0, R.UnboundValue)
+        val = R.getVarEx(R.install(name), env, 1, R.UnboundValue)
+        -- passed force=1 above, no forcing needed
     end
     if val == R.UnboundValue then return nil end
     return val
