@@ -121,7 +121,7 @@ lua_func = function(func, argcode = ".", L = NULL)
     if (isvararg) {
         f = function(...) .Call(`_luajr_func_call`, fx, list(...), argcode, L)
     } else {
-        f = function() .Call(`_luajr_func_call`, fx, argcode, L)
+        f = function() .Call(`_luajr_func_call0`, fx, argcode, L)
 
         if (nparams > 0) {
             arg_names = paste0("a", seq_len(nparams))
