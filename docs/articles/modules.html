@@ -34,8 +34,10 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
+<li><a class="dropdown-item" href="../articles/luajr-module.html">luajr-module</a></li>
+    <li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
     <li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
+    <li><a class="dropdown-item" href="../articles/R-module.html">R-module</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -67,6 +69,11 @@
 
     
     
+<div class="section level2">
+<h2 id="warning">Warning<a class="anchor" aria-label="anchor" href="#warning"></a>
+</h2>
+<p>This vignette has not been updated yet for luajr 0.2.2.9000 (in
+development).</p>
 <p>The <a href="luajr.html">Introduction to <code>luajr</code></a>
 vignette shows you how to get started with calling Lua code from R. This
 vignette shows you how to integrate Lua code into your R package, either
@@ -114,7 +121,7 @@ subdirectory <code>inst/Lua</code>. Suppose your package is called
 scripts, declare the module using <code><a href="../reference/lua_module.html">lua_module()</a></code>:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Package module</span></span>
-<span><span class="va">module</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/lua_module.html">lua_module</a></span><span class="op">(</span><span class="st">"Lua/mymodule.lua"</span>, package <span class="op">=</span> <span class="st">"mypackage"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">mymod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/lua_module.html">lua_module</a></span><span class="op">(</span><span class="st">"Lua/mymodule.lua"</span>, package <span class="op">=</span> <span class="st">"mypackage"</span><span class="op">)</span></span></code></pre></div>
 <p>and also declare the function using <code><a href="../reference/lua_module.html">lua_import()</a></code> (you
 can document and export the function as normal, e.g. with
 <code>roxygen2</code> syntax in the example here):</p>
@@ -124,7 +131,7 @@ can document and export the function as normal, e.g. with
 <span><span class="co">#' This function gives a cheerful greeting to the user.</span></span>
 <span><span class="co">#' </span></span>
 <span><span class="co">#' @export</span></span>
-<span><span class="va">greet</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span><span class="op">)</span> <span class="fu"><a href="../reference/lua_module.html">lua_import</a></span><span class="op">(</span><span class="va">module</span>, <span class="st">"greet"</span>, <span class="st">"s"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">greet</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span><span class="op">)</span> <span class="fu"><a href="../reference/lua_module.html">lua_import</a></span><span class="op">(</span><span class="va">mymod</span>, <span class="st">"greet"</span>, <span class="st">"s"</span><span class="op">)</span></span></code></pre></div>
 <p>Note that <code>lua_import(...)</code> must be the only statement
 comprising the function body. Within the call to
 <code><a href="../reference/lua_module.html">lua_import()</a></code>, we are supplying (1) the previously-declared
@@ -161,8 +168,8 @@ when you wish to load the module into a specific state, such as the
 default <code>NULL</code> state or anything else.</p>
 <p>To do this in your package, you need to assign this state to
 <code>mymod$L</code> after the module is declared but before any
-functions are imported. This is easy to do by using
-<code>.onLoad()</code>. Simply include in your package:</p>
+functions or variables from the module have been used. This is easy to
+do by using <code>.onLoad()</code>. Simply include in your package:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">.onLoad</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">libname</span>, <span class="va">pkgname</span><span class="op">)</span></span>
 <span><span class="op">{</span></span>
@@ -172,6 +179,7 @@ functions are imported. This is easy to do by using
 shared with the user of your package) to the state used by the module,
 but you can also supply another state, e.g. one opened by
 <code><a href="../reference/lua_open.html">lua_open()</a></code>.</p>
+</div>
   </main>
 </div>
 

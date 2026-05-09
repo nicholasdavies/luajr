@@ -19,8 +19,10 @@
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/luajr-module.html">luajr-module</a></li>
+    <li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
     <li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
+    <li><a class="dropdown-item" href="../articles/R-module.html">R-module</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -48,20 +50,36 @@
     <h2 id="the-r-api">The R API<a class="anchor" aria-label="anchor" href="#the-r-api"></a></h2>
 
 
-<ul><li><p><code><a href="lua.html">lua()</a></code>: run Lua code</p></li>
+
+<p>You can use these functions to run Lua code from R:</p><ul><li><p><code><a href="lua.html">lua()</a></code>: run Lua code from a string or file</p></li>
 <li><p><code><a href="lua_func.html">lua_func()</a></code>: make a Lua function callable from R</p></li>
 <li><p><code><a href="lua_shell.html">lua_shell()</a></code>: run an interactive Lua shell</p></li>
 <li><p><code><a href="lua_module.html">lua_module()</a></code>, <code><a href="lua_module.html">lua_import()</a></code>: load Lua modules</p></li>
 <li><p><code><a href="lua_open.html">lua_open()</a></code>: create a new Lua state</p></li>
 <li><p><code><a href="lua_reset.html">lua_reset()</a></code>: reset the default Lua state</p></li>
-<li><p><code><a href="lua_parallel.html">lua_parallel()</a></code>: run Lua code in parallel</p></li>
 <li><p><code><a href="lua_mode.html">lua_mode()</a></code>, <code><a href="lua_profile.html">lua_profile()</a></code>: debugger, profiler, and JIT options</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="the-lua-api">The Lua API<a class="anchor" aria-label="anchor" href="#the-lua-api"></a></h2>
+
+
+
+<p>In your Lua code, you can use the <code>luajr</code> module and the <code>R</code>
+module to interact with R functions, values, and types.</p>
+<p>The <code>luajr</code> module offers higher-level access to R functions and types,
+similar to the convenience API offered by <span class="pkg">Rcpp</span> or <span class="pkg">cpp11</span> for use
+in C++. See <code><a href="../articles/luajr-module.html">vignette("luajr-module")</a></code> for more details.</p>
+<p>The <code>R</code> module offers lower-level access to R functions and types,
+similar to R's built-in C API. See <code><a href="../articles/R-module.html">vignette("R-module")</a></code> for more details.</p>
+    </div>
     <div class="section level2">
     <h2 id="further-reading">Further reading<a class="anchor" aria-label="anchor" href="#further-reading"></a></h2>
 
 
-<p>For an introduction to 'luajr', see <code><a href="../articles/luajr.html">vignette("luajr")</a></code></p>
+
+<p>For an introduction to <span class="pkg">luajr</span>, see <code><a href="../articles/luajr.html">vignette("luajr")</a></code>.</p>
+<p>For a guide to writing Lua modules for use from your R package or project,
+see <code><a href="../articles/modules.html">vignette("modules")</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

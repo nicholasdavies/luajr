@@ -34,8 +34,10 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
+<li><a class="dropdown-item" href="../articles/luajr-module.html">luajr-module</a></li>
+    <li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
     <li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
+    <li><a class="dropdown-item" href="../articles/R-module.html">R-module</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -67,13 +69,18 @@
 
     
     
+<div class="section level2">
+<h2 id="warning">Warning<a class="anchor" aria-label="anchor" href="#warning"></a>
+</h2>
+<p>This vignette has not been updated yet for luajr 0.2.2.9000 (in
+development).</p>
 <p>The <a href="luajr.html">Introduction to <code>luajr</code></a>
 vignette shows you how to get started with calling Lua code from R. This
 vignette gives more details on how to create and manipulate R objects –
 such as vectors, lists, and data.frames – in your Lua code.</p>
-<div class="section level2">
-<h2 id="the-luajr-lua-module">The <code>luajr</code> Lua module<a class="anchor" aria-label="anchor" href="#the-luajr-lua-module"></a>
-</h2>
+<div class="section level3">
+<h3 id="the-luajr-lua-module">The <code>luajr</code> Lua module<a class="anchor" aria-label="anchor" href="#the-luajr-lua-module"></a>
+</h3>
 <p>Whenever the <code>luajr</code> R package opens a new Lua state, it
 opens all the <a href="https://www.lua.org/manual/5.1/manual.html#5" class="external-link">standard Lua
 libraries</a> in that state, as well as the <code>luajr</code> Lua
@@ -111,9 +118,9 @@ types.</li>
 Lua.</li>
 </ul>
 </div>
-<div class="section level2">
-<h2 id="vector">Vector types<a class="anchor" aria-label="anchor" href="#vector"></a>
-</h2>
+<div class="section level3">
+<h3 id="vector">Vector types<a class="anchor" aria-label="anchor" href="#vector"></a>
+</h3>
 <p>The vector types are modelled after C++’s <code>std::vector</code>
 class. A vector type is what you end up with if you pass an argument
 into a Lua function using <code><a href="../reference/lua_func.html">lua_func()</a></code> with arg code
@@ -129,9 +136,9 @@ very careful not to access or write out of these bounds, as the
 Going out of bounds will cause crashes or other undefined behaviour.
 Unlike Lua tables, vector types can only be indexed with integers from 1
 to the vector length, not with strings or any other types.</p>
-<div class="section level3">
-<h3 id="vcreate">Creating and testing vector types<a class="anchor" aria-label="anchor" href="#vcreate"></a>
-</h3>
+<div class="section level4">
+<h4 id="vcreate">Creating and testing vector types<a class="anchor" aria-label="anchor" href="#vcreate"></a>
+</h4>
 <p><strong><code>luajr.logical(a, b)</code>,
 <code>luajr.integer(a, b)</code>, <code>luajr.numeric(a, b)</code>,
 <code>luajr.character(a, b)</code></strong></p>
@@ -157,9 +164,9 @@ string).</p>
 vector types. These return <code>true</code> if <code>obj</code> is of
 the corresponding type, and <code>false</code> otherwise.</p>
 </div>
-<div class="section level3">
-<h3 id="vector-type-methods">Vector type methods<a class="anchor" aria-label="anchor" href="#vector-type-methods"></a>
-</h3>
+<div class="section level4">
+<h4 id="vector-type-methods">Vector type methods<a class="anchor" aria-label="anchor" href="#vector-type-methods"></a>
+</h4>
 <p>All the vector types have the following methods:</p>
 <p><strong><code>#v</code></strong></p>
 <p>Returns the length of the vector.</p>
@@ -233,9 +240,9 @@ missing, just erases the single element at position
 <code>first</code>.</p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="reference">Reference types<a class="anchor" aria-label="anchor" href="#reference"></a>
-</h2>
+<div class="section level3">
+<h3 id="reference">Reference types<a class="anchor" aria-label="anchor" href="#reference"></a>
+</h3>
 <p>The reference types are similar to the vector types, but they are
 more “low-level” and hence are missing much of the functionality of the
 vector types. They map directly onto memory managed by R, so judicious
@@ -253,10 +260,10 @@ Lua.</p>
 be very careful not to access or write out of these bounds.</p>
 <p>Finally, because reference types depend upon R, they are not
 completely thread safe and therefore they cannot safely be used with
-<code><a href="../reference/lua_parallel.html">lua_parallel()</a></code>.</p>
-<div class="section level3">
-<h3 id="creating-and-testing-reference-types">Creating and testing reference types<a class="anchor" aria-label="anchor" href="#creating-and-testing-reference-types"></a>
-</h3>
+<code>lua_parallel()</code>.</p>
+<div class="section level4">
+<h4 id="creating-and-testing-reference-types">Creating and testing reference types<a class="anchor" aria-label="anchor" href="#creating-and-testing-reference-types"></a>
+</h4>
 <p><strong><code>luajr.logical_r(a, b)</code>,
 <code>luajr.integer_r(a, b)</code>, <code>luajr.numeric_r(a, b)</code>,
 <code>luajr.character_r(a, b)</code></strong></p>
@@ -277,9 +284,9 @@ reference type.</p>
 reference types. These return <code>true</code> if <code>obj</code> is
 of the corresponding type, and <code>false</code> otherwise.</p>
 </div>
-<div class="section level3">
-<h3 id="reference-type-methods">Reference type methods<a class="anchor" aria-label="anchor" href="#reference-type-methods"></a>
-</h3>
+<div class="section level4">
+<h4 id="reference-type-methods">Reference type methods<a class="anchor" aria-label="anchor" href="#reference-type-methods"></a>
+</h4>
 <p>All the reference types have the following methods:</p>
 <p><strong><code>#v</code></strong></p>
 <p>Returns the length of the referenced vector.</p>
@@ -296,16 +303,16 @@ though you can get and manipulate the <code>names</code> attribute, you
 cannot access a reference vector’s elements by their names.</p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="list">List type<a class="anchor" aria-label="anchor" href="#list"></a>
-</h2>
+<div class="section level3">
+<h3 id="list">List type<a class="anchor" aria-label="anchor" href="#list"></a>
+</h3>
 <p>A list is a special kind of Lua table that can be indexed either with
 positive integers or with strings. Unlike a Lua table, a list remembers
 the order in which you have added elements to it, like an R list
 does.</p>
-<div class="section level3">
-<h3 id="creating-and-testing-lists">Creating and testing lists<a class="anchor" aria-label="anchor" href="#creating-and-testing-lists"></a>
-</h3>
+<div class="section level4">
+<h4 id="creating-and-testing-lists">Creating and testing lists<a class="anchor" aria-label="anchor" href="#creating-and-testing-lists"></a>
+</h4>
 <p><strong><code>luajr.list()</code></strong></p>
 <p>Creates a new, empty list.</p>
 <p><strong><code>luajr.is_list(obj)</code></strong></p>
@@ -313,9 +320,9 @@ does.</p>
 <code>true</code> if <code>obj</code> is a list, and <code>false</code>
 otherwise.</p>
 </div>
-<div class="section level3">
-<h3 id="list-methods">List methods<a class="anchor" aria-label="anchor" href="#list-methods"></a>
-</h3>
+<div class="section level4">
+<h4 id="list-methods">List methods<a class="anchor" aria-label="anchor" href="#list-methods"></a>
+</h4>
 <p>Lists have the following methods:</p>
 <p><strong><code>#v</code></strong></p>
 <p>Returns the length of the list, including both integer- and
@@ -348,27 +355,27 @@ to R, its <code>"names"</code> attribute has the normal R format.</p>
 <p>Note that lists have this interface for setting and getting
 attributes, but unlike the reference types (which also have this
 capability), they are not internally managed by R. This means that they
-are safe to use with <code><a href="../reference/lua_parallel.html">lua_parallel()</a></code>, as long as they don’t
+are safe to use with <code>lua_parallel()</code>, as long as they don’t
 contain any reference types.</p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="dfm">Data frame and matrix types<a class="anchor" aria-label="anchor" href="#dfm"></a>
-</h2>
+<div class="section level3">
+<h3 id="dfm">Data frame and matrix types<a class="anchor" aria-label="anchor" href="#dfm"></a>
+</h3>
 <p>There are a handful of additional types based on the above types, but
 which have some special behaviour when returned to R.</p>
-<div class="section level3">
-<h3 id="data-frame">Data frame<a class="anchor" aria-label="anchor" href="#data-frame"></a>
-</h3>
+<div class="section level4">
+<h4 id="data-frame">Data frame<a class="anchor" aria-label="anchor" href="#data-frame"></a>
+</h4>
 <p>A data frame can be created with</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="va">df</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>dataframe<span class="op">()</span></span></code></pre></div>
 <p>This is just a <code>luajr.list</code> with the <code>"class"</code>
 attribute set to <code>"data.frame"</code>. However, when a list with
 this class gets returned to R, it gets turned into a data frame.</p>
 </div>
-<div class="section level3">
-<h3 id="matrix">Matrix<a class="anchor" aria-label="anchor" href="#matrix"></a>
-</h3>
+<div class="section level4">
+<h4 id="matrix">Matrix<a class="anchor" aria-label="anchor" href="#matrix"></a>
+</h4>
 <p>A matrix can be created with</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="va">df</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>matrix_r<span class="op">(</span><span class="va">nrow</span><span class="op">,</span> <span class="va">ncol</span><span class="op">)</span></span></code></pre></div>
 <p>This is a special kind of <code>luajr.numeric_r</code> with the
@@ -380,9 +387,9 @@ example, for a 2x2 matrix, the top-left element has index 1, bottom-left
 has index 2, top-right has index 3 and bottom-right has index 4.</p>
 <p>Note that it is a reference type.</p>
 </div>
-<div class="section level3">
-<h3 id="data-matrix">Data matrix<a class="anchor" aria-label="anchor" href="#data-matrix"></a>
-</h3>
+<div class="section level4">
+<h4 id="data-matrix">Data matrix<a class="anchor" aria-label="anchor" href="#data-matrix"></a>
+</h4>
 <p>A data matrix can be created with</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="va">dm</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>datamatrix_r<span class="op">(</span><span class="va">nrow</span><span class="op">,</span> <span class="va">ncol</span><span class="op">,</span> <span class="va">names</span><span class="op">)</span></span></code></pre></div>
 <p>This is similar to <code>luajr.matrix_r</code>, but it has
@@ -399,9 +406,9 @@ lose the speed advantage. So don’t worry about it too much.</p>
 attribute name <code>"/matrix/colnames"</code>.</p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="constants">Constants<a class="anchor" aria-label="anchor" href="#constants"></a>
-</h2>
+<div class="section level3">
+<h3 id="constants">Constants<a class="anchor" aria-label="anchor" href="#constants"></a>
+</h3>
 <p>The following constants are defined in the <code>luajr</code>
 table:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span></span>
@@ -458,9 +465,9 @@ Lua through arg code <code>"s"</code>, it will come out as
 <code>nil</code> in Lua; but if you use arg code <code>"r"</code> or
 <code>"v"</code>, it will come out as <code>luajr.NULL</code>.</p>
 </div>
-<div class="section level2">
-<h2 id="longvec">Long vectors<a class="anchor" aria-label="anchor" href="#longvec"></a>
-</h2>
+<div class="section level3">
+<h3 id="longvec">Long vectors<a class="anchor" aria-label="anchor" href="#longvec"></a>
+</h3>
 <p><code>luajr</code> can handle what are called “long vectors” in R
 (i.e., vectors with 2^31 elements or more), but there are some
 restrictions.</p>
@@ -494,6 +501,7 @@ hard drive rather than trying to load it all into working memory. You
 could use something like C’s <a href="https://man7.org/linux/man-pages/man2/mmap.2.html" class="external-link"><code>mmap</code></a>
 for this, an R package like <a href="https://arrow.apache.org/docs/r/index.html" class="external-link"><code>arrow</code></a>,
 or something else.</p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

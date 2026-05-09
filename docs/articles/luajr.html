@@ -34,8 +34,10 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
+<li><a class="dropdown-item" href="../articles/luajr-module.html">luajr-module</a></li>
+    <li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
     <li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
+    <li><a class="dropdown-item" href="../articles/R-module.html">R-module</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -67,6 +69,11 @@
 
     
     
+<div class="section level2">
+<h2 id="warning">Warning<a class="anchor" aria-label="anchor" href="#warning"></a>
+</h2>
+<p>This vignette has not been updated yet for luajr 0.2.2.9000 (in
+development).</p>
 <p><code>luajr</code> allows you to run <a href="https://www.lua.org" class="external-link">Lua</a> code from R.</p>
 <p>Lua is a lightweight, simple, and fast scripting language that is
 used in a variety of settings. The standard Lua interpreter is already
@@ -77,10 +84,10 @@ called <a href="https://luajit.org" class="external-link">LuaJIT</a> that is eve
 quick-start guide to <code>luajr</code> for people who already know how
 to program in Lua. See the <a href="https://www.lua.org" class="external-link">Lua web
 site</a> for resources related to coding in Lua.</p>
-<div class="section level2">
-<h2 id="running-lua-code-lua-and-lua_shell">Running Lua code: <code>lua()</code> and
+<div class="section level3">
+<h3 id="running-lua-code-lua-and-lua_shell">Running Lua code: <code>lua()</code> and
 <code>lua_shell()</code><a class="anchor" aria-label="anchor" href="#running-lua-code-lua-and-lua_shell"></a>
-</h2>
+</h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/nicholasdavies/luajr" class="external-link">luajr</a></span><span class="op">)</span></span></code></pre></div>
 <p>To get a feel for <code>luajr</code> or to run “one-off” Lua code
@@ -125,9 +132,9 @@ the contents of a string.</p>
 R prompt. This can can be helpful for debugging or for testing Lua
 statements.</p>
 </div>
-<div class="section level2">
-<h2 id="calling-lua-functions-from-r-lua_func">Calling Lua functions from R: <code>lua_func()</code><a class="anchor" aria-label="anchor" href="#calling-lua-functions-from-r-lua_func"></a>
-</h2>
+<div class="section level3">
+<h3 id="calling-lua-functions-from-r-lua_func">Calling Lua functions from R: <code>lua_func()</code><a class="anchor" aria-label="anchor" href="#calling-lua-functions-from-r-lua_func"></a>
+</h3>
 <p>The key piece of functionality for <code>luajr</code> is probably
 <code><a href="../reference/lua_func.html">lua_func()</a></code>. This allows you to call Lua functions from
 R.</p>
@@ -139,7 +146,7 @@ existing Lua function from R:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">luatype</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"type"</span><span class="op">)</span></span>
 <span><span class="fu">luatype</span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "boolean"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "cdata"</span></span></code></pre></div>
 <p>Here, <code>"type"</code> is just referring to the built-in Lua
 function <code>type</code> which returns a string describing the Lua
 type of the value passed to it. You can also use <code><a href="../reference/lua_func.html">lua_func()</a></code>
@@ -149,13 +156,13 @@ to refer to a previously defined function in the default Lua state:</p>
 <span><span class="fu"><a href="../reference/lua.html">lua</a></span><span class="op">(</span><span class="st">"return squared(4)"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 16</span></span>
 <span></span>
-<span><span class="va">sq</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"squared"</span><span class="op">)</span></span>
+<span><span class="va">sq</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"squared"</span>, <span class="st">"$."</span><span class="op">)</span></span>
 <span><span class="fu">sq</span><span class="op">(</span><span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 64</span></span></code></pre></div>
 <p>Or you can use <code><a href="../reference/lua_func.html">lua_func()</a></code> to define an anonymous Lua
 function:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">timestwo</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) return x*2 end"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">timestwo</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) return x*2 end"</span>, <span class="st">"$."</span><span class="op">)</span></span>
 <span><span class="fu">timestwo</span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 246</span></span></code></pre></div>
 <p>Under the hood, <code><a href="../reference/lua_func.html">lua_func()</a></code> just takes its first
@@ -351,13 +358,15 @@ modifications made to the elements of that passed-in vector persist back
 in the R calling frame. For example:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">values</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span><span class="op">)</span></span>
-<span><span class="va">keep</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = 999 end"</span>, <span class="st">"v"</span><span class="op">)</span> <span class="co"># passed by value</span></span>
+<span><span class="va">keep</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = 999 end"</span>, <span class="st">"."</span><span class="op">)</span> <span class="co"># passed by value</span></span>
 <span><span class="fu">keep</span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
+<span><span class="co">#&gt; NULL</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 1 2 3</span></span>
 <span></span>
-<span><span class="va">change</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = 999 end"</span>, <span class="st">"r"</span><span class="op">)</span> <span class="co"># passed by reference</span></span>
+<span><span class="va">change</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = 999 end"</span>, <span class="st">"&amp;."</span><span class="op">)</span> <span class="co"># passed by reference</span></span>
 <span><span class="fu">change</span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
+<span><span class="co">#&gt; NULL</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 999   2   3</span></span></code></pre></div>
 <p>Vectors can never be resized by reference; only their
@@ -369,17 +378,12 @@ function. For example:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">f1</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x.a = 42; end"</span>, <span class="st">"v"</span><span class="op">)</span></span>
+<span><span class="va">f1</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x:set('a', 42); end"</span>, <span class="st">"."</span><span class="op">)</span></span>
 <span><span class="fu">f1</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="co">#&gt; NULL</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
-<span><span class="co">#&gt; [1] 1</span></span>
-<span></span>
-<span><span class="va">f2</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x.a = 42; end"</span>, <span class="st">"r"</span><span class="op">)</span></span>
-<span><span class="fu">f2</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [[1]]</span></span>
-<span><span class="co">#&gt; [1] 999</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
 <p>Note that in the examples above, we modify <code>x[1][1]</code>, not
 just <code>x[1]</code>. That is because, even when lists are passed by
 reference, we need to modify specific elements of their vector elements
@@ -394,16 +398,16 @@ function:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">f3</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x.a = 42; return x; end"</span>, <span class="st">"v"</span><span class="op">)</span></span>
+<span><span class="va">f3</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1][1] = 999; x:set('a', 42); return x; end"</span>, <span class="st">"."</span><span class="op">)</span></span>
 <span><span class="va">x</span> <span class="op">=</span> <span class="fu">f3</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
-<span><span class="co">#&gt; [1] 999</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $a</span></span>
 <span><span class="co">#&gt; [1] 42</span></span>
 <span></span>
-<span><span class="va">f4</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = luajr.numeric({888, 999}); return x; end"</span>, <span class="st">"v"</span><span class="op">)</span></span>
+<span><span class="va">f4</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(x) x[1] = luajr.numeric({888, 999}); return x; end"</span>, <span class="st">"."</span><span class="op">)</span></span>
 <span><span class="va">x</span> <span class="op">=</span> <span class="fu">f4</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
@@ -415,9 +419,9 @@ function:</p>
 to the list (<code>f3</code>) and change whole entries of the list
 (<code>f4</code>).</p>
 </div>
-<div class="section level2">
-<h2 id="benchmarking">Benchmarking<a class="anchor" aria-label="anchor" href="#benchmarking"></a>
-</h2>
+<div class="section level3">
+<h3 id="benchmarking">Benchmarking<a class="anchor" aria-label="anchor" href="#benchmarking"></a>
+</h3>
 <p>In the same way that using R packages <a href="https://CRAN.R-project.org/package=cpp11" class="external-link"><code>cpp11</code></a>
 or <a href="https://CRAN.R-project.org/package=Rcpp" class="external-link"><code>Rcpp</code></a>
 allows you to bridge your R code with C++ code that runs faster than R,
@@ -440,9 +444,9 @@ the first example, we compare different ways of passing vectors to Lua
 functions relative to R. In the second example, we compare more
 fundamentally the difference in running a whole algorithm in Lua versus
 R versus C++ with <code>Rcpp</code>.</p>
-<div class="section level3">
-<h3 id="parameter-passing-example-sum-of-squares">Parameter passing example: sum of squares<a class="anchor" aria-label="anchor" href="#parameter-passing-example-sum-of-squares"></a>
-</h3>
+<div class="section level4">
+<h4 id="parameter-passing-example-sum-of-squares">Parameter passing example: sum of squares<a class="anchor" aria-label="anchor" href="#parameter-passing-example-sum-of-squares"></a>
+</h4>
 <p>For reasonably long vectors, passing by reference (<code>'r'</code>)
 is faster than passing by value (<code>'v'</code>), which is faster than
 passing by simplify (<code>'s'</code>, <code>'a'</code>, or
@@ -461,9 +465,9 @@ the vector by reference, by value, and by simplify.</p>
 <span></span>
 <span><span class="fu"><a href="../reference/lua.html">lua</a></span><span class="op">(</span><span class="st">"sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end"</span><span class="op">)</span></span>
 <span><span class="va">sum2</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">x</span><span class="op">*</span><span class="va">x</span><span class="op">)</span></span>
-<span><span class="va">sum2_r</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"r"</span><span class="op">)</span></span>
-<span><span class="va">sum2_v</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"v"</span><span class="op">)</span></span>
-<span><span class="va">sum2_s</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"s"</span><span class="op">)</span></span>
+<span><span class="va">sum2_r</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"&amp;."</span><span class="op">)</span></span>
+<span><span class="va">sum2_v</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"."</span><span class="op">)</span></span>
+<span><span class="va">sum2_s</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"sum2"</span>, <span class="st">"$."</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Comparing the results of each function:</span></span>
 <span><span class="fu">sum2</span><span class="op">(</span><span class="va">v1</span><span class="op">)</span>    <span class="co"># Pure R version</span></span>
@@ -596,9 +600,9 @@ speed—the function is relatively short, and there is a certain amount of
 overhead in invoking it, while the R function doesn’t have the overhead
 of transferring control between languages.</p>
 </div>
-<div class="section level3">
-<h3 id="processing-time-example-logistic-map">Processing time example: logistic map<a class="anchor" aria-label="anchor" href="#processing-time-example-logistic-map"></a>
-</h3>
+<div class="section level4">
+<h4 id="processing-time-example-logistic-map">Processing time example: logistic map<a class="anchor" aria-label="anchor" href="#processing-time-example-logistic-map"></a>
+</h4>
 <p>Consider the following:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">logistic_map_R</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x0</span>, <span class="va">burn</span>, <span class="va">iter</span>, <span class="va">A</span><span class="op">)</span></span>
@@ -624,9 +628,8 @@ of transferring control between languages.</p>
 <span><span class="va">logistic_map_L</span> <span class="op">=</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span></span>
 <span><span class="st">"function(x0, burn, iter, A)</span></span>
 <span><span class="st">    local dflen = #A * iter</span></span>
-<span><span class="st">    local result = luajr.dataframe()</span></span>
-<span><span class="st">    result.a = luajr.numeric_r(dflen, 0)</span></span>
-<span><span class="st">    result.x = luajr.numeric_r(dflen, 0)</span></span>
+<span><span class="st">    local aa = luajr.numeric(dflen, 0)</span></span>
+<span><span class="st">    local xx = luajr.numeric(dflen, 0)</span></span>
 <span><span class="st">    </span></span>
 <span><span class="st">    local j = 1</span></span>
 <span><span class="st">    for k,a in pairs(A) do</span></span>
@@ -635,15 +638,19 @@ of transferring control between languages.</p>
 <span><span class="st">            x = a * x * (1 - x)</span></span>
 <span><span class="st">        end</span></span>
 <span><span class="st">        for i = 1, iter do</span></span>
-<span><span class="st">            result.a[j] = a</span></span>
-<span><span class="st">            result.x[j] = x</span></span>
+<span><span class="st">            aa[j] = a</span></span>
+<span><span class="st">            xx[j] = x</span></span>
 <span><span class="st">            x = a * x * (1 - x)</span></span>
 <span><span class="st">            j = j + 1</span></span>
 <span><span class="st">        end</span></span>
 <span><span class="st">    end</span></span>
 <span><span class="st">    </span></span>
+<span><span class="st">    local result = luajr.dataframe()</span></span>
+<span><span class="st">    result:set('a', aa)</span></span>
+<span><span class="st">    result:set('x', xx)</span></span>
+<span><span class="st">    </span></span>
 <span><span class="st">    return result</span></span>
-<span><span class="st">end"</span>, <span class="st">"sssr"</span><span class="op">)</span></span>
+<span><span class="st">end"</span>, <span class="st">"$., $., $., ."</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># To be compiled using Rcpp::cppFunction()</span></span>
 <span><span class="va">logistic_map_C</span> <span class="op">=</span></span>
@@ -730,10 +737,10 @@ than the Lua version; the extra overhead associated with
 <code>data.frame</code> methods was pointed out by Tim Taylor.</p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="states">Working with Lua States: <code>lua_open()</code>,
+<div class="section level3">
+<h3 id="states">Working with Lua States: <code>lua_open()</code>,
 <code>lua_reset()</code><a class="anchor" aria-label="anchor" href="#states"></a>
-</h2>
+</h3>
 <p>All the functions mentioned above (<code><a href="../reference/lua.html">lua()</a></code>,
 <code><a href="../reference/lua_shell.html">lua_shell()</a></code>, and <code><a href="../reference/lua_func.html">lua_func()</a></code>) can also take an
 argument <code>L</code> that specifies a particular Lua state that the
@@ -768,11 +775,12 @@ R.</p>
 memory previously used by <code>L</code> will be cleaned up at the next
 garbage collection.</p>
 </div>
-<div class="section level2">
-<h2 id="further-reading">Further reading<a class="anchor" aria-label="anchor" href="#further-reading"></a>
-</h2>
+<div class="section level3">
+<h3 id="further-reading">Further reading<a class="anchor" aria-label="anchor" href="#further-reading"></a>
+</h3>
 <p>For notes on how to create and manipulate R objects – such as
 vectors, lists, and data.frames – in your Lua code, see the <a href="objects.html">R objects in Lua code</a> vignette.</p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
