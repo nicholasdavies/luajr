@@ -157,7 +157,6 @@ R.ExternalPtrAddr = C.R_ExternalPtrAddr
 R.findFun = C.Rf_findFun
 R.FlushConsole = C.R_FlushConsole
 R.getAttrib = C.Rf_getAttrib
-R.getVarEx = C.R_getVarEx
 R.install = C.Rf_install
 R.INTEGER = C.INTEGER
 R.lcons = C.Rf_lcons
