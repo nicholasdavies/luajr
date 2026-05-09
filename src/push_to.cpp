@@ -198,13 +198,14 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
         case AC::numeric:
         case AC::character:
         {
-            static const int type_to_sxp[] = {
-                [AC::logical]   = LGLSXP,
-                [AC::integer]   = INTSXP,
-                [AC::numeric]   = REALSXP,
-                [AC::character] = STRSXP
-            };
-            int expected = type_to_sxp[type];
+            int expected;
+            switch (type) {
+                case AC::logical:   expected = LGLSXP;  break;
+                case AC::integer:   expected = INTSXP;  break;
+                case AC::numeric:   expected = REALSXP; break;
+                case AC::character: expected = STRSXP;  break;
+                default:            expected = 0;       break; // unreachable
+            }
             int actual = TYPEOF(x);
 
             // Coercion (unless strict): integer <-> numeric
@@ -432,7 +433,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
 // L, using the args code in acode.
 extern "C" void luajr_pass(lua_State* L, SEXP args, SEXP acode)
 {
-    unsigned int acode_length = Rf_length(acode);
+    int acode_length = Rf_length(acode);
     if (acode_length == 0)
         luajr_error(L, "Length of args code is zero.");
     const unsigned char* ac = RAW(acode);
