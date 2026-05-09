@@ -14,6 +14,10 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Warning
+
+This vignette has not been updated yet for luajr 0.2.2.9000 (in development).
+
 `luajr` allows you to run [Lua](https://www.lua.org) code from R.
 
 Lua is a lightweight, simple, and fast scripting language that is used in a 
@@ -335,9 +339,8 @@ logistic_map_R = function(x0, burn, iter, A)
 logistic_map_L = lua_func(
 "function(x0, burn, iter, A)
     local dflen = #A * iter
-    local result = luajr.dataframe()
-    result.a = luajr.numeric(dflen, 0)
-    result.x = luajr.numeric(dflen, 0)
+    local aa = luajr.numeric(dflen, 0)
+    local xx = luajr.numeric(dflen, 0)
     
     local j = 1
     for k,a in pairs(A) do
@@ -346,12 +349,16 @@ logistic_map_L = lua_func(
             x = a * x * (1 - x)
         end
         for i = 1, iter do
-            result.a[j] = a
-            result.x[j] = x
+            aa[j] = a
+            xx[j] = x
             x = a * x * (1 - x)
             j = j + 1
         end
     end
+    
+    local result = luajr.dataframe()
+    result:set('a', aa)
+    result:set('x', xx)
     
     return result
 end", "$., $., $., .")

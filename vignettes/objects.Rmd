@@ -14,6 +14,10 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Warning
+
+This vignette has not been updated yet for luajr 0.2.2.9000 (in development).
+
 The [Introduction to `luajr`](luajr.html) vignette shows you how to get started
 with calling Lua code from R. This vignette gives more details on how to create
 and manipulate R objects -- such as vectors, lists, and data.frames -- in your

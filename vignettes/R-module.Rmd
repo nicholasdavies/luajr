@@ -17,3 +17,7 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(luajr)
 ```
+
+# Warning
+
+This vignette has not been updated yet for luajr 0.2.2.9000 (in development).
