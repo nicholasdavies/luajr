@@ -1,60 +1,51 @@
 #' Make a Lua function callable from R
 #'
 #' Takes any Lua expression (as a character string) that evaluates to a
-#' function and provides an R function that can be called to invoke the Lua
+#' Lua function and provides an R function that can be called to invoke the Lua
 #' function. Instead of a character string, you can also provide an external
 #' pointer to a Lua function (see examples).
 #'
-#' The R types that can be passed to Lua are: `NULL`, logical vector,
-#' integer vector, numeric vector, string vector, list, external pointer, and
+#' Any R type can be passed to a Lua function. The R types that have special
+#' support in \pkg{luajr} are: `NULL`, logical vector, integer vector, numeric
+#' vector, character vector, list, function, environment, external pointer, and
 #' raw.
 #'
-#' The parameter `argcode` is a string with one character for each argument of
-#' the Lua function. The last character is repeated when there are more arguments
-#' than characters.
+#' The parameter `argcode` is a string that specifies type handling for each
+#' argument of the Lua function. The last type is repeated when there are more
+#' arguments than specified types.
 #'
-#' In the following, the corresponding character of `argcode` for a specific
-#' argument is referred to as its arg code.
+#' To receive a `luajr.logical` type in Lua, use the argcode `logical` or `L`.
+#' Similarly, `luajr.integer` is specified with `integer` or `I`;
+#' `luajr.numeric` is specified with `numeric` or `N`; and `luajr.character` is
+#' specified with `character` or `C`. `luajr.list` is specified with `list`,
+#' `vector`, or `V`.
 #'
-#' For `NULL` or any argument with length 0, the result in Lua is **nil**
-#' regardless of the corresponding arg code.
+#' To receive a `luajr.rfunction` type, use `rfunction` or `F`. To receive a
+#' `luajr.environment` type, use `environment` or `E`. To receive an `R.sexp`
+#' type, use `sexp` or `S`.
 #'
-#' For logical, integer, double, and character vectors, if the corresponding
-#' arg code is `'s'` (simplify), then if the R vector has length one, it is
-#' supplied as a Lua primitive (boolean, number, number, or string,
-#' respectively), and if length > 1, as an array, i.e. a table with integer
-#' indices starting at 1. If the code is `'a'`, the vector is always supplied as
-#' an array, even if it only has length 1. If the arg code is the digit `'1'`
-#' through `'9'`, this is the same as `'s'`, but the vector is required to have
-#' that specific length, otherwise an error message is emitted.
+#' To pass any R type as "closest available" type from the above, use the
+#' argcode `"."`.
 #'
-#' Still focusing on the same vector types, if the arg code is `'r'`, then the
-#' vector is passed *by reference* to Lua, adopting the type `luajr.logical`,
-#' `luajr.integer`, `luajr.numeric`, or `luajr.character` as appropriate.
-#' Modifications to individual elements will be reflected in the R vector.
-#' If the arg code is `'v'`, the vector is passed *by value* (copy-on-write)
-#' to Lua, adopting the same types. A copy is made on first modification.
+#' Argcodes should be separated by commas. If you are using a "single-character"
+#' argcode like `.` or `S`, there does not need to be a comma following it.
 #'
-#' For a raw vector, only the `'s'` type is accepted and the result in Lua is
-#' a string (potentially with embedded nulls).
+#' You can also receive R values as Lua native types. Specifically, the argcode
+#' `function` corresponds to a Lua function; `boolean` is a Lua boolean;
+#' `number` is a Lua number; `string` is a Lua string and `table` is a Lua
+#' table. `pointer` or `P` passes an external pointer (EXTPTRSXP) as a Lua
+#' light userdata.
 #'
-#' For lists, if the arg code is `'s'` (simplify), the list is passed as a Lua
-#' table. Any entries of the list with non-blank names are named in the table,
-#' while unnamed entries have the associated integer key in the table. Note that
-#' Lua does not preserve the order of entries in tables. This means that an R
-#' list with names will often go "out of order" when passed into Lua with `'s'`
-#' and then returned back to R. This is avoided with arg code `'r'` or `'v'`.
+#' The prefix `$` specifies that the type should be passed as a Lua native type.
+#' So `$.` is the "closest available Lua type" and `$C` is a Lua string.
 #'
-#' If a list is passed in with the arg code `'r'` or `'v'`, the list is
-#' passed to Lua as type `luajr.list`, and all vector elements of the list are
-#' passed by reference or by value, respectively.
+#' The prefix `!` specifies strict type handling (i.e., error if the type cannot
+#' be converted).
 #'
-#' If the arg code is `'x'`, the value is passed as a bare SEXP (i.e. the raw R
-#' object pointer). This bypasses all type-specific conversions and is intended
-#' for use with the `R` Lua module (loaded via `require("R")`).
-#'
-#' For external pointers, the arg code is ignored and the external pointer is
-#' passed to Lua as type **userdata**.
+#' The prefix `&` can be used with logical, integer, numeric, character, or
+#' generic (list) vectors and specifies that the value should be passed
+#' **by reference**. Vectors passed by reference can have their elements
+#' mutated in Lua code, but they cannot be resized.
 #'
 #' When the function is called and Lua values are returned from the function,
 #' the Lua return values are converted to R values as follows.
@@ -89,13 +80,13 @@
 #' @return An R function which can be called to invoke the Lua function.
 #' @examples
 #' # use with a character string
-#' squared <- lua_func("function(x) return x^2 end")
+#' squared <- lua_func("function(x) return x^2 end", "$.")
 #' print(squared(7))
 #'
 #' # use with an external pointer to a Lua function
 #' times2ptr <- lua("return function(x) return 2 * x end")
 #' print(times2ptr)
-#' times2 <- lua_func(times2ptr)
+#' times2 <- lua_func(times2ptr, "$.")
 #' print(times2(14))
 #' @export
 lua_func = function(func, argcode = ".", L = NULL)
@@ -193,7 +184,7 @@ argcodes_long = c(
 )
 
 # argcodes that have a native Lua interpretation
-argcodes_native = argcodes_long[c("rfunction", "logical", "integer", "numeric", "character", "list")]
+argcodes_native = argcodes_long[c("rfunction", "logical", "integer", "numeric", "character", "vector")]
 
 argcodes_short = c(
     "." = 0,

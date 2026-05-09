@@ -68,7 +68,7 @@ in your R package scripts, declare the module using `lua_module()`:
 
 ```R
 # Package module
-module <- lua_module("Lua/mymodule.lua", package = "mypackage")
+mymod <- lua_module("Lua/mymodule.lua", package = "mypackage")
 ```
 
 and also declare the function using `lua_import()` (you can document and
@@ -81,7 +81,7 @@ here):
 #' This function gives a cheerful greeting to the user.
 #' 
 #' @export
-greet <- function(name) lua_import(module, "greet", "s")
+greet <- function(name) lua_import(mymod, "greet", "s")
 ```
 
 Note that `lua_import(...)` must be the only statement comprising the function
@@ -126,8 +126,9 @@ module into a specific state, such as the default `NULL` state or anything
 else.
 
 To do this in your package, you need to assign this state to `mymod$L` after 
-the module is declared but before any functions are imported. This is easy to
-do by using `.onLoad()`. Simply include in your package:
+the module is declared but before any functions or variables from the module 
+have been used. This is easy to do by using `.onLoad()`. Simply include in your 
+package:
 
 ```R
 .onLoad <- function(libname, pkgname)

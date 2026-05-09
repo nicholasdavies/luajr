@@ -25,7 +25,6 @@ typedef int Rboolean;
 // === R API declarations ===
 const void *DATAPTR_RO(SEXP x);
 void DUPLICATE_ATTRIB(SEXP to, SEXP from);
-SEXP ENCLOS(SEXP x);
 int* INTEGER(SEXP x);
 int* LOGICAL(SEXP x);
 const char* R_CHAR(SEXP x);
@@ -58,7 +57,6 @@ SEXP Rf_ScalarString(SEXP);
 SEXP Rf_setAttrib(SEXP, SEXP, SEXP);
 const char* Rf_type2char(SEXPTYPE);
 void Rf_unprotect(int);
-void SET_ENCLOS(SEXP x, SEXP v);
 void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v);
 SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v);
 void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from);
@@ -71,9 +69,11 @@ SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 // Not in public API, included for workarounds with old versions of R.
 SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.get_namespace, pre-4.5.0
 SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.new_env, pre-4.1.0
+SEXP ENCLOS(SEXP x); // used in R.ParentEnv, pre-4.5.0
 
 // Added post-4.0.0, kept out of the main list above for version-specific loading
 SEXP R_NewEnv(SEXP, int, int); // added in 4.1.0
+SEXP R_ParentEnv(SEXP); // added in 4.5.0
 SEXP R_getVar(SEXP, SEXP, Rboolean); // added in 4.5.0
 SEXP R_getVarEx(SEXP, SEXP, Rboolean, SEXP); // added in 4.5.0
 SEXP R_getRegisteredNamespace(const char*); // added in 4.6.0
@@ -152,7 +152,6 @@ R.DATAPTR_RO = C.DATAPTR_RO
 R.defineVar = C.Rf_defineVar
 R.dimnamesgets = C.Rf_dimnamesgets
 R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
-R.ENCLOS = C.ENCLOS
 R.eval = C.Rf_eval
 R.ExternalPtrAddr = C.R_ExternalPtrAddr
 R.findFun = C.Rf_findFun
@@ -177,7 +176,6 @@ R.removeVarFromFrame = C.R_removeVarFromFrame
 R.ScalarLogical = C.Rf_ScalarLogical
 R.ScalarReal = C.Rf_ScalarReal
 R.ScalarString = C.Rf_ScalarString
-R.SET_ENCLOS = C.SET_ENCLOS
 R.SET_STRING_ELT = C.SET_STRING_ELT
 R.SET_VECTOR_ELT = C.SET_VECTOR_ELT
 R.setAttrib = C.Rf_setAttrib
@@ -250,8 +248,27 @@ R.new_env = function(parent)
         -- pre 4.1.0: Rf_NewEnvironment (non-API)
         return C.Rf_NewEnvironment(R.NilValue, R.NilValue, parent)
     else
-        -- 4.1.0 and later: R.NewEnv
+        -- 4.1.0 and later: R_NewEnv
         return R.NewEnv(parent, 1, 29)
+    end
+end
+
+-- needed as there is no replacement for SET_ENCLOS as of R 4.6.0
+R.set_parent = function(env, parent)
+    local set_parent_fn = R.findFun(R.install("parent.env<-"), R.BaseEnv)
+    local call = R.PROTECT(R.lcons(set_parent_fn, R.cons(env, R.cons(parent, R.NilValue))))
+    R.eval(call, R.GlobalEnv)
+    R.UNPROTECT(1)
+end
+
+-- back-compatible R_ParentEnv
+R.ParentEnv = function(x)
+    if R_version < 40500 then
+        -- pre 4.5.0: ENCLOS (non-API)
+        return C.ENCLOS(x)
+    else
+        -- 4.5.0 and later: R_ParentEnv
+        return C.R_ParentEnv(x)
     end
 end
 

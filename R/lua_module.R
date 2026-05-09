@@ -12,7 +12,7 @@
 #'
 #' `mymod <- lua_module("Lua/mymodule.lua", package = "mypackage")`
 #'
-#' `func <- function(x, y) lua_import(mymod, "myfunc", "s")`
+#' `func <- function(x, y) lua_import(mymod, "myfunc", ".")`
 #'
 #' @section Module files:
 #'
@@ -72,11 +72,11 @@
 #' To import a function from a module, declare it like this:
 #'
 #' ```R
-#' myfunc <- function(x, y) lua_import(mymod, "funcname", "s")
+#' myfunc <- function(x, y) lua_import(mymod, "funcname", ".")
 #' ```
 #'
 #' where `mymod` is the previously-declared module object, `"funcname"` is the
-#' function name within the Lua module, and `"s"` is whatever
+#' function name within the Lua module, and `"."` is whatever
 #' [arg code][lua_func()] you want to use. Note that `lua_import()` must be used
 #' as the only statement in your function body and you should **not** enclose
 #' it in braces (`{}`). The arguments of `myfunc` will be passed to the
@@ -94,7 +94,7 @@
 #' "two-step" process like this:
 #'
 #' ```R
-#' greet0 <- function(name) lua_import(mymod, "greet", "s")
+#' greet0 <- function(name) lua_import(mymod, "greet", "$.")
 #' greet <- function(name) {
 #'     if (!is.character(name)) {
 #'         stop("greet expects a character string.")
@@ -124,9 +124,9 @@
 #' the module with e.g. `module[] = foo`.
 #'
 #' By default, when setting a module value using `module[i] <- value`, the
-#' value is passed to Lua "by simplify" (e.g. with [arg code][lua_func()]
-#' `"s"`). You can change this behaviour with the `as` argument. For example,
-#' `module[i, as = "a"] <- 2` will set element `i` of the module to a Lua
+#' value is passed as a Lua native type (e.g. with [arg code][lua_func()]
+#' `"$."`). You can change this behaviour with the `as` argument. For example,
+#' `module[i, as = "table"] <- 2` will set element `i` of the module to a Lua
 #' table `{2}` instead of the plain value `2`.
 #'
 #' @param filename Name of file from which to load the module. If this is a
@@ -140,7 +140,7 @@
 #' @return [lua_module()] returns an environment with class `"luajr_module"`.
 #' @examples
 #' module <- lua_module(c("Lua", "example.lua"), package = "luajr")
-#' greet <- function(name) lua_import(module, "greet", "s")
+#' greet <- function(name) lua_import(module, "greet", "$.")
 #' greet("Janet")
 #' greet("Nick")
 #' @export

@@ -32,11 +32,11 @@ usethis::write_union("./.Rbuildignore", "^local$")
 # usethis::use_package("rlang")
 
 # Add vignette
-usethis::use_vignette("luajr")
+usethis::use_vignette("R-module")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("R_getVar")
+add_rapi("STRING_PTR_RO")
 
 
 # BUILD CYCLE

@@ -100,14 +100,14 @@ state:
 lua("function squared(x) return x^2 end")
 lua("return squared(4)")
 
-sq = lua_func("squared")
+sq = lua_func("squared", "$.")
 sq(8)
 ```
 
 Or you can use `lua_func()` to define an anonymous Lua function:
 
 ```{r}
-timestwo = lua_func("function(x) return x*2 end")
+timestwo = lua_func("function(x) return x*2 end", "$.")
 timestwo(123)
 ```
 
@@ -169,11 +169,11 @@ example:
 
 ```{r}
 values = c(1.0, 2.0, 3.0)
-keep = lua_func("function(x) x[1] = 999 end", "v") # passed by value
+keep = lua_func("function(x) x[1] = 999 end", ".") # passed by value
 keep(values)
 print(values)
 
-change = lua_func("function(x) x[1] = 999 end", "r") # passed by reference
+change = lua_func("function(x) x[1] = 999 end", "&.") # passed by reference
 change(values)
 print(values)
 ```
@@ -188,12 +188,8 @@ a list, it needs to be returned to the calling function. For example:
 ```{r}
 x = list(1)
 
-f1 = lua_func("function(x) x[1][1] = 999; x.a = 42; end", "v")
+f1 = lua_func("function(x) x[1][1] = 999; x:set('a', 42); end", ".")
 f1(x)
-print(x)
-
-f2 = lua_func("function(x) x[1][1] = 999; x.a = 42; end", "r")
-f2(x)
 print(x)
 ```
 
@@ -211,11 +207,11 @@ To modify a list, we have to return its new value from the function:
 ```{r}
 x = list(1)
 
-f3 = lua_func("function(x) x[1][1] = 999; x.a = 42; return x; end", "v")
+f3 = lua_func("function(x) x[1][1] = 999; x:set('a', 42); return x; end", ".")
 x = f3(x)
 print(x)
 
-f4 = lua_func("function(x) x[1] = luajr.numeric({888, 999}); return x; end", "v")
+f4 = lua_func("function(x) x[1] = luajr.numeric({888, 999}); return x; end", ".")
 x = f4(x)
 print(x)
 ```
@@ -268,9 +264,9 @@ v7 = rnorm(1e7)
 
 lua("sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end")
 sum2 = function(x) sum(x*x)
-sum2_r = lua_func("sum2", "r")
-sum2_v = lua_func("sum2", "v")
-sum2_s = lua_func("sum2", "s")
+sum2_r = lua_func("sum2", "&.")
+sum2_v = lua_func("sum2", ".")
+sum2_s = lua_func("sum2", "$.")
 
 # Comparing the results of each function:
 sum2(v1)    # Pure R version
@@ -340,8 +336,8 @@ logistic_map_L = lua_func(
 "function(x0, burn, iter, A)
     local dflen = #A * iter
     local result = luajr.dataframe()
-    result.a = luajr.numeric_r(dflen, 0)
-    result.x = luajr.numeric_r(dflen, 0)
+    result.a = luajr.numeric(dflen, 0)
+    result.x = luajr.numeric(dflen, 0)
     
     local j = 1
     for k,a in pairs(A) do
@@ -358,7 +354,7 @@ logistic_map_L = lua_func(
     end
     
     return result
-end", "sssr")
+end", "$., $., $., .")
 
 # To be compiled using Rcpp::cppFunction()
 logistic_map_C =

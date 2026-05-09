@@ -78,7 +78,7 @@ function luajr.datamatrix(nrow, ncol, names)
     local m = luajr.matrix(nrow, ncol)
 
     -- Make column names via dimnames list
-    if #names > ncol then error("Supplied more names than columns to luajr.datamatrix.") end
+    if #names > ncol then error("Supplied more names than columns to luajr.datamatrix.", 2) end
     local colnames = luajr.character(ncol)
     for i = 1,#names do colnames[i] = names[i] end
     local dimnames = luajr.list()
@@ -110,14 +110,16 @@ local methods_environment = {
     end,
 
     get_parent = function(self)
-        return luajr.environment(R.ENCLOS(self.s))
+        return luajr.environment(R.ParentEnv(self.s))
     end,
 
     set_parent = function(self, env)
         if ffi.istype(luajr.environment, env) then
-            R.SET_ENCLOS(self.s, env.s)
+            R.set_parent(self.s, env.s)
         elseif ffi.istype(R.sexp, env) and R.TYPEOF(env) == R.ENVSXP then
-            R.SET_ENCLOS(self.s, env)
+            R.set_parent(self.s, env)
+        else
+            error("Cannot set parent to object of type " .. type(env), 2)
         end
     end,
 
@@ -136,7 +138,7 @@ local mt_environment = {
         elseif type(a) == "string" then
             self.s = R.get_namespace(a)
         else
-            error("cannot construct R environment from type " .. type(a))
+            error("cannot construct R environment from type " .. type(a), 2)
         end
         R.PreserveObject(self.s)
         return self
@@ -151,7 +153,7 @@ local mt_environment = {
     end,
 
     __newindex = function(self, k, v)
-        error("use :get(k) and :set(k, v) to access environment.")
+        error("use :get(k) and :set(k, v) to access environment.", 2)
     end
 }
 

@@ -40,7 +40,7 @@ set and get other (non-function) values stored in the Lua module table.
 
 \code{mymod <- lua_module("Lua/mymodule.lua", package = "mypackage")}
 
-\code{func <- function(x, y) lua_import(mymod, "myfunc", "s")}
+\code{func <- function(x, y) lua_import(mymod, "myfunc", ".")}
 }
 
 \section{Module files}{
@@ -103,11 +103,11 @@ specific Lua state, you will need to create that state and assign it to
 
 To import a function from a module, declare it like this:
 
-\if{html}{\out{<div class="sourceCode R">}}\preformatted{myfunc <- function(x, y) lua_import(mymod, "funcname", "s")
+\if{html}{\out{<div class="sourceCode R">}}\preformatted{myfunc <- function(x, y) lua_import(mymod, "funcname", ".")
 }\if{html}{\out{</div>}}
 
 where \code{mymod} is the previously-declared module object, \code{"funcname"} is the
-function name within the Lua module, and \code{"s"} is whatever
+function name within the Lua module, and \code{"."} is whatever
 \link[=lua_func]{arg code} you want to use. Note that \code{lua_import()} must be used
 as the only statement in your function body and you should \strong{not} enclose
 it in braces (\code{{}}). The arguments of \code{myfunc} will be passed to the
@@ -124,7 +124,7 @@ In some cases, you may want to do some processing or checking of function
 arguments in R before calling the Lua function. You can do that with a
 "two-step" process like this:
 
-\if{html}{\out{<div class="sourceCode R">}}\preformatted{greet0 <- function(name) lua_import(mymod, "greet", "s")
+\if{html}{\out{<div class="sourceCode R">}}\preformatted{greet0 <- function(name) lua_import(mymod, "greet", "$.")
 greet <- function(name) \{
     if (!is.character(name)) \{
         stop("greet expects a character string.")
@@ -156,15 +156,15 @@ all the contents of the module, but you cannot set the entire contents of
 the module with e.g. \code{module[] = foo}.
 
 By default, when setting a module value using \code{module[i] <- value}, the
-value is passed to Lua "by simplify" (e.g. with \link[=lua_func]{arg code}
-\code{"s"}). You can change this behaviour with the \code{as} argument. For example,
-\code{module[i, as = "a"] <- 2} will set element \code{i} of the module to a Lua
+value is passed as a Lua native type (e.g. with \link[=lua_func]{arg code}
+\code{"$."}). You can change this behaviour with the \code{as} argument. For example,
+\code{module[i, as = "table"] <- 2} will set element \code{i} of the module to a Lua
 table \code{{2}} instead of the plain value \code{2}.
 }
 
 \examples{
 module <- lua_module(c("Lua", "example.lua"), package = "luajr")
-greet <- function(name) lua_import(module, "greet", "s")
+greet <- function(name) lua_import(module, "greet", "$.")
 greet("Janet")
 greet("Nick")
 }
