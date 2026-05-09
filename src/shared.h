@@ -3,6 +3,8 @@
 #include <R.h>
 #include <Rinternals.h>
 
+#include <cstdint>
+
 // Forward declarations
 struct lua_State;
 struct workers_t;
