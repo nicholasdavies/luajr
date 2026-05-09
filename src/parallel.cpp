@@ -82,7 +82,7 @@ extern "C" void luajr_parallel_srun(lua_State* L, workers_t* w)
         if (err)
         {
             std::string error_msg(1024, ' ');
-            luajr_handle_lua_error(w->l[t], err, "parallel_srun", error_msg.data());
+            luajr_handle_lua_error(w->l[t], err, "parallel_srun", &error_msg[0]);
             clear_worker_stacks(w);
             luajr_error(L, "%s", error_msg.c_str());
         }
@@ -113,7 +113,7 @@ extern "C" void luajr_parallel_prun(lua_State* L, workers_t* w)
             if (error_msg.empty())
             {
                 error_msg.assign(1024, ' ');
-                luajr_handle_lua_error(w->l[t], err, "parallel_prun", error_msg.data());
+                luajr_handle_lua_error(w->l[t], err, "parallel_prun", &error_msg[0]);
             }
         }
     };
@@ -181,7 +181,7 @@ extern "C" void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1)
                 if (error_msg.empty())
                 {
                     error_msg.assign(1024, ' ');
-                    luajr_handle_lua_error(w->l[t], err, "parallel_pfor", error_msg.data());
+                    luajr_handle_lua_error(w->l[t], err, "parallel_pfor", &error_msg[0]);
                 }
             }
             if (!error_msg.empty())
