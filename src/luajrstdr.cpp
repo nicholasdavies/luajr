@@ -291,6 +291,7 @@ extern "C" size_t luajr_Cfread(void* buffer, size_t size, size_t count, FILE* st
                 if (!R_ReadConsole("", RConsoleBuf, RCONSOLE_BUFSIZE, 0))
                     return 0;
                 len = strlen((char*)RConsoleBuf);
+                if (len > count) len = count;
                 memcpy(buffer, (char*)RConsoleBuf, len);
                 return len;
             }
