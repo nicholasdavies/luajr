@@ -34,11 +34,12 @@
 #' `function` corresponds to a Lua function; `boolean` is a Lua boolean;
 #' `number` is a Lua number; `string` is a Lua string and `table` is a Lua
 #' table. `pointer` or `P` passes an external pointer (EXTPTRSXP) as a Lua
-#' light userdata.
+#' light userdata. The argcode `native` selects the closest available native
+#' type.
 #'
 #' Additionally, the prefix `$` specifies that the type should be passed as a
-#' Lua native type. So `$auto` is the "closest available Lua type" and `$C` is
-#' a Lua string.
+#' Lua native type. So `$auto` is equivalent to `native` and `$C` is a Lua
+#' string.
 #'
 #' The prefix `!` specifies strict type handling (i.e., error if the type cannot
 #' be converted).
@@ -155,6 +156,7 @@ argcodes_mod = c(
 
 argcodes_long = c(
     auto = 0,
+    native = 0 + argcodes_mod[["$"]],
     sexp = 1,
     symbol = 2,
     pairlist = 3,

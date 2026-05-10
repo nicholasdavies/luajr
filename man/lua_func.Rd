@@ -54,11 +54,12 @@ You can also receive R values as Lua native types. Specifically, the argcode
 \code{function} corresponds to a Lua function; \code{boolean} is a Lua boolean;
 \code{number} is a Lua number; \code{string} is a Lua string and \code{table} is a Lua
 table. \code{pointer} or \code{P} passes an external pointer (EXTPTRSXP) as a Lua
-light userdata.
+light userdata. The argcode \code{native} selects the closest available native
+type.
 
 Additionally, the prefix \code{$} specifies that the type should be passed as a
-Lua native type. So \verb{$auto} is the "closest available Lua type" and \verb{$C} is
-a Lua string.
+Lua native type. So \verb{$auto} is equivalent to \code{native} and \verb{$C} is a Lua
+string.
 
 The prefix \code{!} specifies strict type handling (i.e., error if the type cannot
 be converted).
