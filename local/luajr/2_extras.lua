@@ -132,7 +132,7 @@ local mt_environment = {
     __new = function(ctype, a)
         local self = ffi.new(ctype)
         if a == nil then
-            self.s = R.new_env()
+            self.s = R.NewEnv(R.EmptyEnv, 1, 29)
         elseif ffi.istype(R.sexp, a) and R.TYPEOF(a) == R.ENVSXP then
             self.s = a
         elseif type(a) == "string" then

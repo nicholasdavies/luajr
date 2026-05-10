@@ -126,7 +126,7 @@ test_that("character vector copy independence", {
 
 test_that("character vector NA values", {
     lua("x = luajr.character(3, 'a')")
-    lua("x[2] = R.NA_STRING")
+    lua("x[2] = luajr.NA_character_")
     # Returning a single NA_STRING element doesn't round-trip to R correctly
     # (it's a CHARSXP cdata, not a Lua string). Test via the vector return path instead.
     expect_identical(lua_func("function(x) return x end", "&.")(c("a", NA_character_, "a")),

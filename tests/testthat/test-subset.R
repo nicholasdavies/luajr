@@ -28,28 +28,28 @@ test_that("character __call extracts single element", {
 })
 
 test_that("numeric NA round-trips via __call", {
-    lua("x = luajr.numeric({1, R.NA_REAL, 3})")
+    lua("x = luajr.numeric({1, luajr.NA_real_, 3})")
     expect_identical(lua("return x(2)"), NA_real_)
 
     lua_reset()
 })
 
 test_that("integer NA round-trips via __call", {
-    lua("x = luajr.integer({1, R.NA_INTEGER, 3})")
+    lua("x = luajr.integer({1, luajr.NA_integer_, 3})")
     expect_identical(lua("return x(2)"), NA_integer_)
 
     lua_reset()
 })
 
 test_that("logical NA round-trips via __call", {
-    lua("x = luajr.logical({true, R.NA_LOGICAL, false})")
+    lua("x = luajr.logical({true, luajr.NA_logical_, false})")
     expect_identical(lua("return x(2)"), NA)
 
     lua_reset()
 })
 
 test_that("character NA round-trips via __call", {
-    lua("x = luajr.character({'a', R.NA_CHARACTER, 'c'})")
+    lua("x = luajr.character({'a', luajr.NA_character_, 'c'})")
     expect_identical(lua("return x(2)"), NA_character_)
 
     lua_reset()

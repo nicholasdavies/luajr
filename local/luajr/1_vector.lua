@@ -692,6 +692,6 @@ luajr.is_list      = function(obj) return ffi.istype(luajr.list, obj) end
 luajr.NA_logical   = function() return luajr.logical(1, R.NA_LOGICAL) end
 luajr.NA_integer   = function() return luajr.integer(1, R.NA_INTEGER) end
 luajr.NA_real      = function() return luajr.numeric(1, R.NA_REAL) end
-luajr.NA_character = function() return luajr.character(1, R.NA_CHARACTER) end
+luajr.NA_character = function() return luajr.character(1, R.NA_STRING) end
 
 

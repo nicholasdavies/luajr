@@ -109,6 +109,15 @@ function package.preload.luajr()
     return luajr
 end
 
+-- TRUE, FALSE, NA, NULL definitions
+luajr.TRUE          = R.TRUE
+luajr.FALSE         = R.FALSE
+luajr.NA_logical_   = R.NA_LOGICAL
+luajr.NA_integer_   = R.NA_INTEGER
+luajr.NA_real_      = R.NA_REAL
+luajr.NA_character_ = R.NA_STRING
+luajr.NULL          = R.NilValue
+
 -- Forward declarations
 local from_sexp
 local to_sexp
@@ -845,7 +854,7 @@ luajr.is_list      = function(obj) return ffi.istype(luajr.list, obj) end
 luajr.NA_logical   = function() return luajr.logical(1, R.NA_LOGICAL) end
 luajr.NA_integer   = function() return luajr.integer(1, R.NA_INTEGER) end
 luajr.NA_real      = function() return luajr.numeric(1, R.NA_REAL) end
-luajr.NA_character = function() return luajr.character(1, R.NA_CHARACTER) end
+luajr.NA_character = function() return luajr.character(1, R.NA_STRING) end
 
 
 --------------------
@@ -982,7 +991,7 @@ local mt_environment = {
     __new = function(ctype, a)
         local self = ffi.new(ctype)
         if a == nil then
-            self.s = R.new_env()
+            self.s = R.NewEnv(R.EmptyEnv, 1, 29)
         elseif ffi.istype(R.sexp, a) and R.TYPEOF(a) == R.ENVSXP then
             self.s = a
         elseif type(a) == "string" then
