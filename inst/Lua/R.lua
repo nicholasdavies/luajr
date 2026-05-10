@@ -68,7 +68,8 @@ SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 
 // Not in public API, included for workarounds with old versions of R.
 SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.get_namespace, pre-4.5.0
-SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.new_env, pre-4.1.0
+SEXP R_NewHashedEnv(SEXP enclos, int size); // used in R.NewEnv, pre-4.1.0
+SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.NewEnv, pre-4.1.0
 SEXP ENCLOS(SEXP x); // used in R.ParentEnv, pre-4.5.0
 
 // Added post-4.0.0, kept out of the main list above for version-specific loading
@@ -188,10 +189,7 @@ R.VECTOR_ELT = C.VECTOR_ELT
 -- === end R API bindings ===
 
 -- R API bindings introduced in specific versions > 4.0.0
-if R_version >= 40100 then
-    R.NewEnv = C.R_NewEnv
-end
-
+-- TODO provide back-compatible versions of each of these
 if R_version >= 40500 then
     R.getVar = C.R_getVar
     R.getVarEx = C.R_getVarEx
@@ -211,6 +209,7 @@ R.type_string = function(sexp)
     return ffi.string(C.Rf_type2char(C.TYPEOF(sexp)))
 end
 
+-- TODO make this back-compatible getVarEx
 R.get_var = function(name, env)
     local val
     if R_version < 40500 then
@@ -218,6 +217,7 @@ R.get_var = function(name, env)
         val = C.Rf_findVarInFrame(env, R.install(name))
         -- force promises
         if val ~= R.UnboundValue and R.TYPEOF(val) == R.PROMSXP then
+            -- NB GlobalEnv here is ignored; Rf_eval on a promise uses PRENV().
             val = R.eval(val, R.GlobalEnv)
         end
     else
@@ -229,6 +229,7 @@ R.get_var = function(name, env)
     return val
 end
 
+-- TODO make this back-compatible getRegisteredNamespace
 R.get_namespace = function(name)
     local env
     if R_version < 40600 then
@@ -246,23 +247,19 @@ R.get_namespace = function(name)
     return env
 end
 
-R.new_env = function(parent)
-    parent = parent or C.R_EmptyEnv
+-- back-compatible R_NewEnv
+R.NewEnv = function(parent, hash, size)
     if R_version < 40100 then
-        -- pre 4.1.0: Rf_NewEnvironment (non-API)
-        return C.Rf_NewEnvironment(R.NilValue, R.NilValue, parent)
+        -- pre 4.1.0: Rf_NewEnvironment or R_NewHashedEnv (non-API)
+        if hash == 0 then
+            return C.Rf_NewEnvironment(R.NilValue, R.NilValue, parent)
+        else
+            return C.R_NewHashedEnv(parent, R.ScalarInteger(size))
+        end
     else
         -- 4.1.0 and later: R_NewEnv
-        return R.NewEnv(parent, 1, 29)
+        return C.R_NewEnv(parent, hash, size)
     end
-end
-
--- needed as there is no replacement for SET_ENCLOS as of R 4.6.0
-R.set_parent = function(env, parent)
-    local set_parent_fn = R.findFun(R.install("parent.env<-"), R.BaseEnv)
-    local call = R.PROTECT(R.lcons(set_parent_fn, R.cons(env, R.cons(parent, R.NilValue))))
-    R.eval(call, R.GlobalEnv)
-    R.UNPROTECT(1)
 end
 
 -- back-compatible R_ParentEnv
@@ -276,11 +273,18 @@ R.ParentEnv = function(x)
     end
 end
 
+-- needed as there is no replacement for SET_ENCLOS as of R 4.6.0
+R.set_parent = function(env, parent)
+    local set_parent_fn = R.findFun(R.install("parent.env<-"), R.BaseEnv)
+    local call = R.PROTECT(R.lcons(set_parent_fn, R.cons(env, R.cons(parent, R.NilValue))))
+    R.eval(call, R.GlobalEnv)
+    R.UNPROTECT(1)
+end
+
 -- R constants
 R.TRUE = 1
 R.FALSE = 0
 R.NilValue = C.R_NilValue
-R.NULL = C.R_NilValue
 R.NA_LOGICAL = C.R_NaInt
 R.NA_INTEGER = C.R_NaInt
 R.NA_REAL = C.R_NaReal
