@@ -1,11 +1,21 @@
 # luajr (development version)
 
--   Removed `lua_parallel()`.
+-   Overhauled the args code system in lua_func() for richer capabilities. This 
+    breaks compatibility with previous versions of luajr.
+    
+-   Overhauled representation of atomic vectors and lists within luajr. There 
+    is no longer a separate type for vectors passed by reference (but passing 
+    by reference is still supported).
+    
+-   Removed `lua_parallel()`, replacing it with a new parallel processing 
+    system that runs entirely within Lua.
 
--   Added a new `'x'` argcode which allows passing any R variable to Lua 
-    functions through R's SEXP interface.
+-   Added native support for R functions, environments, and generic SEXP 
+    variables in Lua.
 
 -   Added a new 'R' module which can be used in Lua code to access R's API.
+
+-   luajr is now compatible (and tested) with R versions 4.0.0 and up.
 
 -   Fixed a bug when returning a Lua table to R containing certain LuaJIT cdata
     types.
