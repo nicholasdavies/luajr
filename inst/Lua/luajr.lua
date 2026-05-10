@@ -140,11 +140,15 @@ function luajr.readline(prompt)
     return ffi.string(buf, len == 0 and 0 or len - 1)
 end
 
--- Get nparams and isvararg for a Lua function.
+-- Get nparams and isvararg for a Lua function, plus argument names.
 -- Called from C++ (luajr_func_info).
 function luajr.get_func_info(f)
     local info = debug.getinfo(f, "u")
-    return info.nparams, info.isvararg and 1 or 0
+    local arg_names = {}
+    for i = 1, info.nparams do
+        arg_names[i] = debug.getlocal(f, i)
+    end
+    return info.nparams, info.isvararg and 1 or 0, arg_names
 end
 
 -- sizeof helper

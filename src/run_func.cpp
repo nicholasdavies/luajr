@@ -213,7 +213,7 @@ extern "C" SEXP luajr_func_call8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SE
     FUNC_CALL_END(8)
 }
 
-// Get the number of parameters and vararg status of a Lua function
+// Get the number of parameters, vararg status, and argument names of a Lua function
 extern "C" SEXP luajr_func_info(SEXP fx)
 {
     RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(fx, LUAJR_REGFUNC_CODE));
@@ -226,14 +226,9 @@ extern "C" SEXP luajr_func_info(SEXP fx)
     lua_pushlightuserdata(L, (void*)&luajr_get_func_info);
     lua_rawget(L, LUA_REGISTRYINDEX);
     re->Get();  // push function as argument
-    luajr_pcall(L, 1, 2, "luajr.get_func_info()", LUAJR_TOOLING_NONE);
+    luajr_pcall(L, 1, LUA_MULTRET, "luajr.get_func_info()", LUAJR_TOOLING_NONE);
 
-    SEXP result = PROTECT(Rf_allocVector(INTSXP, 2));
-    INTEGER(result)[0] = (int)lua_tointeger(L, -2);
-    INTEGER(result)[1] = (int)lua_tointeger(L, -1);
-    lua_pop(L, 2);
-    UNPROTECT(1);
-    return result;
+    return luajr_return(L, 3);
 }
 
 // Get a luajr function on the stack of the lua_State associated with the luajr function

@@ -45,7 +45,7 @@ To receive a \code{luajr.rfunction} type, use \code{rfunction} or \code{F}. To r
 type, use \code{sexp} or \code{S}.
 
 To pass any R type as "closest available" type from the above, use the
-argcode \code{"."}.
+argcode \code{auto} or \code{"."}.
 
 Argcodes should be separated by commas. If you are using a "single-character"
 argcode like \code{.} or \code{S}, there does not need to be a comma following it.
@@ -56,8 +56,9 @@ You can also receive R values as Lua native types. Specifically, the argcode
 table. \code{pointer} or \code{P} passes an external pointer (EXTPTRSXP) as a Lua
 light userdata.
 
-The prefix \code{$} specifies that the type should be passed as a Lua native type.
-So \verb{$.} is the "closest available Lua type" and \verb{$C} is a Lua string.
+Additionally, the prefix \code{$} specifies that the type should be passed as a
+Lua native type. So \verb{$auto} is the "closest available Lua type" and \verb{$C} is
+a Lua string.
 
 The prefix \code{!} specifies strict type handling (i.e., error if the type cannot
 be converted).

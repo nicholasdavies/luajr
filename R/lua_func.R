@@ -25,7 +25,7 @@
 #' type, use `sexp` or `S`.
 #'
 #' To pass any R type as "closest available" type from the above, use the
-#' argcode `"."`.
+#' argcode `auto` or `"."`.
 #'
 #' Argcodes should be separated by commas. If you are using a "single-character"
 #' argcode like `.` or `S`, there does not need to be a comma following it.
@@ -36,8 +36,9 @@
 #' table. `pointer` or `P` passes an external pointer (EXTPTRSXP) as a Lua
 #' light userdata.
 #'
-#' The prefix `$` specifies that the type should be passed as a Lua native type.
-#' So `$.` is the "closest available Lua type" and `$C` is a Lua string.
+#' Additionally, the prefix `$` specifies that the type should be passed as a
+#' Lua native type. So `$auto` is the "closest available Lua type" and `$C` is
+#' a Lua string.
 #'
 #' The prefix `!` specifies strict type handling (i.e., error if the type cannot
 #' be converted).
@@ -94,8 +95,12 @@ lua_func = function(func, argcode = ".", L = NULL)
     # Get function and information
     fx = .Call(`_luajr_func_create`, func, L)
     info = .Call(`_luajr_func_info`, fx)
-    nparams = info[1]  # number of parameters, not including vararg ...
-    isvararg = info[2]
+    nparams = info[[1]]  # number of parameters, not including vararg ...
+    isvararg = info[[2]]
+    arg_names = as.character(info[[3]])
+    if (isvararg) {
+        arg_names = c(arg_names, "...")
+    }
 
     # Validate parameters
     if (!is.character(argcode)) {
@@ -111,45 +116,27 @@ lua_func = function(func, argcode = ".", L = NULL)
         argcode = c(argcode, rep(argcode[length(argcode)], nparams - length(argcode)))
     }
 
-    # Select caller
+    # Build function
+    f = function() .Call(`_luajr_func_call0`, fx, argcode, L)
+
+    # Set formals
+    arg_syms = lapply(arg_names, as.symbol)
+    fmls = lapply(arg_names, function(x) quote(expr = ))
+    names(fmls) = arg_names
+    formals(f) = fmls
+
+    # Set body
+    b = as.list(body(f))
     if (isvararg || nparams > 8) {
         call_name = "_luajr_func_call"
+        b = append(b, list(as.call(c(quote(list), arg_syms))), after = 3)
     } else {
         call_name = paste0("_luajr_func_call", nparams)
+        b = append(b, arg_syms, after = 3)
     }
-
-    f1 = NULL
-    f2 = NULL
-
-    if (isvararg) {
-        f1 = function(...) .Call(`_luajr_func_call`, fx, list(...), argcode, L)
-    } else {
-        f2 = function() .Call(`_luajr_func_call0`, fx, argcode, L)
-
-        if (nparams > 0) {
-            arg_names = paste0("a", seq_len(nparams))
-            arg_syms = lapply(arg_names, as.symbol)
-            fmls = lapply(arg_names, function(x) quote(expr = ))
-            names(fmls) = arg_names
-            formals(f2) = fmls
-
-            # body(f2) is the .Call(...) expression
-            b = as.list(body(f2))
-            if (nparams > 8) {
-                b = append(b, list(as.call(c(quote(list), arg_syms))), after = 3)
-            } else {
-                b = append(b, arg_syms, after = 3)
-            }
-            body(f2) = as.call(b)
-        }
-    }
-    # Required to avoid a CRAN warning around two local functions with the
-    # same name but different formals...
-    f = if (is.null(f2)) f1 else f2
 
     # Embed resolved values in the function body
     # Full embedding allows R function compilation, possibly by avoiding environment lookup
-    b = as.list(body(f))
     n = length(b)
     b[[2]] = getNativeSymbolInfo(call_name, "luajr")$address
     b[[3]] = fx
@@ -167,6 +154,7 @@ argcodes_mod = c(
 )
 
 argcodes_long = c(
+    auto = 0,
     sexp = 1,
     symbol = 2,
     pairlist = 3,
