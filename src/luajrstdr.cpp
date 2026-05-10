@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 extern "C" {
 #include "lua.h"
 }
@@ -22,7 +23,7 @@ extern "C" void luajr_Cexit(int exit_code)
 {
     if (exit_code == (int)EXIT_FAILURE)
         Rf_error("Exiting with status code EXIT_FAILURE. This likely corresponds "
-                 "to a serious error triggered by LuaJIT. Running more luajr commands "
+                 "to a serious error triggered by Lua code. Running more luajr commands "
                  "may cause a crash. I recommend you save your work and restart R. "
                  "If this error persists, please report it to the luajr package "
                  "maintainers.");
@@ -45,28 +46,26 @@ extern "C" int luajr_Cfputs(const char* str, FILE* stream)
     if (stream == luajr_Cstdout || stream == luajr_Cstderr)
     {
         int otype = (stream == luajr_Cstdout ? 0 : 1);
-        R_WriteConsoleEx(str, strlen(str), otype);
+        R_WriteConsoleEx(str, (int)strlen(str), otype);
         return 0;
     }
     else if (stream == luajr_Cstdin)
-        Rf_error("Illegal use of stdin in fputs from LuaJIT.");
+        Rf_error("Illegal use of stdin in fputs from luajr.");
     else
         return fputs(str, stream);
 }
 
 extern "C" int luajr_Cfputc(int ch, FILE* stream)
 {
-    static char cbuf[2] = { '\0', '\0' };
-
     if (stream == luajr_Cstdout || stream == luajr_Cstderr)
     {
         int otype = (stream == luajr_Cstdout ? 0 : 1);
-        cbuf[0] = ch;
-        R_WriteConsoleEx(cbuf, strlen(cbuf), otype);
+        char c = (char)ch;
+        R_WriteConsoleEx(&c, 1, otype);
         return ch;
     }
     else if (stream == luajr_Cstdin)
-        Rf_error("Illegal use of stdin in fputc from LuaJIT.");
+        Rf_error("Illegal use of stdin in fputc from luajr.");
     else
         return fputc(ch, stream);
 }
@@ -84,7 +83,7 @@ extern "C" int luajr_Cfflush(FILE* stream)
         return 0;
     }
     else if (stream == luajr_Cstdin)
-        Rf_error("Illegal use of stdin in fflush from LuaJIT.");
+        Rf_error("Illegal use of stdin in fflush from luajr.");
     else
         return fflush(stream);
 }
@@ -98,13 +97,13 @@ extern "C" int luajr_Cvfprintf(FILE* stream, const char* format, va_list vlist)
     {
         int otype = (stream == luajr_Cstdout ? 0 : 1);
         int ret = vsnprintf(out, outsize, format, vlist);
-        R_WriteConsoleEx(out, strlen(out), otype);
-        if (ret > outsize)
+        R_WriteConsoleEx(out, (int)strlen(out), otype);
+        if (ret >= outsize)
             Rf_warning("Output truncated at %d characters.", outsize - 1);
         return ret;
     }
     else if (stream == luajr_Cstdin)
-        Rf_error("Illegal use of stdin in vfprintf from LuaJIT.");
+        Rf_error("Illegal use of stdin in vfprintf from luajr.");
     else
         return vfprintf(stream, format, vlist);
 }
@@ -121,7 +120,7 @@ extern "C" int luajr_Cfprintf(FILE* stream, const char* format, ...)
     }
     else if (stream == luajr_Cstdin)
     {
-        Rf_error("Illegal use of stdin in fprintf from LuaJIT.");
+        Rf_error("Illegal use of stdin in fprintf from luajr.");
     }
     else
     {
@@ -140,14 +139,14 @@ extern "C" size_t luajr_Cfwrite(const void* buffer, size_t size, size_t count, F
         if (size == 1)
         {
             int otype = (stream == luajr_Cstdout ? 0 : 1);
-            R_WriteConsoleEx((const char*)buffer, count, otype);
+            R_WriteConsoleEx((const char*)buffer, (int)count, otype);
             return count;
         }
         else
-            Rf_error("Only size == 1 is supported in fwrite from LuaJIT.");
+            Rf_error("Only size == 1 is supported in fwrite from luajr.");
     }
     else if (stream == luajr_Cstdin)
-        Rf_error("Illegal use of stdin in fwrite from LuaJIT.");
+        Rf_error("Illegal use of stdin in fwrite from luajr.");
     else
         return fwrite(buffer, size, count, stream);
 }
@@ -185,7 +184,7 @@ extern "C" int luajr_Cfscanf(FILE* stream, const char* format, ...)
                     if (!R_ReadConsole("", RConsoleBuf, RCONSOLE_BUFSIZE, 0))
                         return 0;
                     RConsoleBufPtr = (char*)RConsoleBuf;
-                    RConsoleBufCnt = strlen(RConsoleBufPtr);
+                    RConsoleBufCnt = (int)strlen(RConsoleBufPtr);
 
                     if (RConsoleBufCnt == RCONSOLE_BUFSIZE - 1)
                     {
@@ -225,12 +224,12 @@ extern "C" int luajr_Cfscanf(FILE* stream, const char* format, ...)
         }
         else
         {
-            Rf_error("Illegal call to fscanf from LuaJIT.");
+            Rf_error("Illegal call to fscanf from luajr.");
         }
     }
     else if (stream == luajr_Cstdout || stream == luajr_Cstderr)
     {
-        Rf_error("Illegal use of stdout/stderr in fscanf from LuaJIT.");
+        Rf_error("Illegal use of stdout/stderr in fscanf from luajr.");
     }
     else
     {
@@ -244,26 +243,27 @@ extern "C" char* luajr_Cfgets(char* str, int count, FILE* stream)
 {
     if (stream == luajr_Cstdin)
     {
-        /* If there are characters left in the input buffer, use those */
-        if (RConsoleBufCnt > 0)
+        if (RConsoleBufCnt == 0)
         {
-            strncpy(str, RConsoleBufPtr, count - 1);
-            str[count - 1] = '\0';
-            count = strlen(str);
-            RConsoleBufPtr += count;
-            RConsoleBufCnt -= count;
+            /* No buffer, read a fresh line. */
+            if (!R_ReadConsole("", RConsoleBuf, RCONSOLE_BUFSIZE, 0))
+                return NULL;
+            RConsoleBufPtr = (char*)RConsoleBuf;
+            RConsoleBufCnt = (int)strlen((char*)RConsoleBuf);
+        }
 
-            return str;
-        }
-        else
-        {
-            if (R_ReadConsole("", (unsigned char*)str, count, 0))
-                return str;
-            return NULL;
-        }
+        /* Copy up to count - 1 chars or stop at newline (inclusive). */
+        int max = count - 1 < RConsoleBufCnt ? count - 1 : RConsoleBufCnt;
+        char* nl = (char*)memchr(RConsoleBufPtr, '\n', max);
+        int n = nl ? (int)(nl - RConsoleBufPtr) + 1 : max;
+        memcpy(str, RConsoleBufPtr, n);
+        str[n] = '\0';
+        RConsoleBufPtr += n;
+        RConsoleBufCnt -= n;
+        return str;
     }
     else if (stream == luajr_Cstdout || stream == luajr_Cstderr)
-        Rf_error("Illegal use of stdout/stderr in fgets from LuaJIT.");
+        Rf_error("Illegal use of stdout/stderr in fgets from luajr.");
     else
         return fgets(str, count, stream);
 }
@@ -274,32 +274,29 @@ extern "C" size_t luajr_Cfread(void* buffer, size_t size, size_t count, FILE* st
     {
         if (size == 1)
         {
-            /* If there are characters left in the input buffer, use those */
-            if (RConsoleBufCnt > 0)
+            if (RConsoleBufCnt == 0)
             {
-                size_t n = count < (size_t)RConsoleBufCnt ? count : RConsoleBufCnt;
-                memcpy(buffer, RConsoleBufPtr, n);
-                RConsoleBufPtr += n;
-                RConsoleBufCnt -= n;
-                return n;
-            }
-            else
-            {
-                size_t len;
-                /* Still use the input buffer, as R_ReadConsole adds a terminating
-                 * null, which is not what fread is supposed to do. */
+                /* No buffer, read a fresh line. R_ReadConsole adds a
+                 * terminating null, which fread is not supposed to write. */
                 if (!R_ReadConsole("", RConsoleBuf, RCONSOLE_BUFSIZE, 0))
                     return 0;
-                len = strlen((char*)RConsoleBuf);
-                memcpy(buffer, (char*)RConsoleBuf, len);
-                return len;
+                RConsoleBufPtr = (char*)RConsoleBuf;
+                RConsoleBufCnt = (int)strlen((char*)RConsoleBuf);
             }
+
+            /* Copy as much as fits, advancing the buffer state. Any leftover
+             * stays available for the next fgets/fread call. */
+            size_t n = count < (size_t)RConsoleBufCnt ? count : RConsoleBufCnt;
+            memcpy(buffer, RConsoleBufPtr, n);
+            RConsoleBufPtr += n;
+            RConsoleBufCnt -= n;
+            return n;
         }
         else
-            Rf_error("Only size == 1 is supported in fread from LuaJIT.");
+            Rf_error("Only size == 1 is supported in fread from luajr.");
     }
     else if (stream == luajr_Cstdout || stream == luajr_Cstderr)
-        Rf_error("Illegal use of stdout/stderr in fread from LuaJIT.");
+        Rf_error("Illegal use of stdout/stderr in fread from luajr.");
     else
         return fread(buffer, size, count, stream);
 }
