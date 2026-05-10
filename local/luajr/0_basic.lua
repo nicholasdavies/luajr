@@ -109,15 +109,6 @@ function package.preload.luajr()
     return luajr
 end
 
--- TRUE, FALSE, NA, NULL definitions
-luajr.TRUE          = 1
-luajr.FALSE         = 0
-luajr.NA_logical_   = R.NA_LOGICAL
-luajr.NA_integer_   = R.NA_INTEGER
-luajr.NA_real_      = R.NA_REAL
-luajr.NA_character_ = R.NA_STRING
-luajr.NULL          = R.NilValue
-
 -- Forward declarations
 local from_sexp
 local to_sexp

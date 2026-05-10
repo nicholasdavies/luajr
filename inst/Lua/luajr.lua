@@ -109,15 +109,6 @@ function package.preload.luajr()
     return luajr
 end
 
--- TRUE, FALSE, NA, NULL definitions
-luajr.TRUE          = 1
-luajr.FALSE         = 0
-luajr.NA_logical_   = R.NA_LOGICAL
-luajr.NA_integer_   = R.NA_INTEGER
-luajr.NA_real_      = R.NA_REAL
-luajr.NA_character_ = R.NA_STRING
-luajr.NULL          = R.NilValue
-
 -- Forward declarations
 local from_sexp
 local to_sexp
@@ -175,7 +166,7 @@ local charsxp_write_cache = {}  -- Lua string -> CHARSXP
 
 -- Helper: convert CHARSXP to Lua string or NA for reading (cached)
 local from_charsxp = function(v)
-    if v == luajr.NA_character_ then return luajr.NA_character_ end
+    if v == R.NA_STRING then return R.NA_STRING end
     local key = tonumber(ffi.cast("uintptr_t", v))
     local s = charsxp_read_cache[key]
     if s == nil then
@@ -187,7 +178,7 @@ end
 
 -- Helper: convert Lua string or NA to CHARSXP for writing (cached)
 local to_charsxp = function(v)
-    if v == luajr.NA_character_ then return luajr.NA_character_ end
+    if v == R.NA_STRING then return R.NA_STRING end
     local ch = charsxp_write_cache[v]
     if ch == nil then
         ch = R.mkChar(v)
@@ -235,7 +226,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
         op_copyv = function(p, s, k, p_src, n)
             for i = 0,n-1 do R.SET_STRING_ELT(s, k - 1 + i, to_charsxp(p_src[i + 1])) end
         end
-        is_val = function(v) return type(v) == "string" or v == luajr.NA_character_ end
+        is_val = function(v) return type(v) == "string" or v == R.NA_STRING end
     elseif stype == R.VECSXP then
         -- Element of a list is itself a SEXP. On read, wrap based on TYPEOF
         -- and the parent list's mode: byref-list -> byref children (writes
@@ -851,10 +842,10 @@ luajr.is_character = function(obj) return ffi.istype(luajr.character, obj) end
 luajr.is_list      = function(obj) return ffi.istype(luajr.list, obj) end
 
 -- Typed NA constructors: return length-1 vectors containing NA
-luajr.NA_logical   = function() return luajr.logical(1, luajr.NA_logical_) end
-luajr.NA_integer   = function() return luajr.integer(1, luajr.NA_integer_) end
-luajr.NA_real      = function() return luajr.numeric(1, luajr.NA_real_) end
-luajr.NA_character = function() return luajr.character(1, luajr.NA_character_) end
+luajr.NA_logical   = function() return luajr.logical(1, R.NA_LOGICAL) end
+luajr.NA_integer   = function() return luajr.integer(1, R.NA_INTEGER) end
+luajr.NA_real      = function() return luajr.numeric(1, R.NA_REAL) end
+luajr.NA_character = function() return luajr.character(1, R.NA_CHARACTER) end
 
 
 --------------------

@@ -277,7 +277,10 @@ R.ParentEnv = function(x)
 end
 
 -- R constants
+R.TRUE = 1
+R.FALSE = 0
 R.NilValue = C.R_NilValue
+R.NULL = C.R_NilValue
 R.NA_LOGICAL = C.R_NaInt
 R.NA_INTEGER = C.R_NaInt
 R.NA_REAL = C.R_NaReal

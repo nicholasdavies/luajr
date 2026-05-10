@@ -128,7 +128,7 @@ test_that("numeric vector copy independence", {
 
 test_that("numeric vector NA values", {
     lua("x = luajr.numeric(3, 0)")
-    lua("x[2] = luajr.NA_real_")
+    lua("x[2] = R.NA_REAL")
     expect_identical(lua("return x[2]"), NA_real_)
     expect_identical(lua("return x[1]"), 0)
     lua_reset()

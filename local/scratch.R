@@ -126,7 +126,7 @@ testlist(some_list)
 some_list
 
 
-lua("print(luajr.NA_real_)")
+lua("print(R.NA_REAL)")
 
 bench::mark(
     s1 <- lua("return luajr.sum1()"),
