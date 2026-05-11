@@ -36,7 +36,7 @@ usethis::use_vignette("R-module")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("Rf_ScalarInteger")
+add_rapi("Rf_findVar")
 
 
 # BUILD CYCLE

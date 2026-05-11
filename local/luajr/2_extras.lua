@@ -93,8 +93,8 @@ end
 -- typedef struct { SEXP s; } environment_t;
 local methods_environment = {
     get = function(self, k)
-        local val = R.get_var(k, self.s)
-        if val then return from_sexp(val) end
+        local val = R.getVarEx(R.install(k), self.s, 0, R.UnboundValue)
+        if val ~= R.UnboundValue then return from_sexp(val) else return nil end
     end,
 
     set = function(self, k, v)
@@ -102,7 +102,7 @@ local methods_environment = {
     end,
 
     exists = function(self, k)
-        return R.get_var(k, self.s) ~= nil
+        return self:get(k) ~= nil
     end,
 
     remove = function(self, k)

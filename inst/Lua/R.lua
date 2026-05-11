@@ -68,7 +68,8 @@ SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 // === end R API declarations ===
 
 // Not in public API, included for workarounds with old versions of R.
-SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.get_namespace, pre-4.5.0
+SEXP Rf_findVar(SEXP, SEXP); // used in R.getVarEx, pre-4.5.0
+SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.getVarEx, pre-4.5.0
 SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.NewEnv, pre-4.1.0
 // SEXP Rf_NewHashedEnv(SEXP, ???); SEE BELOW
 SEXP ENCLOS(SEXP x); // used in R.ParentEnv, pre-4.5.0
@@ -76,7 +77,6 @@ SEXP ENCLOS(SEXP x); // used in R.ParentEnv, pre-4.5.0
 // Added post-4.0.0, kept out of the main list above for version-specific loading
 SEXP R_NewEnv(SEXP, int, int); // added in 4.1.0
 SEXP R_ParentEnv(SEXP); // added in 4.5.0
-SEXP R_getVar(SEXP, SEXP, Rboolean); // added in 4.5.0
 SEXP R_getVarEx(SEXP, SEXP, Rboolean, SEXP); // added in 4.5.0
 SEXP R_getRegisteredNamespace(const char*); // added in 4.6.0
 
@@ -202,7 +202,6 @@ R.VECTOR_ELT = C.VECTOR_ELT
 -- R API bindings introduced in specific versions > 4.0.0
 -- TODO provide back-compatible versions of each of these
 if R_version >= 40500 then
-    R.getVar = C.R_getVar
     R.getVarEx = C.R_getVarEx
 end
 
@@ -220,39 +219,42 @@ R.type_string = function(sexp)
     return ffi.string(C.Rf_type2char(C.TYPEOF(sexp)))
 end
 
--- TODO make this back-compatible getVarEx
-R.get_var = function(name, env)
-    local val
+-- back-compatible R_getVarEx(SEXP sym, SEXP rho, Rboolean inherits, SEXP ifnotfound)
+R.getVarEx = function(sym, rho, inherits, ifnotfound)
     if R_version < 40500 then
-        -- pre 4.5.0: Rf_findVarInFrame (non-API)
-        val = C.Rf_findVarInFrame(env, R.install(name))
+        -- pre 4.5.0: Rf_findVar or Rf_findVarInFrame (non-API)
+        local val
+        if inherits == 0 then
+            val = C.Rf_findVarInFrame(rho, sym) -- rho first is correct
+        else
+            val = C.Rf_findVar(sym, rho) -- sym first is correct
+        end
         -- force promises
         if val ~= R.UnboundValue and R.TYPEOF(val) == R.PROMSXP then
             -- NB GlobalEnv here is ignored; Rf_eval on a promise uses PRENV().
             val = R.eval(val, R.GlobalEnv)
         end
+
+        return val == R.UnboundValue and ifnotfound or val
     else
-        -- 4.5.0 and later: R.getVarEx
+        -- 4.5.0 and later: R_getVarEx
         -- NB no forcing needed
-        val = R.getVarEx(R.install(name), env, 0, R.UnboundValue)
+        return C.R_getVarEx(sym, rho, inherits, ifnotfound)
     end
-    if val == R.UnboundValue then return nil end
-    return val
 end
 
--- back-compatible R_getRegisteredNamespace
+-- back-compatible R_getRegisteredNamespace(SEXP name)
 R.getRegisteredNamespace = function(name)
     if R_version < 40600 then
-        -- pre 4.6.0: R.get_var
-        env = R.get_var(name, R.NamespaceRegistry) or R.NilValue
+        -- pre 4.6.0: use back-compatible R.getVarEx
+        return R.getVarEx(R.install(name), R.NamespaceRegistry, 0, R.NilValue)
     else
         -- 4.6.0 and later: R.getRegisteredNamespace
-        env = C.R_getRegisteredNamespace(name)
+        return C.R_getRegisteredNamespace(name)
     end
-    return env
 end
 
--- back-compatible R_NewEnv
+-- back-compatible R_NewEnv(SEXP parent, int hash, int size)
 R.NewEnv = function(parent, hash, size)
     if R_version < 40100 then
         -- pre 4.1.0: Rf_NewEnvironment or R_NewHashedEnv (non-API)
