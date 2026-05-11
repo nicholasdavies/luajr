@@ -250,7 +250,7 @@ R.NewEnv = function(parent, hash, size)
         if hash == 0 then
             return C.Rf_NewEnvironment(R.NilValue, R.NilValue, parent)
         else
-            return C.R_NewHashedEnv(parent, R.ScalarInteger(size))
+            return C.R_NewHashedEnv(parent, size)
         end
     else
         -- 4.1.0 and later: R_NewEnv
