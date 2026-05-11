@@ -96,16 +96,16 @@ bench::mark(
 # # A tibble: 4 × 13
 #   expression                        min   median `itr/sec` mem_alloc `gc/sec`  n_itr  n_gc total_time result     memory     time       gc
 #   <bch:expr>                   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>  <int> <dbl>   <bch:tm> <list>     <list>     <list>     <list>
-# 1 g <- gradient(0, yini, c())     656ns 820.03ns   695200.        0B    27.8  100000     4    143.8ms <list [1]> <Rprofmem> <bench_tm> <tibble>
-# 2 g <- gradient2(0, yini, c())    328ns    410ns  1948302.        0B    39.0  100000     2     51.3ms <list [1]> <Rprofmem> <bench_tm> <tibble>
-# 3 g <- gradient3(0, yini, c())    287ns    410ns   977340.        0B     9.77 100000     1    102.3ms <list [1]> <Rprofmem> <bench_tm> <tibble>
-# 4 g <- gradient4(0, yini, c())    205ns    287ns  2510105.        0B    24.2  100000     1     41.3ms <list [1]> <Rprofmem [0 × 3]> <bench_tm> <tibble>
+# 1 g <- gradient(0, yini, c())     656ns    820ns   992628.        0B     39.7 100000     4    100.7ms <list [1]> <Rprofmem> <bench_tm> <tibble>
+# 2 g <- gradient2(0, yini, c())    369ns    451ns  1845091.        0B     18.5 100000     1     54.2ms <list [1]> <Rprofmem> <bench_tm> <tibble>
+# 3 g <- gradient3(0, yini, c())    287ns    410ns   788470.        0B     15.8 100000     2    126.8ms <list [1]> <Rprofmem> <bench_tm> <tibble>
+# 4 g <- gradient4(0, yini, c())    205ns    328ns  2405762.        0B     24.1 100000     1     41.6ms <list [1]> <Rprofmem> <bench_tm> <tibble>
 
 bench(
-    out <- ode(yini, times, gradient, c(), method = "rk4"),
-    out <- ode(yini, times, gradient2, c(), method = "rk4"),
-    out <- ode(yini, times, gradient3, c(), method = "rk4"),
-    out <- ode(yini, times, gradient4, c(), method = "rk4"),
+    outR <- ode(yini, times, gradient, c(), method = "rk4"),
+    outC <- ode(yini, times, gradient2, c(), method = "rk4"),
+    outL1 <- ode(yini, times, gradient3, c(), method = "rk4"),
+    outL2 <- ode(yini, times, gradient4, c(), method = "rk4"),
     sol <- runner(),
     check = FALSE,
     n = 1000
@@ -139,17 +139,3 @@ ggplot(sol) +
     geom_line(aes(time, S)) +
     geom_line(aes(time, I)) +
     geom_line(aes(time, R))
-
-
-
-
-
-bench(
-    out <- ode(yini, times, gradient, c()),
-    out <- ode(yini, times, gradient2, c()),
-    out <- ode(yini, times, gradient3, c()),
-    out <- ode(yini, times, gradient4, c()),
-    sol <- runner(),
-    check = FALSE,
-    n = 1000
-)
