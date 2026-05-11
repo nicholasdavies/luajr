@@ -36,7 +36,7 @@ usethis::use_vignette("R-module")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("R_NewHashedEnv")
+add_rapi("Rf_ScalarInteger")
 
 
 # BUILD CYCLE

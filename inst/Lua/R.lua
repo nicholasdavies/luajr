@@ -69,8 +69,8 @@ SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 
 // Not in public API, included for workarounds with old versions of R.
 SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.get_namespace, pre-4.5.0
-SEXP R_NewHashedEnv(SEXP enclos, SEXP size); // used in R.NewEnv, pre-4.1.0; NB changed to int size on Mar 10, 2023
 SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.NewEnv, pre-4.1.0
+// SEXP Rf_NewHashedEnv(SEXP, ???); SEE BELOW
 SEXP ENCLOS(SEXP x); // used in R.ParentEnv, pre-4.5.0
 
 // Added post-4.0.0, kept out of the main list above for version-specific loading
@@ -101,6 +101,15 @@ extern SEXP R_DimNamesSymbol;
 extern SEXP R_RowNamesSymbol;
 extern SEXP R_NamespaceRegistry;
 ]]
+
+-- R non-public API with changing signatures
+if R_version < 40300 then
+    -- Used in R.NewEnv, pre-4.1.0
+    ffi.cdef [[SEXP R_NewHashedEnv(SEXP enclos, SEXP size);]]
+else
+    ffi.cdef [[SEXP R_NewHashedEnv(SEXP enclos, int size);]]
+end
+
 
 -- Resolve R API symbols. On Windows, the luajr dylib doesn't re-export R's
 -- symbols, so load R's shared library directly.
