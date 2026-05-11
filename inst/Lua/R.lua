@@ -51,6 +51,7 @@ SEXP Rf_lcons(SEXP, SEXP);
 SEXP Rf_mkChar(const char*);
 SEXP Rf_mkCharLen(const char *, int);
 SEXP Rf_protect(SEXP);
+SEXP Rf_ScalarInteger(int);
 SEXP Rf_ScalarLogical(int);
 SEXP Rf_ScalarReal(double);
 SEXP Rf_ScalarString(SEXP);
@@ -173,6 +174,7 @@ R.ReadConsole = C.R_ReadConsole
 R.REAL = C.REAL
 R.ReleaseObject = C.R_ReleaseObject
 R.removeVarFromFrame = C.R_removeVarFromFrame
+R.ScalarInteger = C.Rf_ScalarInteger
 R.ScalarLogical = C.Rf_ScalarLogical
 R.ScalarReal = C.Rf_ScalarReal
 R.ScalarString = C.Rf_ScalarString
