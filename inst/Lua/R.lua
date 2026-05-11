@@ -69,7 +69,7 @@ SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 
 // Not in public API, included for workarounds with old versions of R.
 SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.get_namespace, pre-4.5.0
-SEXP R_NewHashedEnv(SEXP enclos, int size); // used in R.NewEnv, pre-4.1.0
+SEXP R_NewHashedEnv(SEXP enclos, SEXP size); // used in R.NewEnv, pre-4.1.0; NB changed to int size on Mar 10, 2023
 SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.NewEnv, pre-4.1.0
 SEXP ENCLOS(SEXP x); // used in R.ParentEnv, pre-4.5.0
 
@@ -250,7 +250,7 @@ R.NewEnv = function(parent, hash, size)
         if hash == 0 then
             return C.Rf_NewEnvironment(R.NilValue, R.NilValue, parent)
         else
-            return C.R_NewHashedEnv(parent, size)
+            return C.R_NewHashedEnv(parent, R.ScalarInteger(size))
         end
     else
         -- 4.1.0 and later: R_NewEnv
