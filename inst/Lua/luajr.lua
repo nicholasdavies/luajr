@@ -995,7 +995,10 @@ local mt_environment = {
         elseif ffi.istype(R.sexp, a) and R.TYPEOF(a) == R.ENVSXP then
             self.s = a
         elseif type(a) == "string" then
-            self.s = R.get_namespace(a)
+            self.s = R.getRegisteredNamespace(a)
+            if self.s == R.NilValue then
+                error("could not find namespace " .. a, 2)
+            end
         else
             error("cannot construct R environment from type " .. type(a), 2)
         end

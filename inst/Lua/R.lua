@@ -222,28 +222,22 @@ R.get_var = function(name, env)
         end
     else
         -- 4.5.0 and later: R.getVarEx
-        val = R.getVarEx(R.install(name), env, 1, R.UnboundValue)
-        -- passed force=1 above, no forcing needed
+        -- NB no forcing needed
+        val = R.getVarEx(R.install(name), env, 0, R.UnboundValue)
     end
     if val == R.UnboundValue then return nil end
     return val
 end
 
--- TODO make this back-compatible getRegisteredNamespace
-R.get_namespace = function(name)
-    local env
+-- back-compatible R_getRegisteredNamespace
+R.getRegisteredNamespace = function(name)
     if R_version < 40600 then
         -- pre 4.6.0: R.get_var
-        env = R.get_var(name, R.NamespaceRegistry)
+        env = R.get_var(name, R.NamespaceRegistry) or R.NilValue
     else
         -- 4.6.0 and later: R.getRegisteredNamespace
-        env = R.getRegisteredNamespace(name)
+        env = C.R_getRegisteredNamespace(name)
     end
-
-    if not env or env == R.NilValue then
-        error("could not find namespace " .. name)
-    end
-
     return env
 end
 
