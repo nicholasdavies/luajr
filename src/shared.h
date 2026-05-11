@@ -93,9 +93,6 @@ SEXP luajr_readline(SEXP prompt);   // Not in public API
 void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...); // Not in public API
 void luajr_error(lua_State* L, const char* fmt, ...) __attribute__((noreturn));
 
-// Access to Lua C API (lua_internal.cpp)
-SEXP luajr_lua_gettop(SEXP Lx); // Not in public API
-
 // LuaJIT internal helpers (local/lj_luajr.c -> luajit/src/lj_luajr.c)
 void luajr_push_sexp_cdata(lua_State* L, void* x); // Not in public API
 void luajr_push_vector_cdata(lua_State* L, int sxp_type, void* p, void* s, double n, double c); // Not in public API

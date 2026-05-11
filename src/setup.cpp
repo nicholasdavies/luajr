@@ -41,7 +41,6 @@ static const R_CallMethodDef CallEntries[] =
     { "_luajr_set_mode",        (DL_FUNC)&luajr_set_mode,        3 },
     { "_luajr_get_mode",        (DL_FUNC)&luajr_get_mode,        0 },
     { "_luajr_readline",        (DL_FUNC)&luajr_readline,        1 },
-    { "_luajr_lua_gettop",      (DL_FUNC)&luajr_lua_gettop,      1 },
     { NULL, NULL, 0 }
 };
 
