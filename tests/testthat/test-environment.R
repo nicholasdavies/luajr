@@ -76,6 +76,7 @@ test_that("environment ls works", {
     lua("e:set('alpha', 1)")
     lua("e:set('beta', 2)")
     lua("e:set('gamma', 3)")
+    lua("e:set('.delta', 4)")
     r = lua("return e:ls()")
     expect_identical(length(r), 3L)
     expect_true(all(c("alpha", "beta", "gamma") %in% r))

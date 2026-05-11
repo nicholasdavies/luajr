@@ -272,5 +272,161 @@ add_rapi <- function(name) {
 
     writeLines(new_lines, r_lua_path)
     cat("Added", name, "to R.lua.\n")
+
+    update_rapi_vignette()
     invisible(sig)
+}
+
+
+# remove_rapi(name)
+# Remove an R C API function from inst/Lua/R.lua. Reverses add_rapi.
+remove_rapi <- function(name) {
+    r_lua_path <- file.path("inst", "Lua", "R.lua")
+    if (!file.exists(r_lua_path)) stop("Cannot find ", r_lua_path)
+
+    lines <- readLines(r_lua_path)
+
+    cdef_start <- grep("// === R API declarations ===", lines, fixed = TRUE)
+    cdef_end <- grep("// === end R API declarations ===", lines, fixed = TRUE)
+    bind_start <- grep("-- === R API bindings ===", lines, fixed = TRUE)
+    bind_end <- grep("-- === end R API bindings ===", lines, fixed = TRUE)
+
+    # Remove cdef line declaring this function (matched as "<name>(")
+    decls <- lines[rlang::seq2(cdef_start + 1, cdef_end - 1)]
+    decl_pattern <- paste0("\\b", name, "\\s*\\(")
+    n_decls_removed <- sum(grepl(decl_pattern, decls))
+    decls <- decls[!grepl(decl_pattern, decls)]
+
+    # Remove binding line "R.X = C.<name>"
+    binds <- lines[rlang::seq2(bind_start + 1, bind_end - 1)]
+    bind_pattern <- paste0("=\\s*C\\.", name, "\\s*$")
+    n_binds_removed <- sum(grepl(bind_pattern, binds))
+    binds <- binds[!grepl(bind_pattern, binds)]
+
+    if (n_decls_removed == 0 && n_binds_removed == 0) {
+        cat(name, "not found in R.lua.\n")
+        return(invisible(NULL))
+    }
+
+    new_lines <- c(
+        lines[seq_len(cdef_start)],
+        decls,
+        lines[cdef_end:bind_start],
+        binds,
+        lines[bind_end:length(lines)]
+    )
+    writeLines(new_lines, r_lua_path)
+    cat("Removed", name, "from R.lua.\n")
+
+    update_rapi_vignette()
+    invisible(NULL)
+}
+
+
+# update_rapi_vignette()
+# Rebuild the R API table in vignettes/R-module.Rmd from the managed
+# sections of inst/Lua/R.lua. Called automatically by add_rapi and remove_rapi.
+update_rapi_vignette <- function() {
+    r_lua_path <- file.path("inst", "Lua", "R.lua")
+    vignette_path <- file.path("vignettes", "R-module.Rmd")
+    if (!file.exists(r_lua_path)) stop("Cannot find ", r_lua_path)
+    if (!file.exists(vignette_path)) stop("Cannot find ", vignette_path)
+
+    lines <- readLines(r_lua_path)
+
+    cdef_start <- grep("// === R API declarations ===", lines, fixed = TRUE)
+    cdef_end <- grep("// === end R API declarations ===", lines, fixed = TRUE)
+    decls <- lines[rlang::seq2(cdef_start + 1, cdef_end - 1)]
+    decls <- decls[nzchar(trimws(decls))]
+
+    bind_start <- grep("-- === R API bindings ===", lines, fixed = TRUE)
+    bind_end <- grep("-- === end R API bindings ===", lines, fixed = TRUE)
+    binds <- lines[rlang::seq2(bind_start + 1, bind_end - 1)]
+    binds <- binds[nzchar(trimws(binds))]
+
+    # Parse main "R.lua_name = C.c_name" bindings
+    main_rows <- lapply(binds, function(line) {
+        m <- regmatches(line, regexec("R\\.(\\w+)\\s*=\\s*C\\.(\\w+)", line))[[1]]
+        if (length(m) < 3) return(NULL)
+        lua <- paste0("R.", m[2])
+        c_name <- m[3]
+        d <- decls[grepl(paste0("\\b", c_name, "\\s*\\("), decls)]
+        sig <- if (length(d) > 0) d[1] else paste0("(no declaration for ", c_name, ")")
+        sig <- sub(";\\s*$", "", trimws(sig))
+        list(sort_key = m[2], lua = lua, marker = "", sig = sig, note = NA_character_)
+    })
+    main_rows <- Filter(Negate(is.null), main_rows)
+
+    # Parse late-additions section (manually maintained; not via add_rapi)
+    late_start <- grep("// === R late additions ===", lines, fixed = TRUE)
+    late_end <- grep("// === end R late additions ===", lines, fixed = TRUE)
+    late_rows <- list()
+    if (length(late_start) == 1 && length(late_end) == 1) {
+        late <- lines[rlang::seq2(late_start + 1, late_end - 1)]
+        late <- late[nzchar(trimws(late))]
+        for (line in late) {
+            # Split into signature and "// ..." trailing comment
+            note <- NA_character_
+            sig <- line
+            if (grepl("//", line)) {
+                parts <- regmatches(line, regexec("^(.*?)//\\s*(.*)$", line))[[1]]
+                if (length(parts) >= 3) {
+                    sig <- trimws(parts[2])
+                    note <- trimws(parts[3])
+                }
+            }
+            sig <- sub(";\\s*$", "", trimws(sig))
+            # Extract C function name to derive Lua name (strip R_ prefix)
+            m <- regmatches(sig, regexec("\\b(R_\\w+)\\s*\\(", sig))[[1]]
+            if (length(m) < 2) next
+            c_name <- m[2]
+            lua_short <- sub("^R_", "", c_name)
+            late_rows[[length(late_rows) + 1]] <- list(
+                sort_key = lua_short,
+                lua = paste0("R.", lua_short),
+                marker = "\\*",
+                sig = sig,
+                note = note
+            )
+        }
+    }
+
+    # Combine and sort alphabetically by Lua name
+    all_rows <- c(main_rows, late_rows)
+    all_rows <- all_rows[order(vapply(all_rows, `[[`, character(1), "sort_key"))]
+
+    rows <- vapply(all_rows, function(p) {
+        cell2 <- paste0("`", p$sig, "`")
+        if (!is.na(p$note)) {
+            cell2 <- paste0(cell2,
+                " <span style=\"color: gray; font-style: italic;\">",
+                p$note, "</span>")
+        }
+        sprintf("| `%s`%s | %s |", p$lua, p$marker, cell2)
+    }, character(1))
+
+    table_lines <- c(
+        "| Lua name | corresponding C signature |",
+        "|--|------|",
+        rows
+    )
+
+    vlines <- readLines(vignette_path)
+    vstart <- grep("<!-- begin R API -->", vlines, fixed = TRUE)
+    vend <- grep("<!-- end R API -->", vlines, fixed = TRUE)
+    if (length(vstart) != 1 || length(vend) != 1) {
+        stop("Cannot locate <!-- begin R API --> ... <!-- end R API --> markers in ",
+             vignette_path)
+    }
+
+    new_vlines <- c(
+        vlines[seq_len(vstart)],
+        "",
+        table_lines,
+        "",
+        vlines[vend:length(vlines)]
+    )
+    writeLines(new_vlines, vignette_path)
+    cat("Updated R API table in", vignette_path, "\n")
+    invisible(NULL)
 }

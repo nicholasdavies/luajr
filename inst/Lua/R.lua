@@ -1,5 +1,5 @@
 -- R API for luajr
--- Entries between === markers managed by add_rapi() in luajr/local/add_rapi.R
+-- Entries between === markers managed or read by luajr/local/add_rapi.R
 
 local ffi = require("ffi")
 
@@ -23,65 +23,67 @@ typedef unsigned char Rbyte;
 typedef int Rboolean;
 
 // === R API declarations ===
-const void *DATAPTR_RO(SEXP x);
+const void* DATAPTR_RO(SEXP x);
 void DUPLICATE_ATTRIB(SEXP to, SEXP from);
 int* INTEGER(SEXP x);
 int* LOGICAL(SEXP x);
 const char* R_CHAR(SEXP x);
-void *R_ExternalPtrAddr(SEXP s);
+void* R_ExternalPtrAddr(SEXP s);
 void R_FlushConsole(void);
-SEXP R_lsInternal(SEXP, Rboolean);
+SEXP R_lsInternal3(SEXP env, Rboolean all, Rboolean sorted);
 SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot);
-void R_PreserveObject(SEXP);
+void R_PreserveObject(SEXP object);
 int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist);
-void R_ReleaseObject(SEXP);
-void R_removeVarFromFrame(SEXP, SEXP);
-Rbyte *RAW(SEXP x);
+void R_ReleaseObject(SEXP object);
+void R_removeVarFromFrame(SEXP name, SEXP env);
+Rbyte* RAW(SEXP x);
 double* REAL(SEXP x);
-SEXP Rf_allocVector(SEXPTYPE, R_xlen_t);
-SEXP Rf_cons(SEXP, SEXP);
-void Rf_copyMostAttrib(SEXP, SEXP);
-void Rf_defineVar(SEXP, SEXP, SEXP);
-SEXP Rf_dimnamesgets(SEXP, SEXP);
-SEXP Rf_eval(SEXP, SEXP);
-SEXP Rf_findFun(SEXP, SEXP);
-SEXP Rf_getAttrib(SEXP, SEXP);
-SEXP Rf_install(const char*);
-SEXP Rf_lcons(SEXP, SEXP);
-SEXP Rf_mkChar(const char*);
-SEXP Rf_mkCharLen(const char *, int);
-SEXP Rf_protect(SEXP);
-SEXP Rf_ScalarInteger(int);
-SEXP Rf_ScalarLogical(int);
-SEXP Rf_ScalarReal(double);
-SEXP Rf_ScalarString(SEXP);
-SEXP Rf_setAttrib(SEXP, SEXP, SEXP);
-const char* Rf_type2char(SEXPTYPE);
-void Rf_unprotect(int);
+SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length);
+SEXP Rf_cons(SEXP car, SEXP cdr);
+void Rf_copyMostAttrib(SEXP inp, SEXP ans);
+void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho);
+SEXP Rf_dimnamesgets(SEXP vec, SEXP val);
+SEXP Rf_eval(SEXP e, SEXP rho);
+SEXP Rf_findFun(SEXP symbol, SEXP rho);
+SEXP Rf_getAttrib(SEXP vec, SEXP name);
+SEXP Rf_install(const char* name);
+SEXP Rf_lcons(SEXP car, SEXP cdr);
+SEXP Rf_mkChar(const char* name);
+SEXP Rf_mkCharLen(const char* name, int len);
+SEXP Rf_protect(SEXP s);
+SEXP Rf_ScalarInteger(int x);
+SEXP Rf_ScalarLogical(int x);
+SEXP Rf_ScalarReal(double x);
+SEXP Rf_ScalarString(SEXP x);
+SEXP Rf_setAttrib(SEXP vec, SEXP name, SEXP val);
+const char* Rf_type2char(SEXPTYPE t);
+void Rf_unprotect(int l);
 void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v);
 SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v);
 void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from);
 SEXP STRING_ELT(SEXP x, R_xlen_t i);
-const SEXP *STRING_PTR_RO(SEXP x);
+const SEXP* STRING_PTR_RO(SEXP x);
 int TYPEOF(SEXP x);
 SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 // === end R API declarations ===
 
+// Added post-4.0.0, kept out of the main list above for version-specific loading
+// === R late additions ===
+SEXP R_NewEnv(SEXP enclos, int hash, int size); // added in 4.1.0
+SEXP R_ParentEnv(SEXP x); // added in 4.5.0
+SEXP R_getVarEx(SEXP sym, SEXP rho, Rboolean inherits, SEXP ifnotfound); // added in 4.5.0
+SEXP R_getRegisteredNamespace(const char* name); // added in 4.6.0
+// === end R late additions ===
+
 // Not in public API, included for workarounds with old versions of R.
-SEXP Rf_findVar(SEXP, SEXP); // used in R.getVarEx, pre-4.5.0
-SEXP Rf_findVarInFrame(SEXP, SEXP); // used in R.getVarEx, pre-4.5.0
-SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP); // used in R.NewEnv, pre-4.1.0
-// SEXP Rf_NewHashedEnv(SEXP, ???); SEE BELOW
+SEXP Rf_findVar(SEXP symbol, SEXP rho); // used in R.getVarEx, pre-4.5.0
+SEXP Rf_findVarInFrame(SEXP rho, SEXP symbol); // used in R.getVarEx, pre-4.5.0
+SEXP Rf_NewEnvironment(SEXP namelist, SEXP valuelist, SEXP rho); // used in R.NewEnv, pre-4.1.0
+// SEXP Rf_NewHashedEnv(SEXP enclos, ??? size); SEE BELOW
 SEXP ENCLOS(SEXP x); // used in R.ParentEnv, pre-4.5.0
 
-// Added post-4.0.0, kept out of the main list above for version-specific loading
-SEXP R_NewEnv(SEXP, int, int); // added in 4.1.0
-SEXP R_ParentEnv(SEXP); // added in 4.5.0
-SEXP R_getVarEx(SEXP, SEXP, Rboolean, SEXP); // added in 4.5.0
-SEXP R_getRegisteredNamespace(const char*); // added in 4.6.0
-
 // Wrapped below for generic R.length (unexposed to avoid user confusion)
-R_xlen_t Rf_xlength(SEXP);
+R_xlen_t Rf_xlength(SEXP s);
 
 // R constants -- bound manually below
 extern SEXP R_NilValue;
@@ -172,7 +174,7 @@ R.install = C.Rf_install
 R.INTEGER = C.INTEGER
 R.lcons = C.Rf_lcons
 R.LOGICAL = C.LOGICAL
-R.lsInternal = C.R_lsInternal
+R.lsInternal3 = C.R_lsInternal3
 R.MakeExternalPtr = C.R_MakeExternalPtr
 R.mkChar = C.Rf_mkChar
 R.mkCharLen = C.Rf_mkCharLen
@@ -198,26 +200,6 @@ R.TYPEOF = C.TYPEOF
 R.UNPROTECT = C.Rf_unprotect
 R.VECTOR_ELT = C.VECTOR_ELT
 -- === end R API bindings ===
-
--- R API bindings introduced in specific versions > 4.0.0
--- TODO provide back-compatible versions of each of these
-if R_version >= 40500 then
-    R.getVarEx = C.R_getVarEx
-end
-
-if R_version >= 40600 then
-    R.getRegisteredNamespace = C.R_getRegisteredNamespace
-end
-
--- Convert 64-bit length to Lua number
-R.length = function(sexp)
-    return tonumber(C.Rf_xlength(sexp))
-end
-
--- SEXP type name as string
-R.type_string = function(sexp)
-    return ffi.string(C.Rf_type2char(C.TYPEOF(sexp)))
-end
 
 -- back-compatible R_getVarEx(SEXP sym, SEXP rho, Rboolean inherits, SEXP ifnotfound)
 R.getVarEx = function(sym, rho, inherits, ifnotfound)
@@ -288,6 +270,16 @@ R.set_parent = function(env, parent)
     R.UNPROTECT(1)
 end
 
+-- Convert 64-bit length to Lua number
+R.length = function(sexp)
+    return tonumber(C.Rf_xlength(sexp))
+end
+
+-- SEXP type name as string
+R.type_string = function(sexp)
+    return ffi.string(C.Rf_type2char(C.TYPEOF(sexp)))
+end
+
 -- R constants
 R.TRUE = 1
 R.FALSE = 0
@@ -309,10 +301,10 @@ R.DimNamesSymbol = C.R_DimNamesSymbol
 R.RowNamesSymbol = C.R_RowNamesSymbol
 R.NamespaceRegistry = C.R_NamespaceRegistry
 
--- LuaJIT SEXP type
-R.sexp = ffi.typeof("SEXP")
-
 -- R version
 R.version = R_version
+
+-- LuaJIT SEXP type
+R.sexp = ffi.typeof("SEXP")
 
 return R

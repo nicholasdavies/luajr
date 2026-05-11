@@ -21,14 +21,14 @@ pointer to a Lua function (see examples)."></head><body>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/luajr.html">Get started</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/luajr.html">Introduction</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/luajr-module.html">luajr-module</a></li>
-    <li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
-    <li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
-    <li><a class="dropdown-item" href="../articles/R-module.html">R-module</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/luajr.html">Introduction to luajr</a></li>
+    <li><a class="dropdown-item" href="../articles/luajr-module.html">The luajr.lua module</a></li>
+    <li><a class="dropdown-item" href="../articles/R-module.html">The R.lua module</a></li>
+    <li><a class="dropdown-item" href="../articles/modules.html">Create your own modules</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -99,16 +99,18 @@ specified with <code>character</code> or <code>C</code>. <code>luajr.list</code>
 <code>luajr.environment</code> type, use <code>environment</code> or <code>E</code>. To receive an <code>R.sexp</code>
 type, use <code>sexp</code> or <code>S</code>.</p>
 <p>To pass any R type as "closest available" type from the above, use the
-argcode <code>"."</code>.</p>
+argcode <code>auto</code> or <code>"."</code>.</p>
 <p>Argcodes should be separated by commas. If you are using a "single-character"
 argcode like <code>.</code> or <code>S</code>, there does not need to be a comma following it.</p>
 <p>You can also receive R values as Lua native types. Specifically, the argcode
 <code>function</code> corresponds to a Lua function; <code>boolean</code> is a Lua boolean;
 <code>number</code> is a Lua number; <code>string</code> is a Lua string and <code>table</code> is a Lua
 table. <code>pointer</code> or <code>P</code> passes an external pointer (EXTPTRSXP) as a Lua
-light userdata.</p>
-<p>The prefix <code>$</code> specifies that the type should be passed as a Lua native type.
-So <code>$.</code> is the "closest available Lua type" and <code>$C</code> is a Lua string.</p>
+light userdata. The argcode <code>native</code> selects the closest available native
+type.</p>
+<p>Additionally, the prefix <code>$</code> specifies that the type should be passed as a
+Lua native type. So <code>$auto</code> is equivalent to <code>native</code> and <code>$C</code> is a Lua
+string.</p>
 <p>The prefix <code>!</code> specifies strict type handling (i.e., error if the type cannot
 be converted).</p>
 <p>The prefix <code>&amp;</code> can be used with logical, integer, numeric, character, or
@@ -146,7 +148,7 @@ as the <code>func</code> argument.</p>
 <span class="r-in"><span><span class="co"># use with an external pointer to a Lua function</span></span></span>
 <span class="r-in"><span><span class="va">times2ptr</span> <span class="op">&lt;-</span> <span class="fu"><a href="lua.html">lua</a></span><span class="op">(</span><span class="st">"return function(x) return 2 * x end"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">times2ptr</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;pointer: 0x1301b5960&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;pointer: 0x114675860&gt;</span>
 <span class="r-in"><span><span class="va">times2</span> <span class="op">&lt;-</span> <span class="fu">lua_func</span><span class="op">(</span><span class="va">times2ptr</span>, <span class="st">"$."</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu">times2</span><span class="op">(</span><span class="fl">14</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 28</span>

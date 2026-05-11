@@ -1,6 +1,22 @@
 url: https://nicholasdavies.github.io/luajr/
 template:
   bootstrap: 5
+navbar:
+  components:
+    intro:
+      text: Introduction
+      href: articles/luajr.html
+    articles:
+      text: Articles
+      menu:
+      - text: Introduction to luajr
+        href: articles/luajr.html
+      - text: The luajr.lua module
+        href: articles/luajr-module.html
+      - text: The R.lua module
+        href: articles/R-module.html
+      - text: Create your own modules
+        href: articles/modules.html
 reference:
 - title: Package overview
   contents: luajr
@@ -36,4 +52,4 @@ authors:
   after: >
     Please give credit to Mike Pall and the Lua authors, and to Scott Lembcke
     and Howling Moon Software for the debugger, but direct all your luajr
-    questions to the package maintainer!
+    questions to Nick Davies, the author of the R package!

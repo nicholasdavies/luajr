@@ -1,8 +1,8 @@
 ---
-title: "R-module"
+title: "The R.lua module"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{R-module}
+  %\VignetteIndexEntry{The R.lua module}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,10 +14,223 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(luajr)
+<style>
+table td { vertical-align: top; }
+</style>
+
+*For the getting started guide, see [Introduction to `luajr`](luajr.html).*
+
+## Introduction
+
+This vignette is for advanced R users who know how to use R's API from C code. 
+If you normally use R without C, this vignette may not make a lot of sense to 
+you. If you use the **Rcpp** or **cpp11** packages to interface C++ code with 
+R, but have not used R's C API directly, this vignette may not make sense to 
+you either. Just a warning!
+
+The **luajr** package ships with two Lua modules included. The more 
+commonly-used module is `luajr.lua`, which offers convenience and higher-level 
+interaction with R. That module is described in the vignette 
+[The luajr.lua module](luajr-module.html).
+
+But, if you need lower-level access to R's internals from Lua, then `R.lua` may 
+be helpful to you. The `R.lua` module provides access to R's C API from Lua. If
+you understand what each element of the following C code does:
+
+```c
+SEXP s = PROTECT(Rf_allocVector(VECSXP, 3));
 ```
 
-# Warning
+then you may find this vignette helpful. If not, you will need to thoroughly
+consult the
+[Writing R Extensions](https://cran.r-project.org/doc/manuals/r-release/R-exts.html) 
+manual before proceeding, because this vignette assumes you are already familiar
+with R's C API.
 
-This vignette has not been updated yet for luajr 0.2.2.9000 (in development).
+## Loading R.lua
+
+Any Lua state that has been opened through the **luajr** package automatically 
+loads the `luajr.lua` module, but **the `R.lua` module needs to be loaded** 
+**explicitly before use**. The `R.lua` module can be loaded in Lua code like so:
+
+```Lua
+R = require "R"
+```
+
+The above line of Lua code opens the `R.lua` module and loads it into a global
+Lua variable `R`. Once that line has been executed in a Lua state, you can start
+to use the R functions and types that are part of the module. Of course, you 
+can assign the module to a local variable instead.
+
+## R.sexp
+
+R's C API represents R values using the type `SEXP`, meaning "S expression".
+The `SEXP` type is a pointer to an opaque C struct `SEXPREC` -- see
+[R Internals](https://cran.r-project.org/doc/manuals/r-release/R-ints.html) 
+for full details. Within Lua code, `R.sexp` is an alias for the `SEXP` type 
+(through LuaJIT's ctype mechanism), which means you can use Lua variables of 
+type `R.sexp` to pass to R's API functions.
+
+## Functions
+
+`R.lua` exposes some (but not all) of R's C API functions.
+
+The naming of R's C API functions is all over the place. Some functions have
+no prefix, others have the prefix `R_`, and still others have the prefix `Rf_`,
+with no obvious pattern. Function names can be UPPER_CASE, lower_case, 
+camelCase or TitleCase. It can be confusing.
+
+`R.lua` drops all `R_` and `Rf_` prefixes because the module is typically 
+loaded into a table named `R`, so `R.Rf_allocVector` would seem redundant 
+(instead it is `R.allocVector`). But the case of the function name is kept 
+as-is for consistency with the C API, and when there is a familiar C macro that 
+maps to a function, the case of the macro is preferred (for example, `PROTECT` 
+in C is a macro mapping to the function `Rf_protect`; the corresponding `R.lua` 
+function is named `R.PROTECT`, not `R.protect`).
+
+Assuming the `R.lua` module has been loaded into a table named `R`, you can use 
+the following R API functions:
+
+<!-- begin R API -->
+
+| Lua name | corresponding C signature |
+|--|------|
+| `R.allocVector` | `SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length)` |
+| `R.CHAR` | `const char* R_CHAR(SEXP x)` |
+| `R.cons` | `SEXP Rf_cons(SEXP car, SEXP cdr)` |
+| `R.copyMostAttrib` | `void Rf_copyMostAttrib(SEXP inp, SEXP ans)` |
+| `R.DATAPTR_RO` | `const void* DATAPTR_RO(SEXP x)` |
+| `R.defineVar` | `void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho)` |
+| `R.dimnamesgets` | `SEXP Rf_dimnamesgets(SEXP vec, SEXP val)` |
+| `R.DUPLICATE_ATTRIB` | `void DUPLICATE_ATTRIB(SEXP to, SEXP from)` |
+| `R.eval` | `SEXP Rf_eval(SEXP e, SEXP rho)` |
+| `R.ExternalPtrAddr` | `void* R_ExternalPtrAddr(SEXP s)` |
+| `R.findFun` | `SEXP Rf_findFun(SEXP symbol, SEXP rho)` |
+| `R.FlushConsole` | `void R_FlushConsole(void)` |
+| `R.getAttrib` | `SEXP Rf_getAttrib(SEXP vec, SEXP name)` |
+| `R.getRegisteredNamespace`\* | `SEXP R_getRegisteredNamespace(const char* name)` <span style="color: gray; font-style: italic;">added in 4.6.0</span> |
+| `R.getVarEx`\* | `SEXP R_getVarEx(SEXP sym, SEXP rho, Rboolean inherits, SEXP ifnotfound)` <span style="color: gray; font-style: italic;">added in 4.5.0</span> |
+| `R.install` | `SEXP Rf_install(const char* name)` |
+| `R.INTEGER` | `int* INTEGER(SEXP x)` |
+| `R.lcons` | `SEXP Rf_lcons(SEXP car, SEXP cdr)` |
+| `R.LOGICAL` | `int* LOGICAL(SEXP x)` |
+| `R.lsInternal3` | `SEXP R_lsInternal3(SEXP env, Rboolean all, Rboolean sorted)` |
+| `R.MakeExternalPtr` | `SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot)` |
+| `R.mkChar` | `SEXP Rf_mkChar(const char* name)` |
+| `R.mkCharLen` | `SEXP Rf_mkCharLen(const char* name, int len)` |
+| `R.NewEnv`\* | `SEXP R_NewEnv(SEXP enclos, int hash, int size)` <span style="color: gray; font-style: italic;">added in 4.1.0</span> |
+| `R.ParentEnv`\* | `SEXP R_ParentEnv(SEXP x)` <span style="color: gray; font-style: italic;">added in 4.5.0</span> |
+| `R.PreserveObject` | `void R_PreserveObject(SEXP object)` |
+| `R.PROTECT` | `SEXP Rf_protect(SEXP s)` |
+| `R.RAW` | `Rbyte* RAW(SEXP x)` |
+| `R.ReadConsole` | `int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist)` |
+| `R.REAL` | `double* REAL(SEXP x)` |
+| `R.ReleaseObject` | `void R_ReleaseObject(SEXP object)` |
+| `R.removeVarFromFrame` | `void R_removeVarFromFrame(SEXP name, SEXP env)` |
+| `R.ScalarInteger` | `SEXP Rf_ScalarInteger(int x)` |
+| `R.ScalarLogical` | `SEXP Rf_ScalarLogical(int x)` |
+| `R.ScalarReal` | `SEXP Rf_ScalarReal(double x)` |
+| `R.ScalarString` | `SEXP Rf_ScalarString(SEXP x)` |
+| `R.SET_STRING_ELT` | `void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v)` |
+| `R.SET_VECTOR_ELT` | `SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v)` |
+| `R.setAttrib` | `SEXP Rf_setAttrib(SEXP vec, SEXP name, SEXP val)` |
+| `R.SHALLOW_DUPLICATE_ATTRIB` | `void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from)` |
+| `R.STRING_ELT` | `SEXP STRING_ELT(SEXP x, R_xlen_t i)` |
+| `R.STRING_PTR_RO` | `const SEXP* STRING_PTR_RO(SEXP x)` |
+| `R.type2char` | `const char* Rf_type2char(SEXPTYPE t)` |
+| `R.TYPEOF` | `int TYPEOF(SEXP x)` |
+| `R.UNPROTECT` | `void Rf_unprotect(int l)` |
+| `R.VECTOR_ELT` | `SEXP VECTOR_ELT(SEXP x, R_xlen_t i)` |
+
+<!-- end R API -->
+
+\* Entries marked with an asterisk were not present in R 4.0.0 (the minimum R 
+version that **luajr** supports), but were added in later versions (as described
+in the table). However, they will work with any version of R (from 4.0.0 onward)
+because **luajr** implements backwards-compatible versions of these functions.
+
+In addition to the functions above, the `R.lua` module provides some 
+convenience functions to wrap some helpful operations.
+
+**`R.length(x)`**
+
+Returns the length of `SEXP x` as a Lua number. This is a wrapper for 
+`Rf_xlength()` that converts the result from R's 64-bit length type to a Lua 
+number. You can use this anywhere you would normally use `Rf_length()` or 
+`Rf_xlength()` in C.
+
+**`R.type_string(x)`**
+
+Returns the SEXP type of `SEXP x` as a Lua string. This is a wrapper for 
+`Rf_type2char(TYPEOF(x))`.
+
+**`R.set_parent(env, parent)`**
+
+Sets the parent environment of `SEXP env`, an `ENVSXP`, to the `ENVSXP` 
+`parent`. This calls into R's `parent.env<-` function because the R C API does 
+not currently provide a setter for environment parents.
+
+## Constants
+
+Common R constants are exposed as follows:
+
+| Lua name | C source |
+|--|------|
+| `R.TRUE` | `1` |
+| `R.FALSE` | `0` |
+| `R.NilValue` | `R_NilValue` |
+| `R.NA_LOGICAL` | `R_NaInt` |
+| `R.NA_INTEGER` | `R_NaInt` |
+| `R.NA_REAL` | `R_NaReal` |
+| `R.NA_STRING` | `R_NaString` |
+| `R.UnboundValue` | `R_UnboundValue` |
+| `R.MissingArg` | `R_MissingArg` |
+| `R.GlobalEnv` | `R_GlobalEnv` |
+| `R.EmptyEnv` | `R_EmptyEnv` |
+| `R.BaseEnv` | `R_BaseEnv` |
+| `R.BlankString` | `R_BlankString` |
+| `R.NamesSymbol` | `R_NamesSymbol` |
+| `R.ClassSymbol` | `R_ClassSymbol` |
+| `R.DimSymbol` | `R_DimSymbol` |
+| `R.DimNamesSymbol` | `R_DimNamesSymbol` |
+| `R.RowNamesSymbol` | `R_RowNamesSymbol` |
+| `R.NamespaceRegistry` | `R_NamespaceRegistry` |
+
+In addition to the above, there is also a variable `R.version` that holds the 
+current R version as an integer in the form `MMmmpp` (MM = major, mm = minor, 
+pp = patch). For example, R 4.6.0 is `040600` and R 4.0.5 is `040005`.
+
+The R type codes (`SEXPTYPE`s) are also exposed as Lua numbers. These 
+correspond to the values returned by `R.TYPEOF(x)`:
+
+| Lua name | Value | Description |
+|--|--|------|
+| `R.NILSXP` | 0 | NULL |
+| `R.SYMSXP` | 1 | symbols |
+| `R.LISTSXP` | 2 | pairlists |
+| `R.CLOSXP` | 3 | closures |
+| `R.ENVSXP` | 4 | environments |
+| `R.PROMSXP` | 5 | promises |
+| `R.LANGSXP` | 6 | language objects |
+| `R.SPECIALSXP` | 7 | special functions |
+| `R.BUILTINSXP` | 8 | builtin functions |
+| `R.CHARSXP` | 9 | internal character strings |
+| `R.LGLSXP` | 10 | logical vectors |
+| `R.INTSXP` | 13 | integer vectors |
+| `R.REALSXP` | 14 | numeric vectors |
+| `R.CPLXSXP` | 15 | complex vectors |
+| `R.STRSXP` | 16 | character vectors |
+| `R.DOTSXP` | 17 | dot-dot-dot object |
+| `R.ANYSXP` | 18 | make "any" args work |
+| `R.VECSXP` | 19 | list (generic vector) |
+| `R.EXPRSXP` | 20 | expression vector |
+| `R.BCODESXP` | 21 | byte code |
+| `R.EXTPTRSXP` | 22 | external pointer |
+| `R.WEAKREFSXP` | 23 | weak reference |
+| `R.RAWSXP` | 24 | raw vector |
+| `R.OBJSXP` | 25 | objects not of simple type |
+
+If all of this makes sense to you, then enjoy and happy coding. If not, then 
+stick to using [The luajr.lua module](luajr-module.html) and don't worry about 
+it too much -- you probably don't need this anyway!
+

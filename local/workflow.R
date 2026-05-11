@@ -36,7 +36,9 @@ usethis::use_vignette("R-module")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("Rf_findVar")
+add_rapi("R_lsInternal3")
+# remove_rapi("")
+# update_rapi_vignette()
 
 
 # BUILD CYCLE

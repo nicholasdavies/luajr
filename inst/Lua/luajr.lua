@@ -982,8 +982,10 @@ local methods_environment = {
         end
     end,
 
-    ls = function(self, all)
-        return luajr.character(R.lsInternal(self.s, all and 1 or 0))
+    ls = function(self, all, sorted)
+        if all == nil then all = false end
+        if sorted == nil then sorted = true end
+        return luajr.character(R.lsInternal3(self.s, all and 1 or 0, sorted and 1 or 0))
     end
 }
 

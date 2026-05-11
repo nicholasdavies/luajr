@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>R-module • luajr</title>
+<title>The R.lua module • luajr</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="R-module">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="The R.lua module">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -29,15 +29,15 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/luajr.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/luajr.html">Introduction</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/luajr-module.html">luajr-module</a></li>
-    <li><a class="dropdown-item" href="../articles/modules.html">Lua modules</a></li>
-    <li><a class="dropdown-item" href="../articles/objects.html">R objects in Lua code</a></li>
-    <li><a class="dropdown-item" href="../articles/R-module.html">R-module</a></li>
+<li><a class="dropdown-item" href="../articles/luajr.html">Introduction to luajr</a></li>
+    <li><a class="dropdown-item" href="../articles/luajr-module.html">The luajr.lua module</a></li>
+    <li><a class="dropdown-item" href="../articles/R-module.html">The R.lua module</a></li>
+    <li><a class="dropdown-item" href="../articles/modules.html">Create your own modules</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -60,7 +60,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>R-module</h1>
+      <h1>The R.lua module</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/nicholasdavies/luajr/blob/HEAD/vignettes/R-module.Rmd" class="external-link"><code>vignettes/R-module.Rmd</code></a></small>
@@ -69,15 +69,547 @@
 
     
     
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/nicholasdavies/luajr" class="external-link">luajr</a></span><span class="op">)</span></span></code></pre></div>
+<style>
+table td { vertical-align: top; }
+</style>
+<p><em>For the getting started guide, see <a href="luajr.html">Introduction to <code>luajr</code></a>.</em></p>
 <div class="section level2">
-<h2 id="warning">Warning<a class="anchor" aria-label="anchor" href="#warning"></a>
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>This vignette has not been updated yet for luajr 0.2.2.9000 (in
-development).</p>
+<p>This vignette is for advanced R users who know how to use R’s API
+from C code. If you normally use R without C, this vignette may not make
+a lot of sense to you. If you use the <strong>Rcpp</strong> or
+<strong>cpp11</strong> packages to interface C++ code with R, but have
+not used R’s C API directly, this vignette may not make sense to you
+either. Just a warning!</p>
+<p>The <strong>luajr</strong> package ships with two Lua modules
+included. The more commonly-used module is <code>luajr.lua</code>, which
+offers convenience and higher-level interaction with R. That module is
+described in the vignette <a href="luajr-module.html">The luajr.lua
+module</a>.</p>
+<p>But, if you need lower-level access to R’s internals from Lua, then
+<code>R.lua</code> may be helpful to you. The <code>R.lua</code> module
+provides access to R’s C API from Lua. If you understand what each
+element of the following C code does:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>SEXP s <span class="op">=</span> PROTECT<span class="op">(</span>Rf_allocVector<span class="op">(</span>VECSXP<span class="op">,</span> <span class="dv">3</span><span class="op">));</span></span></code></pre></div>
+<p>then you may find this vignette helpful. If not, you will need to
+thoroughly consult the <a href="https://cran.r-project.org/doc/manuals/r-release/R-exts.html" class="external-link">Writing
+R Extensions</a> manual before proceeding, because this vignette assumes
+you are already familiar with R’s C API.</p>
 </div>
-  </main>
+<div class="section level2">
+<h2 id="loading-r-lua">Loading R.lua<a class="anchor" aria-label="anchor" href="#loading-r-lua"></a>
+</h2>
+<p>Any Lua state that has been opened through the <strong>luajr</strong>
+package automatically loads the <code>luajr.lua</code> module, but
+<strong>the <code>R.lua</code> module needs to be loaded</strong>
+<strong>explicitly before use</strong>. The <code>R.lua</code> module
+can be loaded in Lua code like so:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="cn">R</span> <span class="op">=</span> <span class="fu">require</span> <span class="st">"R"</span></span></code></pre></div>
+<p>The above line of Lua code opens the <code>R.lua</code> module and
+loads it into a global Lua variable <code>R</code>. Once that line has
+been executed in a Lua state, you can start to use the R functions and
+types that are part of the module. Of course, you can assign the module
+to a local variable instead.</p>
+</div>
+<div class="section level2">
+<h2 id="r-sexp">R.sexp<a class="anchor" aria-label="anchor" href="#r-sexp"></a>
+</h2>
+<p>R’s C API represents R values using the type <code>SEXP</code>,
+meaning “S expression”. The <code>SEXP</code> type is a pointer to an
+opaque C struct <code>SEXPREC</code> – see <a href="https://cran.r-project.org/doc/manuals/r-release/R-ints.html" class="external-link">R
+Internals</a> for full details. Within Lua code, <code>R.sexp</code> is
+an alias for the <code>SEXP</code> type (through LuaJIT’s ctype
+mechanism), which means you can use Lua variables of type
+<code>R.sexp</code> to pass to R’s API functions.</p>
+</div>
+<div class="section level2">
+<h2 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a>
+</h2>
+<p><code>R.lua</code> exposes some (but not all) of R’s C API
+functions.</p>
+<p>The naming of R’s C API functions is all over the place. Some
+functions have no prefix, others have the prefix <code>R_</code>, and
+still others have the prefix <code>Rf_</code>, with no obvious pattern.
+Function names can be UPPER_CASE, lower_case, camelCase or TitleCase. It
+can be confusing.</p>
+<p><code>R.lua</code> drops all <code>R_</code> and <code>Rf_</code>
+prefixes because the module is typically loaded into a table named
+<code>R</code>, so <code>R.Rf_allocVector</code> would seem redundant
+(instead it is <code>R.allocVector</code>). But the case of the function
+name is kept as-is for consistency with the C API, and when there is a
+familiar C macro that maps to a function, the case of the macro is
+preferred (for example, <code>PROTECT</code> in C is a macro mapping to
+the function <code>Rf_protect</code>; the corresponding
+<code>R.lua</code> function is named <code>R.PROTECT</code>, not
+<code>R.protect</code>).</p>
+<p>Assuming the <code>R.lua</code> module has been loaded into a table
+named <code>R</code>, you can use the following R API functions:</p>
+<!-- begin R API -->
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="75%">
+</colgroup>
+<thead><tr class="header">
+<th>Lua name</th>
+<th>corresponding C signature</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>R.allocVector</code></td>
+<td><code>SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.CHAR</code></td>
+<td><code>const char* R_CHAR(SEXP x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.cons</code></td>
+<td><code>SEXP Rf_cons(SEXP car, SEXP cdr)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.copyMostAttrib</code></td>
+<td><code>void Rf_copyMostAttrib(SEXP inp, SEXP ans)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.DATAPTR_RO</code></td>
+<td><code>const void* DATAPTR_RO(SEXP x)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.defineVar</code></td>
+<td><code>void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.dimnamesgets</code></td>
+<td><code>SEXP Rf_dimnamesgets(SEXP vec, SEXP val)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.DUPLICATE_ATTRIB</code></td>
+<td><code>void DUPLICATE_ATTRIB(SEXP to, SEXP from)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.eval</code></td>
+<td><code>SEXP Rf_eval(SEXP e, SEXP rho)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.ExternalPtrAddr</code></td>
+<td><code>void* R_ExternalPtrAddr(SEXP s)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.findFun</code></td>
+<td><code>SEXP Rf_findFun(SEXP symbol, SEXP rho)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.FlushConsole</code></td>
+<td><code>void R_FlushConsole(void)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.getAttrib</code></td>
+<td><code>SEXP Rf_getAttrib(SEXP vec, SEXP name)</code></td>
+</tr>
+<tr class="even">
+<td>
+<code>R.getRegisteredNamespace</code>*</td>
+<td>
+<code>SEXP R_getRegisteredNamespace(const char* name)</code> <span style="color: gray; font-style: italic;">added in 4.6.0</span>
+</td>
+</tr>
+<tr class="odd">
+<td>
+<code>R.getVarEx</code>*</td>
+<td>
+<code>SEXP R_getVarEx(SEXP sym, SEXP rho, Rboolean inherits, SEXP ifnotfound)</code>
+<span style="color: gray; font-style: italic;">added in
+4.5.0</span>
+</td>
+</tr>
+<tr class="even">
+<td><code>R.install</code></td>
+<td><code>SEXP Rf_install(const char* name)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.INTEGER</code></td>
+<td><code>int* INTEGER(SEXP x)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.lcons</code></td>
+<td><code>SEXP Rf_lcons(SEXP car, SEXP cdr)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.LOGICAL</code></td>
+<td><code>int* LOGICAL(SEXP x)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.lsInternal3</code></td>
+<td><code>SEXP R_lsInternal3(SEXP env, Rboolean all, Rboolean sorted)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.MakeExternalPtr</code></td>
+<td><code>SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.mkChar</code></td>
+<td><code>SEXP Rf_mkChar(const char* name)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.mkCharLen</code></td>
+<td><code>SEXP Rf_mkCharLen(const char* name, int len)</code></td>
+</tr>
+<tr class="even">
+<td>
+<code>R.NewEnv</code>*</td>
+<td>
+<code>SEXP R_NewEnv(SEXP enclos, int hash, int size)</code> <span style="color: gray; font-style: italic;">added in 4.1.0</span>
+</td>
+</tr>
+<tr class="odd">
+<td>
+<code>R.ParentEnv</code>*</td>
+<td>
+<code>SEXP R_ParentEnv(SEXP x)</code> <span style="color: gray; font-style: italic;">added in 4.5.0</span>
+</td>
+</tr>
+<tr class="even">
+<td><code>R.PreserveObject</code></td>
+<td><code>void R_PreserveObject(SEXP object)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.PROTECT</code></td>
+<td><code>SEXP Rf_protect(SEXP s)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.RAW</code></td>
+<td><code>Rbyte* RAW(SEXP x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.ReadConsole</code></td>
+<td><code>int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.REAL</code></td>
+<td><code>double* REAL(SEXP x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.ReleaseObject</code></td>
+<td><code>void R_ReleaseObject(SEXP object)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.removeVarFromFrame</code></td>
+<td><code>void R_removeVarFromFrame(SEXP name, SEXP env)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.ScalarInteger</code></td>
+<td><code>SEXP Rf_ScalarInteger(int x)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.ScalarLogical</code></td>
+<td><code>SEXP Rf_ScalarLogical(int x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.ScalarReal</code></td>
+<td><code>SEXP Rf_ScalarReal(double x)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.ScalarString</code></td>
+<td><code>SEXP Rf_ScalarString(SEXP x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.SET_STRING_ELT</code></td>
+<td><code>void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.SET_VECTOR_ELT</code></td>
+<td><code>SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.setAttrib</code></td>
+<td><code>SEXP Rf_setAttrib(SEXP vec, SEXP name, SEXP val)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.SHALLOW_DUPLICATE_ATTRIB</code></td>
+<td><code>void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.STRING_ELT</code></td>
+<td><code>SEXP STRING_ELT(SEXP x, R_xlen_t i)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.STRING_PTR_RO</code></td>
+<td><code>const SEXP* STRING_PTR_RO(SEXP x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.type2char</code></td>
+<td><code>const char* Rf_type2char(SEXPTYPE t)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.TYPEOF</code></td>
+<td><code>int TYPEOF(SEXP x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.UNPROTECT</code></td>
+<td><code>void Rf_unprotect(int l)</code></td>
+</tr>
+<tr class="even">
+<td><code>R.VECTOR_ELT</code></td>
+<td><code>SEXP VECTOR_ELT(SEXP x, R_xlen_t i)</code></td>
+</tr>
+</tbody>
+</table>
+<!-- end R API --><p>* Entries marked with an asterisk were not present in R 4.0.0 (the
+minimum R version that <strong>luajr</strong> supports), but were added
+in later versions (as described in the table). However, they will work
+with any version of R (from 4.0.0 onward) because <strong>luajr</strong>
+implements backwards-compatible versions of these functions.</p>
+<p>In addition to the functions above, the <code>R.lua</code> module
+provides some convenience functions to wrap some helpful operations.</p>
+<p><strong><code>R.length(x)</code></strong></p>
+<p>Returns the length of <code>SEXP x</code> as a Lua number. This is a
+wrapper for <code>Rf_xlength()</code> that converts the result from R’s
+64-bit length type to a Lua number. You can use this anywhere you would
+normally use <code>Rf_length()</code> or <code>Rf_xlength()</code> in
+C.</p>
+<p><strong><code>R.type_string(x)</code></strong></p>
+<p>Returns the SEXP type of <code>SEXP x</code> as a Lua string. This is
+a wrapper for <code>Rf_type2char(TYPEOF(x))</code>.</p>
+<p><strong><code>R.set_parent(env, parent)</code></strong></p>
+<p>Sets the parent environment of <code>SEXP env</code>, an
+<code>ENVSXP</code>, to the <code>ENVSXP</code> <code>parent</code>.
+This calls into R’s <code>parent.env&lt;-</code> function because the R
+C API does not currently provide a setter for environment parents.</p>
+</div>
+<div class="section level2">
+<h2 id="constants">Constants<a class="anchor" aria-label="anchor" href="#constants"></a>
+</h2>
+<p>Common R constants are exposed as follows:</p>
+<table class="table">
+<thead><tr class="header">
+<th>Lua name</th>
+<th>C source</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>R.TRUE</code></td>
+<td><code>1</code></td>
+</tr>
+<tr class="even">
+<td><code>R.FALSE</code></td>
+<td><code>0</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.NilValue</code></td>
+<td><code>R_NilValue</code></td>
+</tr>
+<tr class="even">
+<td><code>R.NA_LOGICAL</code></td>
+<td><code>R_NaInt</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.NA_INTEGER</code></td>
+<td><code>R_NaInt</code></td>
+</tr>
+<tr class="even">
+<td><code>R.NA_REAL</code></td>
+<td><code>R_NaReal</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.NA_STRING</code></td>
+<td><code>R_NaString</code></td>
+</tr>
+<tr class="even">
+<td><code>R.UnboundValue</code></td>
+<td><code>R_UnboundValue</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.MissingArg</code></td>
+<td><code>R_MissingArg</code></td>
+</tr>
+<tr class="even">
+<td><code>R.GlobalEnv</code></td>
+<td><code>R_GlobalEnv</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.EmptyEnv</code></td>
+<td><code>R_EmptyEnv</code></td>
+</tr>
+<tr class="even">
+<td><code>R.BaseEnv</code></td>
+<td><code>R_BaseEnv</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.BlankString</code></td>
+<td><code>R_BlankString</code></td>
+</tr>
+<tr class="even">
+<td><code>R.NamesSymbol</code></td>
+<td><code>R_NamesSymbol</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.ClassSymbol</code></td>
+<td><code>R_ClassSymbol</code></td>
+</tr>
+<tr class="even">
+<td><code>R.DimSymbol</code></td>
+<td><code>R_DimSymbol</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.DimNamesSymbol</code></td>
+<td><code>R_DimNamesSymbol</code></td>
+</tr>
+<tr class="even">
+<td><code>R.RowNamesSymbol</code></td>
+<td><code>R_RowNamesSymbol</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.NamespaceRegistry</code></td>
+<td><code>R_NamespaceRegistry</code></td>
+</tr>
+</tbody>
+</table>
+<p>In addition to the above, there is also a variable
+<code>R.version</code> that holds the current R version as an integer in
+the form <code>MMmmpp</code> (MM = major, mm = minor, pp = patch). For
+example, R 4.6.0 is <code>040600</code> and R 4.0.5 is
+<code>040005</code>.</p>
+<p>The R type codes (<code>SEXPTYPE</code>s) are also exposed as Lua
+numbers. These correspond to the values returned by
+<code>R.TYPEOF(x)</code>:</p>
+<table class="table">
+<thead><tr class="header">
+<th>Lua name</th>
+<th>Value</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>R.NILSXP</code></td>
+<td>0</td>
+<td>NULL</td>
+</tr>
+<tr class="even">
+<td><code>R.SYMSXP</code></td>
+<td>1</td>
+<td>symbols</td>
+</tr>
+<tr class="odd">
+<td><code>R.LISTSXP</code></td>
+<td>2</td>
+<td>pairlists</td>
+</tr>
+<tr class="even">
+<td><code>R.CLOSXP</code></td>
+<td>3</td>
+<td>closures</td>
+</tr>
+<tr class="odd">
+<td><code>R.ENVSXP</code></td>
+<td>4</td>
+<td>environments</td>
+</tr>
+<tr class="even">
+<td><code>R.PROMSXP</code></td>
+<td>5</td>
+<td>promises</td>
+</tr>
+<tr class="odd">
+<td><code>R.LANGSXP</code></td>
+<td>6</td>
+<td>language objects</td>
+</tr>
+<tr class="even">
+<td><code>R.SPECIALSXP</code></td>
+<td>7</td>
+<td>special functions</td>
+</tr>
+<tr class="odd">
+<td><code>R.BUILTINSXP</code></td>
+<td>8</td>
+<td>builtin functions</td>
+</tr>
+<tr class="even">
+<td><code>R.CHARSXP</code></td>
+<td>9</td>
+<td>internal character strings</td>
+</tr>
+<tr class="odd">
+<td><code>R.LGLSXP</code></td>
+<td>10</td>
+<td>logical vectors</td>
+</tr>
+<tr class="even">
+<td><code>R.INTSXP</code></td>
+<td>13</td>
+<td>integer vectors</td>
+</tr>
+<tr class="odd">
+<td><code>R.REALSXP</code></td>
+<td>14</td>
+<td>numeric vectors</td>
+</tr>
+<tr class="even">
+<td><code>R.CPLXSXP</code></td>
+<td>15</td>
+<td>complex vectors</td>
+</tr>
+<tr class="odd">
+<td><code>R.STRSXP</code></td>
+<td>16</td>
+<td>character vectors</td>
+</tr>
+<tr class="even">
+<td><code>R.DOTSXP</code></td>
+<td>17</td>
+<td>dot-dot-dot object</td>
+</tr>
+<tr class="odd">
+<td><code>R.ANYSXP</code></td>
+<td>18</td>
+<td>make “any” args work</td>
+</tr>
+<tr class="even">
+<td><code>R.VECSXP</code></td>
+<td>19</td>
+<td>list (generic vector)</td>
+</tr>
+<tr class="odd">
+<td><code>R.EXPRSXP</code></td>
+<td>20</td>
+<td>expression vector</td>
+</tr>
+<tr class="even">
+<td><code>R.BCODESXP</code></td>
+<td>21</td>
+<td>byte code</td>
+</tr>
+<tr class="odd">
+<td><code>R.EXTPTRSXP</code></td>
+<td>22</td>
+<td>external pointer</td>
+</tr>
+<tr class="even">
+<td><code>R.WEAKREFSXP</code></td>
+<td>23</td>
+<td>weak reference</td>
+</tr>
+<tr class="odd">
+<td><code>R.RAWSXP</code></td>
+<td>24</td>
+<td>raw vector</td>
+</tr>
+<tr class="even">
+<td><code>R.OBJSXP</code></td>
+<td>25</td>
+<td>objects not of simple type</td>
+</tr>
+</tbody>
+</table>
+<p>If all of this makes sense to you, then enjoy and happy coding. If
+not, then stick to using <a href="luajr-module.html">The luajr.lua
+module</a> and don’t worry about it too much – you probably don’t need
+this anyway!</p>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

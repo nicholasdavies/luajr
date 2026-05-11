@@ -1,5 +1,5 @@
 ---
-title: "Introduction to `luajr`"
+title: "Introduction to luajr"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Introduction to `luajr`}
