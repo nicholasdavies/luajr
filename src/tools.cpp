@@ -371,7 +371,7 @@ void luajr_profile_collect(lua_State* L)
         lua_pushnil(L);
         while (lua_next(L, -2) != 0)
         {
-            auto [it, inserted] = profile_pool.insert(lua_tostring(L, -1));
+            auto it = profile_pool.insert(lua_tostring(L, -1)).first;
             pd->second.push_back(it);
             lua_pop(L, 1);
         }
