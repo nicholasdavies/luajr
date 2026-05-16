@@ -32,7 +32,7 @@ usethis::write_union("./.Rbuildignore", "^local$")
 # usethis::use_package("rlang")
 
 # Add vignette
-usethis::use_vignette("R-module")
+usethis::use_vignette("benchmarks")
 
 # R Lua API
 source("./local/add_rapi.R")

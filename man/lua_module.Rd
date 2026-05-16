@@ -95,7 +95,10 @@ mymod$L <- my_state
 
 If you are creating a package and you want to load your module into a
 specific Lua state, you will need to create that state and assign it to
-\code{module$L} after the package is loaded, probably by using \code{\link[=.onLoad]{.onLoad()}}.
+\code{module$L} after the package is loaded, probably by using \code{\link[=.onLoad]{.onLoad()}}. An
+assignment to \code{module$L} only works when done before any module functions or
+variables are used; after the first use of any module value, changing
+\code{module$L} has no effect.
 }
 
 \section{Importing functions}{

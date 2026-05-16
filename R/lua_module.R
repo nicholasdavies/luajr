@@ -65,7 +65,10 @@
 #'
 #' If you are creating a package and you want to load your module into a
 #' specific Lua state, you will need to create that state and assign it to
-#' `module$L` after the package is loaded, probably by using [.onLoad()].
+#' `module$L` after the package is loaded, probably by using [.onLoad()]. An
+#' assignment to `module$L` only works when done before any module functions or
+#' variables are used; after the first use of any module value, changing
+#' `module$L` has no effect.
 #'
 #' @section Importing functions:
 #'

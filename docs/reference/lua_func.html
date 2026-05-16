@@ -29,6 +29,7 @@ pointer to a Lua function (see examples)."></head><body>
     <li><a class="dropdown-item" href="../articles/luajr-module.html">The luajr.lua module</a></li>
     <li><a class="dropdown-item" href="../articles/R-module.html">The R.lua module</a></li>
     <li><a class="dropdown-item" href="../articles/modules.html">Create your own modules</a></li>
+    <li><a class="dropdown-item" href="../articles/benchmarks.html">Benchmarks</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -85,8 +86,7 @@ uses the default Lua state for <span class="pkg">luajr</span>.</p></dd>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Any R type can be passed to a Lua function. The R types that have special
 support in <span class="pkg">luajr</span> are: <code>NULL</code>, logical vector, integer vector, numeric
-vector, character vector, list, function, environment, external pointer, and
-raw.</p>
+vector, character vector, list, function, environment, and external pointer.</p>
 <p>The parameter <code>argcode</code> is a string that specifies type handling for each
 argument of the Lua function. The last type is repeated when there are more
 arguments than specified types.</p>
@@ -109,10 +109,11 @@ table. <code>pointer</code> or <code>P</code> passes an external pointer (EXTPTR
 light userdata. The argcode <code>native</code> selects the closest available native
 type.</p>
 <p>Additionally, the prefix <code>$</code> specifies that the type should be passed as a
-Lua native type. So <code>$auto</code> is equivalent to <code>native</code> and <code>$C</code> is a Lua
-string.</p>
+Lua native type. So <code>$auto</code> is equivalent to <code>native</code> and <code>$C</code> is equivalent
+to <code>string</code>.</p>
 <p>The prefix <code>!</code> specifies strict type handling (i.e., error if the type cannot
-be converted).</p>
+be converted). <code>!</code> also yields an error on passing <code>NULL</code> if the argcode
+specifies a Lua native type (otherwise, <code>NULL</code> gets passed as Lua <code>nil</code>).</p>
 <p>The prefix <code>&amp;</code> can be used with logical, integer, numeric, character, or
 generic (list) vectors and specifies that the value should be passed
 <strong>by reference</strong>. Vectors passed by reference can have their elements
@@ -148,7 +149,7 @@ as the <code>func</code> argument.</p>
 <span class="r-in"><span><span class="co"># use with an external pointer to a Lua function</span></span></span>
 <span class="r-in"><span><span class="va">times2ptr</span> <span class="op">&lt;-</span> <span class="fu"><a href="lua.html">lua</a></span><span class="op">(</span><span class="st">"return function(x) return 2 * x end"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">times2ptr</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;pointer: 0x106760050&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;pointer: 0x10ce4ac90&gt;</span>
 <span class="r-in"><span><span class="va">times2</span> <span class="op">&lt;-</span> <span class="fu">lua_func</span><span class="op">(</span><span class="va">times2ptr</span>, <span class="st">"$."</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu">times2</span><span class="op">(</span><span class="fl">14</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 28</span>

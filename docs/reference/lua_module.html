@@ -31,6 +31,7 @@ set and get other (non-function) values stored in the Lua module table."></head>
     <li><a class="dropdown-item" href="../articles/luajr-module.html">The luajr.lua module</a></li>
     <li><a class="dropdown-item" href="../articles/R-module.html">The R.lua module</a></li>
     <li><a class="dropdown-item" href="../articles/modules.html">Create your own modules</a></li>
+    <li><a class="dropdown-item" href="../articles/benchmarks.html">Benchmarks</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -152,7 +153,10 @@ it:</p>
 <span><span class="va">mymod</span><span class="op">$</span><span class="va">L</span> <span class="op">&lt;-</span> <span class="va">my_state</span></span></code></pre><p></p></div>
 <p>If you are creating a package and you want to load your module into a
 specific Lua state, you will need to create that state and assign it to
-<code>module$L</code> after the package is loaded, probably by using <code><a href="https://rdrr.io/r/base/ns-hooks.html" class="external-link">.onLoad()</a></code>.</p>
+<code>module$L</code> after the package is loaded, probably by using <code><a href="https://rdrr.io/r/base/ns-hooks.html" class="external-link">.onLoad()</a></code>. An
+assignment to <code>module$L</code> only works when done before any module functions or
+variables are used; after the first use of any module value, changing
+<code>module$L</code> has no effect.</p>
     </div>
     <div class="section level2">
     <h2 id="importing-functions">Importing functions<a class="anchor" aria-label="anchor" href="#importing-functions"></a></h2>

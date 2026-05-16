@@ -2,11 +2,12 @@ pandoc: 3.6.3
 pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
+  benchmarks: benchmarks.html
   luajr-module: luajr-module.html
   luajr: luajr.html
   modules: modules.html
   R-module: R-module.html
-last_built: 2026-05-11T20:25Z
+last_built: 2026-05-16T07:35Z
 urls:
   reference: https://nicholasdavies.github.io/luajr/reference
   article: https://nicholasdavies.github.io/luajr/articles

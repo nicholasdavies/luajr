@@ -10,8 +10,7 @@ lua_open()
 External pointer wrapping the newly created Lua state.
 }
 \description{
-Creates a new, empty Lua state and returns an external pointer wrapping that
-state.
+Creates a new Lua state and returns an external pointer wrapping that state.
 }
 \details{
 All Lua code is executed within a given Lua state. A Lua state is similar to

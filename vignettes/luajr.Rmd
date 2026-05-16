@@ -2,7 +2,7 @@
 title: "Introduction to luajr"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to `luajr`}
+  %\VignetteIndexEntry{Introduction to luajr}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,20 +14,18 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Warning
-
-This vignette has not been updated yet for luajr 0.2.2.9000 (in development).
-
-`luajr` allows you to run [Lua](https://www.lua.org) code from R.
+**luajr** allows you to run [Lua](https://www.lua.org) code from R.
 
 Lua is a lightweight, simple, and fast scripting language that is used in a 
 variety of settings. The standard Lua interpreter is already reasonably fast, 
 but there is also a just-in-time compiler for Lua called 
-[LuaJIT](https://luajit.org) that is even faster. `luajr` uses LuaJIT.
+[LuaJIT](https://luajit.org) that is even faster. **luajr** uses LuaJIT.
 
 This is **not** a guide to Lua or LuaJIT; it is a quick-start guide to 
-`luajr` for people who already know how to program in Lua. See the 
-[Lua web site](https://www.lua.org) for resources related to coding in Lua.
+**luajr** for people who already know how to program in Lua. See the 
+[Lua web site](https://www.lua.org) for resources related to coding in Lua,
+and the [LuaJIT web site](https://www.luajit.org) for resources related to
+LuaJIT itself.
 
 ## Running Lua code: `lua()` and `lua_shell()`
 
@@ -35,7 +33,7 @@ This is **not** a guide to Lua or LuaJIT; it is a quick-start guide to
 library(luajr)
 ```
 
-To get a feel for `luajr` or to run "one-off" Lua code from your R project, 
+To get a feel for **luajr** or to run "one-off" Lua code from your R project, 
 use `lua()` and `lua_shell()`.
 
 When you pass a character string to `lua()`, it is run as Lua code:
@@ -51,7 +49,7 @@ lua("my_animal = 'walrus'")
 lua("return my_animal")
 ```
 
-This is because `luajr` maintains a "default Lua state" which holds all global 
+This is because **luajr** maintains a "default Lua state" which holds all global 
 variables. This default Lua state is opened the first time a package function
 is used. You can create your own, separate Lua states, or reset the default Lua
 state (see [Lua states](#states), below).
@@ -78,11 +76,11 @@ You can also use the `filename` argument to `lua()` to load and run a Lua
 source file, instead of running the contents of a string.
 
 Call `lua_shell()` to open an interactive Lua shell at the R prompt. This can 
-can be helpful for debugging or for testing Lua statements.
+be helpful for debugging or for testing Lua statements.
 
 ## Calling Lua functions from R: `lua_func()`
 
-The key piece of functionality for `luajr` is probably `lua_func()`. This 
+The key piece of functionality for **luajr** is probably `lua_func()`. This 
 allows you to call Lua functions from R.
 
 The first argument to `lua_func()`, `func`, is a string that should evaluate to 
@@ -91,27 +89,26 @@ that Lua function from R. For example, you can use `lua_func()` to access an
 existing Lua function from R:
 
 ```{r}
-luatype = lua_func("type")
-luatype(TRUE)
+luaprint = lua_func("print")
+luaprint("Hello, world")
 ```
 
-Here, `"type"` is just referring to the built-in Lua function `type` which 
-returns a string describing the Lua type of the value passed to it. You can also
-use `lua_func()` to refer to a previously defined function in the default Lua 
-state:
+Here, `"print"` is just referring to the built-in Lua function `print` which 
+prints a Lua value to the console. You can also use `lua_func()` to refer to a 
+previously defined function in the default Lua state:
 
 ```{r}
-lua("function squared(x) return x^2 end")
-lua("return squared(4)")
+lua("function excited_print(x) print(x .. '!') end")
+lua("return excited_print('Hello, world')")
 
-sq = lua_func("squared", "$.")
-sq(8)
+xp = lua_func("excited_print", "native")
+xp("Wow")
 ```
 
 Or you can use `lua_func()` to define an anonymous Lua function:
 
 ```{r}
-timestwo = lua_func("function(x) return x*2 end", "$.")
+timestwo = lua_func("function(x) return x*2 end", "native")
 timestwo(123)
 ```
 
@@ -121,55 +118,94 @@ result as the function.
 
 The second argument to `lua_func()`, `argcode`, is also very important. 
 `argcode` determines how the arguments passed to the function from R are 
-translated into Lua values for use inside the function. 
+translated into Lua variables for use inside the function. 
+
+The most important argcodes are `"auto"` and `"native"`. 
+
+The argcode `"auto"` means that the parameter should be passed as a **luajr** 
+type providing direct access to the R variable passed in. For example, with the 
+argcode `"auto"`, an R numeric vector is passed as a `luajr.numeric` type, an R 
+character vector is passed as a `luajr.character` type, and an R function is 
+passed as a `luajr.Rfunction type`. For a guide to `luajr` types, see the 
+vignette [The luajr.lua module](luajr-module.html)
+
+The argcode `"native"` means that the R value passed in should be converted to 
+a native Lua type. For example, with the argcode `"native"`, a single number in
+R like `2.5` is passed as a Lua number, a single string like `"foo"` is passed 
+as a Lua string, and a list like `list(a = 1, b = 2)` or a vector like `10:12`
+is passed as a Lua table.
+
+For example, suppose you want to pass the R numeric vector `c(1.1, 3.3, 2.2)` 
+into a Lua function from which you will return the biggest number in the vector.
+If you want the numeric vector to come into your function as a `luajr.numeric` 
+type, you could write:
+
+```r
+x = c(1.1, 3.3, 2.2)
+my_max = lua_func("
+function(x)
+    local max = nil
+    for i = 1,#x do
+        if max == nil or x[i] > max then
+            max = x[i]
+        end
+    end
+    return max
+end", "auto")
+my_max(x)
+```
+
+If you want the numeric vector to come into your function as a Lua table, you
+could write:
+
+```r
+x = c(1.1, 3.3, 2.2)
+my_max = lua_func("
+function(x)
+    return math.max(unpack(x))
+end", "native")
+my_max(x)
+```
+
+where the above example takes advantage of Lua's built-in `math.max` function
+that returns the biggest element from among all the arguments passed in.
 
 The permissible arg codes are:
 
- * `'s'`: **s**implest Lua type (the default)
- * `'a'`: **a**rray type
- * `'1'`: same as `'s'`, but require that the argument has length 1
- * ...
- * `'9'`: same as `'s'`, but require that the argument has length 9
- * `'v'`: pass by **v**alue
- * `'r'`: pass by **r**eference
- * `'x'`: pass as a bare SE**X**P (raw R object pointer)
- 
-The kinds of R values that can be passed to Lua functions, and their behaviour
-under different arg codes, is summarized in the following table:
+|Arg code         |Short form|Accepted R types |Resulting Lua type |
+|:----|:---|:----------|:-----|
+|`auto`           |`.`       |any | |
+|`sexp`           |`S`       |any |`R.sexp` |
+|`rfunction`      |`F`       |function |`luajr.rfunction` |
+|`environment`    |`E`       |environment |`luajr.environment` |
+|`logical`        |`L`       |logical |`luajr.logical` |
+|`integer`        |`I`       |integer, numeric (coerced) |`luajr.integer` |
+|`numeric`        |`N`       |numeric, integer (coerced) |`luajr.numeric` |
+|`character`      |`C`       |character |`luajr.character` |
+|`vector`, `list` |`V`       |list |`luajr.list` |
+|`pointer`        |`P`       |external pointer |light `userdata`|
+|`native`         |`$.`      |any native-compatible type | |
+|`function`       |`$F`      |function or external pointer to Lua function |`function` |
+|`boolean`        |`$L`      |length-1 logical |`boolean` |
+|`number`         |`$N`      |length-1 integer or numeric |`number` |
+|`string`         |`$C`      |length-1 character |`string` |
+|`table`          |`$V`      |list or atomic vector |`table` |
 
-|R type          |Example R value |**arg code** 's' | 'a'             | '1'        |'2'              | 'v'                                         | 'r'                                           |
-|:--------------:|:--------------:|-----------------|-----------------|------------|-----------------|---------------------------------------------|-----------------------------------------------|
-|`NULL`          |`NULL`          |`nil`            |`nil`            |`nil`       |`nil`            |`nil`                                        |`nil`                                          |
-|`logical(1)`    |`TRUE`          |`true`           |`{true}`         |`true`      |**error**        |`luajr.logical({true})`                      |`luajr.logical_r({true})`                      |
-|`integer(1)`    |`1L`            |`1`              |`{1}`            |`1`         |**error**        |`luajr.integer({1})`                         |`luajr.integer_r({1})`                         |
-|`numeric(1)`    |`3.14159`       |`3.14159`        |`{3.14159}`      |`3.14149`   |**error**        |`luajr.numeric({3.14159})`                   |`luajr.numeric_r({3.14159})`                   |
-|`character(1)`  |`"howdy"`       |`"howdy"`        |`{"howdy"}`      |`"howdy"`   |**error**        |`luajr.character({"howdy"})`                 |`luajr.character_r({"howdy"})`                 |
-|`logical(nn)`   |`c(TRUE, FALSE)`|`{true, false}`  |`{true, false}`  |**error**   |`{true, false}`  |`luajr.logical({true, false})`               |`luajr.logical_r({true, false})`               |
-|`integer(nn)`   |`1:2`           |`{1, 2}`         |`{1.0, 2.0}`     |**error**   |`{1.0, 2.0}`     |`luajr.integer({1, 2})`                      |`luajr.integer_r({1, 2})`                      |
-|`numeric(nn)`   |`exp(0:1)`      |`{1, 2.71828...}`|`{1, 2.71828...}`|**error**   |`{1, 2.71828...}`|`luajr.numeric({1, 2.71828...})`             |`luajr.numeric_r({1, 2.71828...})`             |
-|`character(nn)` |`letters[1:2]`  |`{"a", "b"}`     |`{"a", "b"}`     |**error**   |`{"a", "b"}`     |`luajr.character({"a", "b"})`                |`luajr.character_r({"a", "b"})`                |
-|`list(...)`     |`list(1, b='b')`|`{[1]=1, b='b'}` |**error**        |**error**   |**error**        |`x = luajr.list(); x[1] = luajr.numeric({1});`<br/>`x.b = luajr.character({'b'}); return x`|`x = luajr.list(); x[1] = luajr.numeric_r({1});`<br/>`x.b = luajr.character_r({'b'}); return x`|
-|external pointer|`lua_open()`    |`userdata:…`     |`userdata:…`     |`userdata:…`|`userdata:…`     |`userdata:…`                                 |`userdata:…`                                   |
+Arg codes should be separated from each other by a comma, semicolon, or space 
+within the string. "Short form" arg codes do not need to be separated. For 
+example, `"S$L"` is equivalent to `"sexp, boolean"`. 
 
-Above, `nn` stands for an integer that is greater than 1; in the examples, it
-stands specifically for 2.
+Above, the `$` prefix specifies "native type".
 
-The `'x'` arg code is not shown in the table above. For any R type, `'x'`
-passes the value as a bare SEXP (i.e. the raw R object pointer). This bypasses
-all type-specific conversions and is intended for use with the `R` Lua module
-(loaded via `require("R")`).
+There is also the `!` prefix, which can be used to specify "strict" mode. In 
+"strict" mode, there is no coercion between integer and numeric types, and 
+`NULL` yields an error instead of `nil` when a Lua native type is requested.
 
-There should be one character in `argcode` for every argument of the function, 
-but the string is "recycled" when there are more arguments passed than 
-characters in the `argcode` string. So, for example, just passing `"s"` as 
-`argcode` means all parameters will be passed as the **s**implest Lua type,
-while if `argcode` is `"sr"`, then the first argument has arg code `"s"`, the
-second argument has arg code `"r"`, the third argument has arg code `"s"`, etc.
-
-When a vector (logical vector, integer vector, numeric vector, or character 
-vector) is passed from R to Lua by **r**eference, modifications made to the
-elements of that passed-in vector persist back in the R calling frame. For
-example:
+The `&` prefix can be used to specify that an R vector type should be passed
+by reference. When a vector (logical vector, integer vector, numeric vector, 
+character vector, or list) is passed from R to Lua by reference, modifications 
+made to the elements of that passed-in vector persist back in the R calling 
+frame. For example:
 
 ```{r}
 values = c(1.0, 2.0, 3.0)
@@ -184,253 +220,6 @@ print(values)
 
 Vectors can never be resized by reference; only their already-existing elements
 can be changed by reference.
-
-Lists are always passed by value, but their vector elements can be either passed
-by value or by reference depending on the arg code. In order to make changes to
-a list, it needs to be returned to the calling function. For example:
-
-```{r}
-x = list(1)
-
-f1 = lua_func("function(x) x[1][1] = 999; x:set('a', 42); end", ".")
-f1(x)
-print(x)
-```
-
-Note that in the examples above, we modify `x[1][1]`, not just `x[1]`. That is 
-because, even when lists are passed by reference, we need to modify specific 
-elements of their vector elements if we want to make changes by reference.
-Setting `x[1] = 999` would only reassign an element of the list `x`, and lists
-cannot be passed by reference itself, so this would have no effect on the R
-object passed in. By contrast, setting `x[1][1] = 999` modifies the passed-in 
-vector `x[1]`, which can be passed in by reference, so this does change the R
-object that is passed in.
-
-To modify a list, we have to return its new value from the function:
-
-```{r}
-x = list(1)
-
-f3 = lua_func("function(x) x[1][1] = 999; x:set('a', 42); return x; end", ".")
-x = f3(x)
-print(x)
-
-f4 = lua_func("function(x) x[1] = luajr.numeric({888, 999}); return x; end", ".")
-x = f4(x)
-print(x)
-```
-
-Here, because we are returning a modified value, we can add elements to the list
-(`f3`) and change whole entries of the list (`f4`).
-
-## Benchmarking
-
-In the same way that using R packages 
-[`cpp11`](https://CRAN.R-project.org/package=cpp11) or 
-[`Rcpp`](https://CRAN.R-project.org/package=Rcpp) allows you to 
-bridge your R code with C++ code that runs faster than R, you can use `luajr` 
-to bridge your R code with Lua code that runs faster than R.
-
-In general, C/C++ code runs about 5-1,000 times faster than the equivalent R 
-code.
-
-In my experience, `luajr` code often presents a similar speedup, about the 
-same as C/C++ code, or in the worst case, maybe half as fast. Sometimes 
-`luajr` code can be faster than C/C++, though usually it isn't quite as good. 
-
-Why use `luajr` then? `Rcpp` and `cpp11` require a C++ toolchain (e.g. 
-gcc, clang, etc.) and requires long compilation times, whereas `luajr` 
-doesn't. This means that `luajr` is usable when a C++ compiler isn't 
-available, or when compilation times are prohibitive or an annoyance.
-
-In the following section, we look at two aspects of benchmarking. In the first
-example, we compare different ways of passing vectors to Lua functions relative
-to R. In the second example, we compare more fundamentally the difference in
-running a whole algorithm in Lua versus R versus C++ with `Rcpp`. 
-
-### Parameter passing example: sum of squares
-
-For reasonably long vectors, passing by reference (`'r'`) is faster than passing 
-by value (`'v'`), which is faster than passing by simplify (`'s'`, `'a'`, or 
-`'1'`&ndash;`'9'`). But for relatively short vectors, passing by simplify can 
-avoid some overhead, and for very simple operations on very short vectors, it 
-might not be worth using Lua at all.
-
-To illustrate the above points, here is some code that takes a numeric vector 
-and calculates the sum of squares, comparing a pure R function with three 
-alternatives written in Lua, respectively passing the vector by reference, by 
-value, and by simplify.
-
-```{r}
-v1 = rnorm(1e1)
-v4 = rnorm(1e4)
-v7 = rnorm(1e7)
-
-lua("sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end")
-sum2 = function(x) sum(x*x)
-sum2_r = lua_func("sum2", "&.")
-sum2_v = lua_func("sum2", ".")
-sum2_s = lua_func("sum2", "$.")
-
-# Comparing the results of each function:
-sum2(v1)    # Pure R version
-sum2_r(v1)  # luajr pass-by-reference
-sum2_v(v1)  # luajr pass-by-value
-sum2_s(v1)  # luajr pass-by-simplify
-```
-
-The time taken to sum `v1`, `v4` and `v7`, depending upon the function kind, on 
-a 2019-era MacBook Pro is summarised in this table:
-
-|Call            |Number of summands | Method                    | Median runtime |
-|:---------------|:-----------------:|:-------------------------:|---------------:|
-|`sum2(v1)`      | 10                | Pure R                    |       **1 µs** |
-|`sum2_r(v1)`    | 10                | `luajr` pass by reference |         6 µs   |
-|`sum2_v(v1)`    | 10                | `luajr` pass by value     |         7 µs   |
-|`sum2_s(v1)`    | 10                | `luajr` pass by simplify  |         4 µs   |
-|                |                   |                           |                |
-|`sum2(v4)`      | 10,000            | Pure R                    |        63 µs   |
-|`sum2_r(v4)`    | 10,000            | `luajr` pass by reference |      **18 µs** |
-|`sum2_v(v4)`    | 10,000            | `luajr` pass by value     |        93 µs   |
-|`sum2_s(v4)`    | 10,000            | `luajr` pass by simplify  |        78 µs   |
-|                |                   |                           |                |
-|`sum2(v7)`      | 10,000,000        | Pure R                    |    49,000 µs   |
-|`sum2_r(v7)`    | 10,000,000        | `luajr` pass by reference |  **13,000 µs** |
-|`sum2_v(v7)`    | 10,000,000        | `luajr` pass by value     |    96,000 µs   |
-|`sum2_s(v7)`    | 10,000,000        | `luajr` pass by simplify  |   124,000 µs   |
-
-When the vector is 10 elements long, the R version wins handily.
-
-When the vector is 10,000 elements long, the pass-by-reference Lua version is
-fastest, but the other methods are all comparable.
-
-When the vector is 10,000,000 elements long, the story is similar. 
-
-This is an example where `luajr` doesn't add that much speed&mdash;the 
-function is relatively short, and there is a certain amount of overhead in 
-invoking it, while the R function doesn't have the overhead of transferring 
-control between languages.
-
-### Processing time example: logistic map
-
-Consider the following:
-
-```{r}
-logistic_map_R = function(x0, burn, iter, A)
-{
-    result_x = numeric(length(A) * iter)
-    
-    j = 1
-    for (a in A) {
-        x = x0
-        for (i in 1:burn) { 
-            x = a * x * (1 - x)
-        }
-        for (i in 1:iter) { 
-            result_x[j] = x
-            x = a * x * (1 - x)
-            j = j + 1
-        }
-    }
-    
-    return (list2DF(list(a = rep(A, each = iter), x = result_x)))
-}
-
-logistic_map_L = lua_func(
-"function(x0, burn, iter, A)
-    local dflen = #A * iter
-    local aa = luajr.numeric(dflen, 0)
-    local xx = luajr.numeric(dflen, 0)
-    
-    local j = 1
-    for k,a in pairs(A) do
-        local x = x0
-        for i = 1, burn do
-            x = a * x * (1 - x)
-        end
-        for i = 1, iter do
-            aa[j] = a
-            xx[j] = x
-            x = a * x * (1 - x)
-            j = j + 1
-        end
-    end
-    
-    local result = luajr.dataframe()
-    result:set('a', aa)
-    result:set('x', xx)
-    
-    return result
-end", "$., $., $., .")
-
-# To be compiled using Rcpp::cppFunction()
-logistic_map_C =
-'DataFrame logistic_map(double x0, unsigned int burn, unsigned int iter, NumericVector A)
-{
-    unsigned int dflen = A.length() * iter;
-    NumericVector da(dflen, 0);
-    NumericVector dx(dflen, 0);
-    
-    unsigned int j = 0;
-    for (auto a : A)
-    {
-        double x = x0;
-        for (unsigned int i = 0; i < burn; ++i)
-            x = a * x * (1 - x);
-        for (unsigned int i = 0; i < iter; ++i, ++j)
-        {
-            dx[j] = x;
-            da[j] = a;
-            x = a * x * (1 - x);
-        }
-    }
-
-    return DataFrame::create(Named("a") = da, Named("x") = dx);
-}'
-```
-
-Here we are comparing three different versions (R, Lua, C++) of running a 
-parameter sweep of the logistic map, a chaotic dynamical system popularized by 
-Bob May in a [1976 Nature article](https://abel.math.harvard.edu/archive/118r_spring_05/docs/may.pdf).
-The output looks like this:
-
-```{r}
-#| fig.alt: >
-#|   Plot of fixed points of the logistic map chaotic dynamical system.
-#|   The input x-axis value a ranges from 2.0 to 3.85. Between 2.0 and 
-#|   3.0 there is a single fixed point; above 3.0 the fixed points exhibit
-#|   bifurcations and chaotic behaviour.
-logistic_map = logistic_map_L(0.5, 100, 100, 200:385/100)
-plot(logistic_map$a, logistic_map$x, pch = ".")
-```
-
-In the code above, we don't actually compile the C++ code using `Rcpp`, 
-we only declare the source code as an illustration. I don't actually compile 
-the code in this article because I didn't want to have `luajr` depend on 
-`Rcpp` only for the sake of this vignette, but you would do so using
-`Rcpp::cppFunction(logistic_map_C)`.
-
-The times taken by each function on a 2025-era MacBook Pro are as follows:
-
-|Call                                          | Method       | Median runtime |
-|----------------------------------------------|--------------|---------------:|
-|`logistic_map_R(0.5, 100, 100, 200:385/100))` | R function   |       850 µs   |
-|`logistic_map_L(0.5, 100, 100, 200:385/100))` | Lua function |      **80 µs** |
-|`logistic_map_C(0.5, 100, 100, 200:385/100))` | C++ function |       100 µs   |
-
-The version written in Lua is around 10 times faster than the version in R, 
-and even somewhat outperforms `Rcpp`. Note that the relative speed of Lua 
-versus C++ depends on the number of iterations, and whether you use `Rcpp` or
-`cpp11`, which each seem to have marginal advantages in different cases. 
-Nonetheless, the Lua version seems to execute about as quickly as the C++ 
-version, within plus or minus 20%.
-
-The speedup of the Lua function relative to R was much more notable in an 
-earlier test where the R version first created the data frame and then 
-performed the iteration, i.e. with the line `result$x[j] = x` instead of 
-`result_x[j] = x`. The median runtime for that R version was two orders of 
-magnitude slower than the Lua version; the extra overhead associated with 
-`data.frame` methods was pointed out by Tim Taylor.
 
 ## Working with Lua States: `lua_open()`, `lua_reset()` {#states}
 
@@ -452,7 +241,7 @@ lua("return a")
 lua("return a", L = L1)
 ```
 
-There is no `lua_close` in `luajr` because Lua states are closed automatically 
+There is no `lua_close` in **luajr** because Lua states are closed automatically 
 when they are garbage collected in R.
 
 `lua_reset()` resets the default Lua state:

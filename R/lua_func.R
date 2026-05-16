@@ -7,8 +7,7 @@
 #'
 #' Any R type can be passed to a Lua function. The R types that have special
 #' support in \pkg{luajr} are: `NULL`, logical vector, integer vector, numeric
-#' vector, character vector, list, function, environment, external pointer, and
-#' raw.
+#' vector, character vector, list, function, environment, and external pointer.
 #'
 #' The parameter `argcode` is a string that specifies type handling for each
 #' argument of the Lua function. The last type is repeated when there are more
@@ -38,11 +37,12 @@
 #' type.
 #'
 #' Additionally, the prefix `$` specifies that the type should be passed as a
-#' Lua native type. So `$auto` is equivalent to `native` and `$C` is a Lua
-#' string.
+#' Lua native type. So `$auto` is equivalent to `native` and `$C` is equivalent
+#' to `string`.
 #'
 #' The prefix `!` specifies strict type handling (i.e., error if the type cannot
-#' be converted).
+#' be converted). `!` also yields an error on passing `NULL` if the argcode
+#' specifies a Lua native type (otherwise, `NULL` gets passed as Lua `nil`).
 #'
 #' The prefix `&` can be used with logical, integer, numeric, character, or
 #' generic (list) vectors and specifies that the value should be passed

@@ -1,7 +1,6 @@
 #' Create a new Lua state
 #'
-#' Creates a new, empty Lua state and returns an external pointer wrapping that
-#' state.
+#' Creates a new Lua state and returns an external pointer wrapping that state.
 #'
 #' All Lua code is executed within a given Lua state. A Lua state is similar to
 #' the global environment in R, in that it is where all variables and functions

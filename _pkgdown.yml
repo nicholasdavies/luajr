@@ -17,6 +17,8 @@ navbar:
         href: articles/R-module.html
       - text: Create your own modules
         href: articles/modules.html
+      - text: Benchmarks
+        href: articles/benchmarks.html
 reference:
 - title: Package overview
   contents: luajr

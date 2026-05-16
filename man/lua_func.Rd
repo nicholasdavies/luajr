@@ -27,8 +27,7 @@ pointer to a Lua function (see examples).
 \details{
 Any R type can be passed to a Lua function. The R types that have special
 support in \pkg{luajr} are: \code{NULL}, logical vector, integer vector, numeric
-vector, character vector, list, function, environment, external pointer, and
-raw.
+vector, character vector, list, function, environment, and external pointer.
 
 The parameter \code{argcode} is a string that specifies type handling for each
 argument of the Lua function. The last type is repeated when there are more
@@ -58,11 +57,12 @@ light userdata. The argcode \code{native} selects the closest available native
 type.
 
 Additionally, the prefix \code{$} specifies that the type should be passed as a
-Lua native type. So \verb{$auto} is equivalent to \code{native} and \verb{$C} is a Lua
-string.
+Lua native type. So \verb{$auto} is equivalent to \code{native} and \verb{$C} is equivalent
+to \code{string}.
 
 The prefix \code{!} specifies strict type handling (i.e., error if the type cannot
-be converted).
+be converted). \code{!} also yields an error on passing \code{NULL} if the argcode
+specifies a Lua native type (otherwise, \code{NULL} gets passed as Lua \code{nil}).
 
 The prefix \code{&} can be used with logical, integer, numeric, character, or
 generic (list) vectors and specifies that the value should be passed
