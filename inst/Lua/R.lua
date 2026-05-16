@@ -39,6 +39,7 @@ void R_removeVarFromFrame(SEXP name, SEXP env);
 Rbyte* RAW(SEXP x);
 double* REAL(SEXP x);
 SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length);
+SEXP Rf_classgets(SEXP, SEXP);
 SEXP Rf_cons(SEXP car, SEXP cdr);
 void Rf_copyMostAttrib(SEXP inp, SEXP ans);
 void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho);
@@ -161,6 +162,7 @@ end
 -- === R API bindings ===
 R.allocVector = C.Rf_allocVector
 R.CHAR = C.R_CHAR
+R.classgets = C.Rf_classgets
 R.cons = C.Rf_cons
 R.copyMostAttrib = C.Rf_copyMostAttrib
 R.DATAPTR_RO = C.DATAPTR_RO

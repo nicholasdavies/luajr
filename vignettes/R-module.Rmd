@@ -97,6 +97,7 @@ the following R API functions:
 |--|------|
 | `R.allocVector` | `SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length)` |
 | `R.CHAR` | `const char* R_CHAR(SEXP x)` |
+| `R.classgets` | `SEXP Rf_classgets(SEXP, SEXP)` |
 | `R.cons` | `SEXP Rf_cons(SEXP car, SEXP cdr)` |
 | `R.copyMostAttrib` | `void Rf_copyMostAttrib(SEXP inp, SEXP ans)` |
 | `R.DATAPTR_RO` | `const void* DATAPTR_RO(SEXP x)` |

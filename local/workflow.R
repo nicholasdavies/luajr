@@ -36,7 +36,7 @@ usethis::use_vignette("benchmarks")
 
 # R Lua API
 source("./local/add_rapi.R")
-add_rapi("Rf_namesgets")
+add_rapi("Rf_classgets")
 # remove_rapi("")
 # update_rapi_vignette()
 

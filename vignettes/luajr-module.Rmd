@@ -25,59 +25,75 @@ in your Lua code.
 
 ## The `luajr` Lua module
 
-Whenever the `luajr` R package opens a new Lua state, it opens all the 
+Whenever the **luajr** R package opens a new Lua state, it opens all the 
 [standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) in that 
-state, as well as the `luajr` Lua module.
+state, as well as the `luajr.lua` module.
 
-The `luajr` module provides some key capabilities for your Lua code to 
-interface well with R code, particularly around passing R objects to and from 
-Lua code. This vignette documents those capabilities of the `luajr` module.
+The `luajr.lua` module provides some key capabilities for your Lua code to 
+interface well with R code, particularly around working with R variables in 
+your Lua code. This vignette documents those capabilities of the `luajr.lua` 
+module.
 
 Specifically, this vignette describes:
 
-- [Vector types](#vector), which can represent basic R logical vectors, integer 
-  vectors, numeric vectors, and character vectors, and are passed to and from
-  Lua code by value. In other words, when you pass in a vector by value to Lua,
-  and alter its contents in your Lua code, this does not affect your vector in
-  R (same as how it works when you pass a vector to an R function).
-- [Reference types](#reference), another way of working with basic R logical 
-  vectors, integer vectors, numeric vectors, and character vectors, which are
-  passed to and from Lua code by reference. In other words, when you pass in a 
-  vector by reference to Lua, and alter its contents in your Lua code, the 
-  changes **are** reflected directly in the R object you passed in.
-- [List type](#list), which allow you to work with R `list`s in Lua.
-- [Data frame and matrix types](#dfm), which simplify working with R 
-  `data.frame` and `matrix` types.
-- Certain [constants](#constants) defined by the `luajr` module.
-- Considerations when using [long vectors](#longvec) in Lua.
+- [Vector types](#vector), which allow you to use R vectors (logical, integer,
+  numeric, character) and lists.
+- [Additional types](#extra), including environments, R functions, matrices,
+  and data frames.
+- [Constants](#constants) defined by the `luajr` module.
+- [Parallel processing](#parallel) features of the `luajr` module. /ncores, workers/
+- [Utility functions](#utility) for `luajr`. /debugger, luajr.from_sexp, luajr.to_sexp/
+- Considerations for using [long vectors](#longvec) in Lua.
 
 ## Vector types {#vector}
 
-The vector types are modelled after C++'s `std::vector` class. A vector type is
-what you end up with if you pass an argument into a Lua function using
-`lua_func()` with arg code `"v"`, but you can also create new vectors within
-Lua. 
+The vector types are:
 
-Like their C++ counterparts, vector types all maintain an internal "capacity" 
-which is equal to or greater than their "length", or actual number of elements.
-The exception is the character vector, which is implemented internally as a 
-Lua table but has the same interface as the other vector types.
+- `luajr.logical`
+- `luajr.integer`
+- `luajr.numeric`
+- `luajr.character`
+- `luajr.list`
 
-Note that for vector types, indexes start at 1, not at 0. You must be very 
-careful not to access or write out of these bounds, as the `luajr` module does 
-**not** do bounds checking. Going out of bounds will cause crashes or other 
-undefined behaviour. Unlike Lua tables, vector types can only be indexed with 
-integers from 1 to the vector length, not with strings or any other types.
+If you pass an R value into Lua using the argcode `auto`, `logical`, `integer`,
+`numeric`, `character`, or `vector` / `list`, your Lua code will receive a
+**luajr** vector type. You can also create a new vector type in Lua with, for 
+example,
+
+```{lua}
+local my_vec = luajr.numeric({ 1.1, 2.2, 42 })
+```
+
+Here are some of the things you can do in Lua with a vector type variable:
+
+```{lua}
+print(my_vec[3])    -- print the 3rd element of the vector (i.e. 42)
+my_vec[3] = 43      -- change the value of the 3rd element
+local len = #my_vec -- get the length of the vector
+my_vec:clear()      -- erase all elements of the vector
+```
+
+All these and more are described in more detail below.
+
+**Important**: For vector types, indexes start at 1, not at 0, and writing to
+an index that is less than 1 or greater than the length of the vector is
+**undefined behaviour**. You must be very careful not to access or write out of 
+these bounds, as the `luajr` module does not do bounds checking. Going out of 
+bounds will cause crashes. Also note that unlike Lua tables, vector types can 
+only be indexed with integers from 1 to the vector length, not with strings or 
+any other types (although there are methods of getting or setting elements by
+name; see below).
 
 ### Creating and testing vector types {#vcreate}
 
-**`luajr.logical(a, b)`, `luajr.integer(a, b)`, `luajr.numeric(a, b)`, `luajr.character(a, b)`**
+**`luajr.logical(a, b)`, `luajr.integer(a, b)`, `luajr.numeric(a, b)`, `luajr.character(a, b)`, `luajr.list(a, b)`**
 
 These functions can be used to create "vector types" in Lua code. The meaning 
-of `a` and `b` depends on their type. For example:
+of `a` and `b` depends on the type of `a` and `b` and whether both are
+present. Specifically, 
 
 ```lua
-luajr.numeric()     -- Empty numeric vector
+luajr.logical()     -- Size-0 logical vector
 luajr.numeric(n, x) -- Size-n numeric vector, all entries equal to x
 luajr.numeric(v)    -- Copied from vector v
 luajr.numeric(z)    -- Copied from "vector-ish" object z
@@ -343,7 +359,7 @@ data frame.
 A matrix can be created with
 
 ```lua
-df = luajr.matrix_r(nrow, ncol)
+df = luajr.matrix(nrow, ncol, init)
 ```
 
 This is a special kind of `luajr.numeric_r` with the `"dim"` attribute set to
@@ -360,7 +376,7 @@ Note that it is a reference type.
 A data matrix can be created with
 
 ```lua
-dm = luajr.datamatrix_r(nrow, ncol, names)
+dm = luajr.datamatrix_r(nrow, ncol, names, init)
 ```
 
 This is similar to `luajr.matrix_r`, but it has `names` as column names. 
@@ -381,21 +397,21 @@ The column names can be get and set within Lua using the special attribute name
 The following constants are defined in the `luajr` table:
 
 ```lua
-luajr.TRUE
-luajr.FALSE
-luajr.NA_logical_
-luajr.NA_integer_
-luajr.NA_real_
-luajr.NA_character_
-luajr.NULL
+luajr.TRUE          -- defined as 1
+luajr.FALSE         -- defined as 0
+luajr.NA_logical_   -- equal to R.NA_LOGICAL
+luajr.NA_integer_   -- equal to R.NA_INTEGER
+luajr.NA_real_      -- equal to R.NA_REAL
+luajr.NA_character_ -- equal to R.NA_STRING
+luajr.NULL          -- equal to R.NilValue
 ```
 
 Note that Lua's semantics in dealing with logical types and NA values are
 very different from R's semantics. Lua does not "understand" NA values in the
-same way that R does, and it sees the R logical type as fundamentally an
+same way that R does, and `luajr` sees the R logical type as fundamentally an
 integer, not a boolean.
 
-Specifically, whereas in R you could do the following:
+Specifically, whereas in R you can do the following:
 
 ```r
 x = c(TRUE, FALSE, NA)
@@ -432,18 +448,18 @@ for NA in Lua, you have to check if a value is equal to (`==`) or not equal to
 (`~=`) the corresponding NA constant above, depending on the type of the 
 variable in question.
 
-All of this only applies to the vector and reference types described above.
-Lua also has its own boolean type (with possible values `true` and `false`) 
-which will never compare equal with either `luajr.TRUE`, `luajr.FALSE` or any 
-of the NA values. A Lua string can never compare equal with
+All of this only applies only when using R values, e.g. with the vector types
+described above. Lua also has its own boolean type (with possible values `true` 
+and `false`) which will never compare equal with either `luajr.TRUE`, 
+`luajr.FALSE` or any of the NA values. A Lua string can never compare equal with
 `luajr.NA_character_`, but conversely a Lua number may sometimes compare 
 equal with `luajr.NA_logical_`, `luajr.NA_integer_`, or `luajr.NA_real_`, so
 do be careful not to mix Lua types and these R constants.
 
 Finally, `luajr.NULL` can be used to represent a `NULL` value, either on its 
 own or as part of a table or `luajr.list` that gets returned to R. If you pass
-NULL in to Lua through arg code `"s"`, it will come out as `nil` in Lua; but if
-you use arg code `"r"` or `"v"`, it will come out as `luajr.NULL`.
+NULL in to Lua through arg code `"native"`, it will come out as `nil` in Lua; 
+but if you use arg code `"auto"`, it will come out as `luajr.NULL`.
 
 ## Long vectors {#longvec}
 

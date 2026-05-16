@@ -900,6 +900,7 @@ to_sexp = function(v)
     elseif t == "boolean" then return R.ScalarLogical(v)
     elseif t == "number" then return R.ScalarReal(v)
     elseif t == "string" then return R.ScalarString(R.mkChar(v))
+    elseif t == "table" then return luajr.list(v).s
     else
         error("cannot convert " .. t .. " to SEXP", 2)
     end
@@ -913,9 +914,10 @@ vectorish = function(obj)
 end
 
 -- dataframe type
+local df_classname = R.ScalarString(R.mkChar("data.frame"))
 function luajr.dataframe()
     local df = luajr.list()
-    df:set_attr("class", "data.frame")
+    R.classgets(df.s, df_classname)
     return df
 end
 

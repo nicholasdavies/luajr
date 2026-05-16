@@ -86,3 +86,41 @@ test_that("luajr.list :set_attr sets attributes on the underlying SEXP", {
 
     lua_reset()
 })
+
+test_that("luajr.list constructs nested lists from nested tables", {
+    r = lua("return luajr.list({true, false, {true, 1, 0}})")
+    expect_identical(r, list(TRUE, FALSE, list(TRUE, 1, 0)))
+
+    lua_reset()
+})
+
+test_that("luajr.list nested list preserves names in sub-tables", {
+    r = lua("return luajr.list({a = 1, b = {x = 10, y = 20}})")
+    expect_identical(r, list(a = 1, b = list(x = 10, y = 20)))
+
+    lua_reset()
+})
+
+test_that("luajr.list handles deeply nested tables", {
+    r = lua("return luajr.list({1, {2, {3, {4, 5}}}})")
+    expect_identical(r, list(1, list(2, list(3, list(4, 5)))))
+
+    lua_reset()
+})
+
+test_that("luajr.list nested mixed types work", {
+    r = lua("return luajr.list({'hello', {1, 2}, true, {{10}, 'inner'}})")
+    expect_identical(r, list("hello", list(1, 2), TRUE, list(list(10), "inner")))
+
+    lua_reset()
+})
+
+test_that("push_back of a Lua table converts to nested list", {
+    lua("x = luajr.list()")
+    lua("x:push_back('first')")
+    lua("x:push_back({nested = true, value = 42})")
+    r = lua("return x")
+    expect_identical(r, list("first", list(nested = TRUE, value = 42)))
+
+    lua_reset()
+})
