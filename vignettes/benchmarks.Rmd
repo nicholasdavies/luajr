@@ -14,99 +14,77 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Warning
-
-This vignette has not been updated yet for luajr 0.2.2.9000 (in development).
-
 In the same way that using R packages 
-[`cpp11`](https://CRAN.R-project.org/package=cpp11) or 
-[`Rcpp`](https://CRAN.R-project.org/package=Rcpp) allows you to 
-bridge your R code with C++ code that runs faster than R, you can use `luajr` 
+[**cpp11**](https://CRAN.R-project.org/package=cpp11) or 
+[**Rcpp**](https://CRAN.R-project.org/package=Rcpp) allows you to 
+bridge your R code with C++ code that runs faster than R, you can use **luajr** 
 to bridge your R code with Lua code that runs faster than R.
 
-In general, C/C++ code runs about 5-1,000 times faster than the equivalent R 
-code.
+Often, C/C++ code runs about 5-100 times faster than the equivalent R code.
+In my experience, **luajr** code typically presents a similar speedup. The 
+amount of speedup also depends strongly on what you're doing.
 
-In my experience, `luajr` code often presents a similar speedup, about the 
-same as C/C++ code, or in the worst case, maybe half as fast. Sometimes 
-`luajr` code can be faster than C/C++, though usually it isn't quite as good. 
-
-Why use `luajr` then? `Rcpp` and `cpp11` require a C++ toolchain (e.g. 
-gcc, clang, etc.) and requires long compilation times, whereas `luajr` 
-doesn't. This means that `luajr` is usable when a C++ compiler isn't 
+Why use **luajr** then? **Rcpp** and **cpp11** require a C++ toolchain (e.g. 
+gcc, clang, etc.) and requires long compilation times, whereas **luajr** 
+doesn't. This means that **luajr** is usable when a C++ compiler isn't 
 available, or when compilation times are prohibitive or an annoyance.
 
-In the following section, we look at two aspects of benchmarking. In the first
-example, we compare different ways of passing vectors to Lua functions relative
-to R. In the second example, we compare more fundamentally the difference in
-running a whole algorithm in Lua versus R versus C++ with `Rcpp`. 
+In this vignette, we show a few example benchmarks to show situations where 
+**luajr** offers a substantial improvement in code execution speed and when it
+doesn't. 
 
-### Parameter passing example: sum of squares
+## Example 1: when to stick with R
 
-For reasonably long vectors, passing by reference (`'r'`) is faster than passing 
-by value (`'v'`), which is faster than passing by simplify (`'s'`, `'a'`, or 
-`'1'`&ndash;`'9'`). But for relatively short vectors, passing by simplify can 
-avoid some overhead, and for very simple operations on very short vectors, it 
-might not be worth using Lua at all.
-
-To illustrate the above points, here is some code that takes a numeric vector 
-and calculates the sum of squares, comparing a pure R function with three 
-alternatives written in Lua, respectively passing the vector by reference, by 
-value, and by simplify.
+Lots of R's built-in functions are already speedy because they rely on compiled
+C code. For example, consider the following ways you might sum all the elements
+of a numeric vector:
 
 ```{r}
 library(luajr)
 
-v1 = rnorm(1e1)
-v4 = rnorm(1e4)
-v7 = rnorm(1e7)
+x <- rnorm(1e6)
 
-lua("sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end")
-sum2 = function(x) sum(x*x)
-sum2_r = lua_func("sum2", "&.")
-sum2_v = lua_func("sum2", ".")
-sum2_s = lua_func("sum2", "$.")
+# Method one: built-in sum
+s1 <- sum(x)
 
-# Comparing the results of each function:
-sum2(v1)    # Pure R version
-sum2_r(v1)  # luajr pass-by-reference
-sum2_v(v1)  # luajr pass-by-value
-sum2_s(v1)  # luajr pass-by-simplify
+# Method two: sum in R
+sum_R <- function(x) {
+    s <- 0
+    for (y in x) {
+        s <- s + y
+    }
+    return (s)
+}
+s2 <- sum_R(x)
+
+# Method three: sum in Lua
+sum_L <- lua_func("function(x)
+    local s = 0
+    for i = 1, #x do
+        s = s + x[i]
+    end
+    return s
+end")
+s3 <- sum_L(x)
 ```
 
-The time taken to sum `v1`, `v4` and `v7`, depending upon the function kind, on 
-a 2019-era MacBook Pro is summarised in this table:
+Each method produces the same answer. Using `bench::mark()` on a 2025-era 
+MacBook Pro, the execution time for each method is as follows:
 
-|Call            |Number of summands | Method                    | Median runtime |
-|:---------------|:-----------------:|:-------------------------:|---------------:|
-|`sum2(v1)`      | 10                | Pure R                    |       **1 µs** |
-|`sum2_r(v1)`    | 10                | `luajr` pass by reference |         6 µs   |
-|`sum2_v(v1)`    | 10                | `luajr` pass by value     |         7 µs   |
-|`sum2_s(v1)`    | 10                | `luajr` pass by simplify  |         4 µs   |
-|                |                   |                           |                |
-|`sum2(v4)`      | 10,000            | Pure R                    |        63 µs   |
-|`sum2_r(v4)`    | 10,000            | `luajr` pass by reference |      **18 µs** |
-|`sum2_v(v4)`    | 10,000            | `luajr` pass by value     |        93 µs   |
-|`sum2_s(v4)`    | 10,000            | `luajr` pass by simplify  |        78 µs   |
-|                |                   |                           |                |
-|`sum2(v7)`      | 10,000,000        | Pure R                    |    49,000 µs   |
-|`sum2_r(v7)`    | 10,000,000        | `luajr` pass by reference |  **13,000 µs** |
-|`sum2_v(v7)`    | 10,000,000        | `luajr` pass by value     |    96,000 µs   |
-|`sum2_s(v7)`    | 10,000,000        | `luajr` pass by simplify  |   124,000 µs   |
+| Method       | Median runtime |
+|:-------------|---------------:|
+|`sum(x)`      |     664 µs     |
+|`sum_R(x)`    |    6340 µs     |
+|`sum_L(x)`    |   **546 µs**   |
 
-When the vector is 10 elements long, the R version wins handily.
+R's built-in `sum()` function calls an internal R function written in C, so it
+is already relatively fast. The "naïve" `sum_R()` function, which calculates
+the sum manually, is around 10x slower. And the Lua version just barely edges
+out R's built-in `sum()` function, but it's worth noting that Lua arithmetic
+may not handle `NA` values correctly for numeric vectors and certainly won't
+handle `NA` values correctly for integers (without explicit handling).
 
-When the vector is 10,000 elements long, the pass-by-reference Lua version is
-fastest, but the other methods are all comparable.
-
-When the vector is 10,000,000 elements long, the story is similar. 
-
-This is an example where `luajr` doesn't add that much speed&mdash;the 
-function is relatively short, and there is a certain amount of overhead in 
-invoking it, while the R function doesn't have the overhead of transferring 
-control between languages.
-
-### Processing time example: logistic map
+## Example 2: logistic map
 
 Consider the following:
 
@@ -138,7 +116,7 @@ logistic_map_L = lua_func(
     local xx = luajr.numeric(dflen, 0)
     
     local j = 1
-    for k,a in pairs(A) do
+    for k, a in pairs(A) do
         local x = x0
         for i = 1, burn do
             x = a * x * (1 - x)
@@ -156,7 +134,7 @@ logistic_map_L = lua_func(
     result:set('x', xx)
     
     return result
-end", "$., $., $., .")
+end", "native, native, native, auto")
 
 # To be compiled using Rcpp::cppFunction()
 logistic_map_C =
@@ -199,12 +177,6 @@ logistic_map = logistic_map_L(0.5, 100, 100, 200:385/100)
 plot(logistic_map$a, logistic_map$x, pch = ".")
 ```
 
-In the code above, we don't actually compile the C++ code using `Rcpp`, 
-we only declare the source code as an illustration. I don't actually compile 
-the code in this article because I didn't want to have `luajr` depend on 
-`Rcpp` only for the sake of this vignette, but you would do so using
-`Rcpp::cppFunction(logistic_map_C)`.
-
 The times taken by each function on a 2025-era MacBook Pro are as follows:
 
 |Call                                          | Method       | Median runtime |
@@ -214,9 +186,9 @@ The times taken by each function on a 2025-era MacBook Pro are as follows:
 |`logistic_map_C(0.5, 100, 100, 200:385/100))` | C++ function |       100 µs   |
 
 The version written in Lua is around 10 times faster than the version in R, 
-and even somewhat outperforms `Rcpp`. Note that the relative speed of Lua 
-versus C++ depends on the number of iterations, and whether you use `Rcpp` or
-`cpp11`, which each seem to have marginal advantages in different cases. 
+and even somewhat outperforms **Rcpp**. Note that the relative speed of Lua 
+versus C++ depends on the number of iterations, and whether you use **Rcpp** or
+**cpp11**, which each seem to have marginal advantages in different cases. 
 Nonetheless, the Lua version seems to execute about as quickly as the C++ 
 version, within plus or minus 20%.
 
@@ -225,5 +197,99 @@ earlier test where the R version first created the data frame and then
 performed the iteration, i.e. with the line `result$x[j] = x` instead of 
 `result_x[j] = x`. The median runtime for that R version was two orders of 
 magnitude slower than the Lua version; the extra overhead associated with 
-`data.frame` methods was pointed out by Tim Taylor.
+`data.frame` methods was pointed out by Tim Taylor. This goes to show that 
+when aiming for efficient R code, it helps to know a few tricks.
 
+## Example 3: Lorenz attractor
+
+Even greater speedups can be seen when conducting more intensive calculations.
+For example, solving a system of ordinary differential equations (ODEs) is a 
+common scientific task. Normally this is done in R using a general-purpose 
+package such as [**deSolve**](https://CRAN.R-project.org/package=deSolve). In 
+this benchmark we will instead do simple Euler integration of the famous
+chaotic [Lorenz system](https://en.wikipedia.org/wiki/Lorenz_system).
+
+To calculate this system entirely in R, you might write something like the 
+following:
+
+```{r}
+# Lorenz attractor in R
+
+# Take a single step, size dt, of the Lorenz system
+step1 = function(x, rho, sigma, beta, dt)
+{
+    dx = sigma * (x[2] - x[1])
+    dy = x[1] * (rho - x[3]) - x[2]
+    dz = x[1] * x[2] - beta * x[3]
+    x[1] = x[1] + dx * dt
+    x[2] = x[2] + dy * dt
+    x[3] = x[3] + dz * dt
+    return (x)
+}
+
+# Calculate Lorenz system trajectory
+lorenz1 = function(n, init, rho, sigma, beta)
+{
+    x = init
+    result = matrix(0, nrow = n, ncol = 3)
+    for (i in 1:n) {
+        result[i, ] = x
+        x = step1(x, rho, sigma, beta, 0.01)
+    }
+    return (result)
+}
+
+# Generate and plot result
+result1 = lorenz1(5000, c(1,1,1), 28, 10, 8/3)
+plot(result1[,1], result1[,2], type = "l")
+```
+
+Similar code can be written entirely in Lua using **luajr**:
+
+```{r}
+# Lorenz attractor in Lua
+library(luajr)
+
+lorenz2 = lua_func("
+function(n, init, rho, sigma, beta)
+    local step2 = function(x, rho, sigma, beta, dt)
+        local dx = sigma * (x[2] - x[1])
+        local dy = x[1] * (rho - x[3]) - x[2]
+        local dz = x[1] * x[2] - beta * x[3]
+        x[1] = x[1] + dx * dt
+        x[2] = x[2] + dy * dt
+        x[3] = x[3] + dz * dt
+        return x
+    end
+
+    local x = init
+    local result = luajr.matrix(n, 3)
+
+    for i = 1,n do
+        result[i] = x[1]
+        result[i + n] = x[2]
+        result[i + 2*n] = x[3]
+        x = step2(x, rho, sigma, beta, 0.01)
+    end
+
+    return result
+end", "native auto native")
+
+result2 = lorenz2(5000, c(1,1,1), 28, 10, 8/3)
+plot(result2[,1], result2[,2], type = "l")
+```
+
+Execution times are as follows:
+
+|Call                                          | Method       | Median runtime |
+|----------------------------------------------|--------------|---------------:|
+|`lorenz1(5000, c(1, 1, 1), 28, 10, 8/3)`      | R function   |      3300 µs   |
+|`lorenz2(5000, c(1, 1, 1), 28, 10, 8/3)`      | Lua function |      **38 µs** |
+
+The Lua code is 85 times faster than the equivalent R code.
+
+As mentioned before, a library such as **deSolve** is normally used to 
+integrate systems of ODEs and both versions above do execute rather quickly
+anyway -- it may not be worth the trouble here to save 3 milliseconds! But
+for intensive and complex simulations, it may help to get a substantial speed 
+boost over what base R can do.

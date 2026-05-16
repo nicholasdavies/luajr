@@ -101,6 +101,7 @@ the following R API functions:
 | `R.copyMostAttrib` | `void Rf_copyMostAttrib(SEXP inp, SEXP ans)` |
 | `R.DATAPTR_RO` | `const void* DATAPTR_RO(SEXP x)` |
 | `R.defineVar` | `void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho)` |
+| `R.dimgets` | `SEXP Rf_dimgets(SEXP, SEXP)` |
 | `R.dimnamesgets` | `SEXP Rf_dimnamesgets(SEXP vec, SEXP val)` |
 | `R.DUPLICATE_ATTRIB` | `void DUPLICATE_ATTRIB(SEXP to, SEXP from)` |
 | `R.eval` | `SEXP Rf_eval(SEXP e, SEXP rho)` |
@@ -118,6 +119,7 @@ the following R API functions:
 | `R.MakeExternalPtr` | `SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot)` |
 | `R.mkChar` | `SEXP Rf_mkChar(const char* name)` |
 | `R.mkCharLen` | `SEXP Rf_mkCharLen(const char* name, int len)` |
+| `R.namesgets` | `SEXP Rf_namesgets(SEXP, SEXP)` |
 | `R.NewEnv`\* | `SEXP R_NewEnv(SEXP enclos, int hash, int size)` <span style="color: gray; font-style: italic;">added in 4.1.0</span> |
 | `R.ParentEnv`\* | `SEXP R_ParentEnv(SEXP x)` <span style="color: gray; font-style: italic;">added in 4.5.0</span> |
 | `R.PreserveObject` | `void R_PreserveObject(SEXP object)` |

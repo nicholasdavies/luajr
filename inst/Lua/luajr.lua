@@ -919,30 +919,27 @@ function luajr.dataframe()
     return df
 end
 
--- matrix type: specify nrow and ncol
-function luajr.matrix(nrow, ncol)
-    local m = luajr.numeric(nrow * ncol, 0.0)
+-- matrix type: specify nrow, ncol, and init
+function luajr.matrix(nrow, ncol, init)
+    local m = luajr.numeric(nrow * ncol, init)
 
     -- Make dimensions
     local dim = luajr.integer(2)
     dim[1] = nrow
     dim[2] = ncol
-    m:set_attr("dim", dim)
+    R.dimgets(m.s, dim.s)
 
     return m
 end
 
--- datamatrix type: specify nrow, ncol, and column names
-function luajr.datamatrix(nrow, ncol, names)
-    local m = luajr.matrix(nrow, ncol)
+-- datamatrix type: specify nrow, ncol, column names, and init
+function luajr.datamatrix(nrow, ncol, names, init)
+    local m = luajr.matrix(nrow, ncol, init)
 
     -- Make column names via dimnames list
     if #names > ncol then error("Supplied more names than columns to luajr.datamatrix.", 2) end
-    local colnames = luajr.character(ncol)
-    for i = 1,#names do colnames[i] = names[i] end
-    local dimnames = luajr.list()
-    dimnames:push_back(R.NilValue)
-    dimnames:push_back(colnames)
+    local dimnames = luajr.list(2)
+    dimnames[2] = luajr.character(names)
     R.dimnamesgets(m.s, dimnames.s)
 
     return m

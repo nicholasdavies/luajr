@@ -42,6 +42,7 @@ SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length);
 SEXP Rf_cons(SEXP car, SEXP cdr);
 void Rf_copyMostAttrib(SEXP inp, SEXP ans);
 void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho);
+SEXP Rf_dimgets(SEXP, SEXP);
 SEXP Rf_dimnamesgets(SEXP vec, SEXP val);
 SEXP Rf_eval(SEXP e, SEXP rho);
 SEXP Rf_findFun(SEXP symbol, SEXP rho);
@@ -50,6 +51,7 @@ SEXP Rf_install(const char* name);
 SEXP Rf_lcons(SEXP car, SEXP cdr);
 SEXP Rf_mkChar(const char* name);
 SEXP Rf_mkCharLen(const char* name, int len);
+SEXP Rf_namesgets(SEXP, SEXP);
 SEXP Rf_protect(SEXP s);
 SEXP Rf_ScalarInteger(int x);
 SEXP Rf_ScalarLogical(int x);
@@ -163,6 +165,7 @@ R.cons = C.Rf_cons
 R.copyMostAttrib = C.Rf_copyMostAttrib
 R.DATAPTR_RO = C.DATAPTR_RO
 R.defineVar = C.Rf_defineVar
+R.dimgets = C.Rf_dimgets
 R.dimnamesgets = C.Rf_dimnamesgets
 R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
 R.eval = C.Rf_eval
@@ -178,6 +181,7 @@ R.lsInternal3 = C.R_lsInternal3
 R.MakeExternalPtr = C.R_MakeExternalPtr
 R.mkChar = C.Rf_mkChar
 R.mkCharLen = C.Rf_mkCharLen
+R.namesgets = C.Rf_namesgets
 R.PreserveObject = C.R_PreserveObject
 R.PROTECT = C.Rf_protect
 R.RAW = C.RAW

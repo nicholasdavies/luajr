@@ -21,14 +21,14 @@ test_that("extra types work", {
     expect_identical(lua("return x"), data.frame(l = c(TRUE, FALSE), i = c(1L, 2L), r = c(1.1, 2.2), c = c("hi", "lo")))
 
     # luajr.matrix
-    lua("x = luajr.matrix(3, 3)")
+    lua("x = luajr.matrix(3, 3, 0)")
     lua("x[1] = 1")
     lua("x[5] = 1")
     lua("x[9] = 1")
     expect_identical(lua("return x"), diag(3))
 
     # luajr.datamatrix
-    lua("x = luajr.datamatrix(3, 3, {'a', 'b', 'c'})")
+    lua("x = luajr.datamatrix(3, 3, {'a', 'b', 'c'}, 0)")
     lua("x[1] = 1")
     lua("x[5] = 1")
     lua("x[9] = 1")

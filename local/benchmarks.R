@@ -46,18 +46,21 @@ v7 = rnorm(1e7)
 
 lua("sum2 = function(x) local s = 0; for i=1,#x do s = s + x[i]*x[i] end; return s end")
 sum2 = function(x) sum(x*x)
+sum2_m = function(x) { s = 0; for (i in seq_along(x)) s = s + x[i]^2; return (s) }
 sum2_r = lua_func("sum2", "&.")
 sum2_v = lua_func("sum2", ".")
 sum2_s = lua_func("sum2", "$.")
 
 # Comparing the results of each function:
 sum2(v1)    # Pure R version
+sum2_m(v1)  # R manual version
 sum2_r(v1)  # luajr pass-by-reference
 sum2_v(v1)  # luajr pass-by-value
 sum2_s(v1)  # luajr pass-by-simplify
 
 bench::mark(
     sum2(v1),
+    sum2_m(v1),
     sum2_r(v1),
     sum2_v(v1),
     sum2_s(v1),
@@ -82,6 +85,7 @@ bench::mark(
 
 bench::mark(
     sum2  (v4),
+    sum2_m(v4),
     sum2_r(v4),
     sum2_v(v4),
     sum2_s(v4),
@@ -106,6 +110,7 @@ bench::mark(
 
 bench::mark(
     sum2  (v7),
+    sum2_m(v7),
     sum2_r(v7),
     sum2_v(v7),
     sum2_s(v7),

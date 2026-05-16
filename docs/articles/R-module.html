@@ -182,41 +182,45 @@ named <code>R</code>, you can use the following R API functions:</p>
 <td><code>void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho)</code></td>
 </tr>
 <tr class="odd">
+<td><code>R.dimgets</code></td>
+<td><code>SEXP Rf_dimgets(SEXP, SEXP)</code></td>
+</tr>
+<tr class="even">
 <td><code>R.dimnamesgets</code></td>
 <td><code>SEXP Rf_dimnamesgets(SEXP vec, SEXP val)</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>R.DUPLICATE_ATTRIB</code></td>
 <td><code>void DUPLICATE_ATTRIB(SEXP to, SEXP from)</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>R.eval</code></td>
 <td><code>SEXP Rf_eval(SEXP e, SEXP rho)</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>R.ExternalPtrAddr</code></td>
 <td><code>void* R_ExternalPtrAddr(SEXP s)</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>R.findFun</code></td>
 <td><code>SEXP Rf_findFun(SEXP symbol, SEXP rho)</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>R.FlushConsole</code></td>
 <td><code>void R_FlushConsole(void)</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>R.getAttrib</code></td>
 <td><code>SEXP Rf_getAttrib(SEXP vec, SEXP name)</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>
 <code>R.getRegisteredNamespace</code>*</td>
 <td>
 <code>SEXP R_getRegisteredNamespace(const char* name)</code> <span style="color: gray; font-style: italic;">added in 4.6.0</span>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>
 <code>R.getVarEx</code>*</td>
 <td>
@@ -225,37 +229,41 @@ named <code>R</code>, you can use the following R API functions:</p>
 4.5.0</span>
 </td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>R.install</code></td>
 <td><code>SEXP Rf_install(const char* name)</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>R.INTEGER</code></td>
 <td><code>int* INTEGER(SEXP x)</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>R.lcons</code></td>
 <td><code>SEXP Rf_lcons(SEXP car, SEXP cdr)</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>R.LOGICAL</code></td>
 <td><code>int* LOGICAL(SEXP x)</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>R.lsInternal3</code></td>
 <td><code>SEXP R_lsInternal3(SEXP env, Rboolean all, Rboolean sorted)</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>R.MakeExternalPtr</code></td>
 <td><code>SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot)</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>R.mkChar</code></td>
 <td><code>SEXP Rf_mkChar(const char* name)</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>R.mkCharLen</code></td>
 <td><code>SEXP Rf_mkCharLen(const char* name, int len)</code></td>
+</tr>
+<tr class="odd">
+<td><code>R.namesgets</code></td>
+<td><code>SEXP Rf_namesgets(SEXP, SEXP)</code></td>
 </tr>
 <tr class="even">
 <td>
