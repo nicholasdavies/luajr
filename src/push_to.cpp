@@ -142,7 +142,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
 
     switch (type)
     {
-        // .
+        // auto / .
         case AC::value:
         {
             int specific;
@@ -176,10 +176,39 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
 
         // function / rfunction / F
         case AC::function:
-            if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
-                luajr_error(L, "Expected function, got %s.", Rf_type2char(TYPEOF(x)));
-            R_PreserveObject(x);
-            luajr_push_function_cdata(L, (void*)x);
+            if (is_native)
+            {
+                if (TYPEOF(x) == CLOSXP || TYPEOF(x) == SPECIALSXP || TYPEOF(x) == BUILTINSXP)
+                {
+                    // R function: push luajr.rfunction cdata as upvalue of a C
+                    // closure that calls it. The cdata's __gc releases on GC.
+                    R_PreserveObject(x);
+                    luajr_push_function_cdata(L, (void*)x);
+                    lua_pushcclosure(L, [](lua_State* L) -> int {
+                        int n = lua_gettop(L);
+                        lua_pushvalue(L, lua_upvalueindex(1));
+                        lua_insert(L, 1);
+                        lua_call(L, n, LUA_MULTRET);
+                        return lua_gettop(L);
+                    }, 1);
+                }
+                else if (TYPEOF(x) == EXTPTRSXP)
+                {
+                    // External pointer wrapping a Lua function: push it directly.
+                    luajr_pushfunc(x);
+                }
+                else
+                {
+                    luajr_error(L, "Expected R or Lua function, got %s.", Rf_type2char(TYPEOF(x)));
+                }
+            }
+            else
+            {
+                if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
+                    luajr_error(L, "Expected function, got %s.", Rf_type2char(TYPEOF(x)));
+                R_PreserveObject(x);
+                luajr_push_function_cdata(L, (void*)x);
+            }
             break;
 
         // environment / E
@@ -210,7 +239,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
 
             // Coercion (unless strict): integer <-> numeric
             bool coerced = false;
-            if (actual != expected && !is_strict)
+            if (actual != expected && !is_strict && !is_ref)
             {
                 if ((expected == INTSXP && actual == REALSXP) ||
                     (expected == REALSXP && actual == INTSXP))

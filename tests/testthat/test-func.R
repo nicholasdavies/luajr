@@ -180,6 +180,35 @@ test_that("function argcode works", {
     expect_error(f(1:5))
 })
 
+test_that("native function argcode wraps R function as Lua function", {
+    # $F with an R function: passed value has type() == "function" and is callable
+    expect_identical(lua_func("function(fn) return type(fn) end", "$F")(mean), "function")
+
+    # Calling the wrapped R function from Lua returns the R result
+    expect_identical(lua_func("function(fn) return fn(luajr.numeric({1, 2, 3, 4, 5})) end", "$F")(mean), 3)
+
+    # Multiple args
+    expect_identical(lua_func("function(fn) return fn(2, 3) end", "$F")(`+`), 5)
+})
+
+test_that("native function argcode passes Lua function externalptr as-is", {
+    # First make a Lua function and round-trip it through R as externalptr
+    make_doubler = lua_func("function() return function(x) return x * 2 end end")
+    g_ptr = make_doubler()
+    expect_identical(class(g_ptr), "externalptr")
+
+    # Pass that externalptr back in with $F — Lua should see it as a function
+    expect_identical(lua_func("function(fn) return type(fn) end", "$F")(g_ptr), "function")
+    expect_identical(lua_func("function(fn) return fn(21) end", "$F")(g_ptr), 42)
+})
+
+test_that("native function argcode rejects non-functions", {
+    f = lua_func("function(fn) return fn end", "$F")
+    expect_error(f(1:5))
+    expect_error(f("hello"))
+    expect_error(f(list()))
+})
+
 test_that("pointer argcode works", {
     L = lua_open()
 
