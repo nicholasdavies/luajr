@@ -14,10 +14,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Warning
-
-This vignette has not been updated yet for luajr 0.2.2.9000 (in development).
-
 The [Introduction to **luajr**](luajr.html) vignette shows you how to get 
 started with calling Lua code from R. This vignette gives more details on how 
 to create and manipulate R objects -- such as vectors, lists, and data.frames -- 
@@ -645,7 +641,9 @@ image(-img, col = hcl.colors(256, "Oslo"),
       useRaster = TRUE, axes = FALSE)
 ```
 
-![Buddhabrot rendered with luajr](images/buddhabrot.jpg)
+```{r, echo=FALSE, fig.align="center", out.width="600px"}
+knitr::include_graphics("images/buddhabrot.jpg")
+```
 
 Pulling the example apart:
 

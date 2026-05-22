@@ -70,18 +70,13 @@
 
     
     
-<div class="section level2">
-<h2 id="warning">Warning<a class="anchor" aria-label="anchor" href="#warning"></a>
-</h2>
-<p>This vignette has not been updated yet for luajr 0.2.2.9000 (in
-development).</p>
 <p>The <a href="luajr.html">Introduction to <strong>luajr</strong></a>
 vignette shows you how to get started with calling Lua code from R. This
 vignette gives more details on how to create and manipulate R objects –
 such as vectors, lists, and data.frames – in your Lua code.</p>
-<div class="section level3">
-<h3 id="the-luajr-lua-module">The <code>luajr</code> Lua module<a class="anchor" aria-label="anchor" href="#the-luajr-lua-module"></a>
-</h3>
+<div class="section level2">
+<h2 id="the-luajr-lua-module">The <code>luajr</code> Lua module<a class="anchor" aria-label="anchor" href="#the-luajr-lua-module"></a>
+</h2>
 <p>Whenever the <strong>luajr</strong> R package opens a new Lua state,
 it opens all the <a href="https://www.lua.org/manual/5.1/manual.html#5" class="external-link">standard Lua
 libraries</a> in that state, as well as the <code>luajr.lua</code>
@@ -103,17 +98,17 @@ functions, matrices, and data frames.</li>
 module.</li>
 <li>
 <a href="#parallel">Parallel processing</a> features of the
-<code>luajr</code> module. /ncores, workers/</li>
+<code>luajr</code> module.</li>
 <li>
-<a href="#utility">Utility functions</a> for <code>luajr</code>.
-/debugger, luajr.from_sexp, luajr.to_sexp/</li>
+<a href="#utility">Utility functions</a> for
+<code>luajr</code>.</li>
 <li>Considerations for using <a href="#longvec">long vectors</a> in
 Lua.</li>
 </ul>
 </div>
-<div class="section level3">
-<h3 id="vector">Vector types<a class="anchor" aria-label="anchor" href="#vector"></a>
-</h3>
+<div class="section level2">
+<h2 id="vector">Vector types<a class="anchor" aria-label="anchor" href="#vector"></a>
+</h2>
 <p>The vector types are:</p>
 <ul>
 <li><code>luajr.logical</code></li>
@@ -144,42 +139,58 @@ bounds will cause crashes. Also note that unlike Lua tables, vector
 types can only be indexed with integers from 1 to the vector length, not
 with strings or any other types (although there are methods of getting
 or setting elements by name; see below).</p>
-<div class="section level4">
-<h4 id="vcreate">Creating and testing vector types<a class="anchor" aria-label="anchor" href="#vcreate"></a>
-</h4>
+<p><strong>Important</strong>: Because vector types depend upon R, they
+are not completely thread safe and therefore they cannot safely be used
+with <a href="#parallel">parallel processing</a>.</p>
+<div class="section level3">
+<h3 id="vcreate">Creating and testing vector types<a class="anchor" aria-label="anchor" href="#vcreate"></a>
+</h3>
 <p><strong><code>luajr.logical(a, b)</code>,
 <code>luajr.integer(a, b)</code>, <code>luajr.numeric(a, b)</code>,
 <code>luajr.character(a, b)</code>,
 <code>luajr.list(a, b)</code></strong></p>
-<p>These functions can be used to create “vector types” in Lua code. The
+<p>These functions can be used to create R vectors in Lua code. The
 meaning of <code>a</code> and <code>b</code> depends on the type of
 <code>a</code> and <code>b</code> and whether both are present.
 Specifically,</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>logical<span class="op">()</span>     <span class="co">-- Size-0 logical vector</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">n</span><span class="op">,</span> <span class="va">x</span><span class="op">)</span> <span class="co">-- Size-n numeric vector, all entries equal to x</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">v</span><span class="op">)</span>    <span class="co">-- Copied from vector v</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">z</span><span class="op">)</span>    <span class="co">-- Copied from "vector-ish" object z</span></span></code></pre></div>
-<p>Above, <code>n</code> is a nonnegative number, <code>x</code> is a
-boolean, number, string (as appropriate for the vector type) or
-<code>nil</code>, <code>v</code> is another vector object of the same
-type, and <code>z</code> is a table, vector type, or reference type.</p>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>integer<span class="op">(</span><span class="va">s</span><span class="op">)</span>    <span class="co">-- Integer vector copy of SEXP</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">n</span><span class="op">,</span> <span class="va">x</span><span class="op">)</span> <span class="co">-- Size-n numeric vector, all entries equal to x</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>character<span class="op">(</span><span class="va">v</span><span class="op">)</span>  <span class="co">-- Character vector copy of v</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>list<span class="op">(</span><span class="va">t</span><span class="op">)</span>       <span class="co">-- List copied from Lua table t</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">z</span><span class="op">)</span>    <span class="co">-- Numeric vector copied from "vector-ish" object z</span></span></code></pre></div>
+<p>Above, <code>s</code> is an <code>R.sexp</code> of the same
+underlying type as the vector, <code>n</code> is a nonnegative number,
+<code>x</code> is a boolean, number, string, etc. (as appropriate for
+the vector type) or <code>nil</code>, <code>v</code> is another vector
+object of the same type, <code>t</code> is a Lua table, and
+<code>z</code> is a Lua table or vector type. If <code>t</code> is a
+table and the vector is <code>luajr.list</code> type, then the names
+from <code>t</code> will be copied over into the
+<code>luajr.list</code>.</p>
 <p>If <code>x == nil</code> in the <code>(n, x)</code> form of the above
 functions, then the values of the vector are left uninitialized (except
 for <code>luajr.character</code>, where the values are set to the empty
-string).</p>
+string; for <code>luajr.list</code>, the values are set to
+<code>luajr.NULL</code>).</p>
 <p><strong><code>luajr.is_logical(obj)</code>,
 <code>luajr.is_integer(obj)</code>, <code>luajr.is_numeric(obj)</code>,
-<code>luajr.is_character(obj)</code></strong></p>
+<code>luajr.is_character(obj)</code>,
+<code>luajr.is_list(obj)</code></strong></p>
 <p>Check whether a value <code>obj</code> is one of the corresponding
 vector types. These return <code>true</code> if <code>obj</code> is of
 the corresponding type, and <code>false</code> otherwise.</p>
 </div>
-<div class="section level4">
-<h4 id="vector-type-methods">Vector type methods<a class="anchor" aria-label="anchor" href="#vector-type-methods"></a>
-</h4>
+<div class="section level3">
+<h3 id="vector-type-methods">Vector type methods<a class="anchor" aria-label="anchor" href="#vector-type-methods"></a>
+</h3>
 <p>All the vector types have the following methods:</p>
 <p><strong><code>#v</code></strong></p>
-<p>Returns the length of the vector.</p>
+<p>Returns the number of elements in the vector.</p>
+<p>Note: This is distinct from the vector’s capacity (returned by
+<code>v:capacity()</code>), which can be larger after
+<code>v:reserve()</code> or if <code>v:push_back()</code> overallocates
+to amortize future growth (see below).</p>
 <p><strong><code>x = v[i]</code>, <code>v[i] = x</code></strong></p>
 <p>Get or set the <code>i</code>th element of the vector.</p>
 <p>Again: Note that for vector types, indexes start at 1, not at 0. You
@@ -188,25 +199,58 @@ must be very careful not to access or write out of these bounds, as the
 Going out of bounds will cause crashes or other undefined behaviour.
 Unlike Lua tables, vector types can only be indexed with integers from 1
 to the vector length, not with strings or any other types.</p>
-<p><strong><code>pairs(v)</code>, <code>ipairs(v)</code></strong></p>
+<p><strong><code>x = v(i)</code></strong></p>
+<p>Gets the <code>i</code>th element of the vector, but as a new vector
+type instead of as a ‘bare’ value. If you are returning a single value
+to R, prefer to use this form as it will preserve <code>NA</code>s; for
+example, if <code>v = luajr.integer({1, 2, luajr.NA_integer_})</code>,
+then <code>return v[3]</code> will return -2147483648 to R, but
+<code>return v(3)</code> will correctly return <code>NA</code> of
+integer type.</p>
+<p>Instead of a numeric index, you can also pass a string key as
+<code>i</code>. If this string key is not found, <code>v(i)</code> will
+return the appropriate <code>NA</code> for atomic vectors or
+<code>NULL</code> for <code>luajr.list</code>.</p>
+<p><strong><code>v:is_na(i)</code></strong></p>
+<p>Returns <code>true</code> if the <code>i</code>th element of the
+vector is <code>NA</code>, and <code>false</code> otherwise. This is the
+recommended way to test for <code>NA</code> because direct comparison
+with <code>luajr.NA_real_</code> always returns <code>false</code> (due
+to NaN semantics in IEEE-754: <code>NaN == NaN</code> is false). For
+<code>luajr.numeric</code>, <code>v:is_na(i)</code> matches R’s
+<code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> semantics and returns <code>true</code> for both
+<code>NA_real_</code> and any other <code>NaN</code> value.
+<code>v:is_na(i)</code> errors on <code>luajr.list</code>, since list
+elements are themselves R values and have no per-element NA concept.</p>
+<p><strong><code>ipairs(v)</code>, <code>pairs(v)</code></strong></p>
 <p>Use with a Lua <code>for</code> loop to iterate over the values of
-the vector. For example:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="cf">for</span> <span class="va">i</span><span class="op">,</span><span class="va">x</span> <span class="kw">in</span> <span class="fu">pairs</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="cf">do</span></span>
+the vector. <code>ipairs</code> is used to iterate over integer keys and
+values of the vector. For example:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="cf">for</span> <span class="va">i</span><span class="op">,</span><span class="va">x</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="cf">do</span></span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>    <span class="fu">print</span><span class="op">(</span><span class="va">i</span><span class="op">,</span> <span class="va">x</span><span class="op">)</span></span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
-<p>Note that for vector types, <code>pairs</code> and
-<code>ipairs</code> are interchangeable and the same loop above can be
-written as</p>
+<p>At the moment, <code>pairs</code> is the same as <code>ipairs</code>,
+but in the future, <code>pairs</code> may be changed so that it provides
+vector element names instead of an integer. The same loop above can be
+written as:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="cf">for</span> <span class="va">i</span> <span class="op">=</span> <span class="dv">1</span><span class="op">,</span> <span class="op">#</span><span class="va">v</span> <span class="cf">do</span></span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>    <span class="fu">print</span><span class="op">(</span><span class="va">i</span><span class="op">,</span> <span class="va">v</span><span class="op">[</span><span class="va">i</span><span class="op">])</span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<p><strong><code>tostring(v)</code></strong></p>
+<p>Converts the vector to a human-readable string; output is capped at
+the first 100 entries, with a <code>... (N elements)</code> tail for
+longer vectors. Names, if present, are shown as
+<code>"name = value"</code> for each element. For
+<code>luajr.list</code> vectors, each element is shown as a short type
+tag and length (e.g. <code>"num[5]"</code>, <code>"chr[3]"</code>)
+rather than its full contents.</p>
 <p><strong><code>v:assign(a, b)</code></strong></p>
 <p>Assign a new value to the vector; <code>a</code> and <code>b</code>
-have the same meaning as in the <a href="#vcreate">vector type
-constructors</a>.</p>
-<p><strong><code>v:print()</code></strong></p>
-<p>Print each value of the vector next to its index, each value on a new
-line.</p>
+have the same meaning as in the <a href="#vcreate">vector
+constructors</a>. Unlike construction, <code>assign</code> reuses the
+vector’s existing storage in place when capacity allows, and only
+allocates a new buffer if the new length would exceed the current
+capacity.</p>
 <p><strong><code>v:concat(sep)</code></strong></p>
 <p>Returns a string comprised of the elements of the vector converted
 into strings and concatenated together with <code>sep</code> as a
@@ -218,15 +262,16 @@ for debugging. This contains the length of the vector, then the capacity
 of the vector, then each of the vector elements separated by commas.</p>
 <p><strong><code>v:reserve(n)</code></strong></p>
 <p>If <code>n</code> is larger than the vector’s current capacity,
-suggests that the vector be enlarged to a capacity of <code>n</code>.
-Otherwise, does nothing.</p>
+enlarges the vector’s capacity to <code>n</code>. Otherwise, does
+nothing.</p>
 <p><strong><code>v:capacity()</code></strong></p>
 <p>Returns the capacity of the vector.</p>
 <p><strong><code>v:shrink_to_fit()</code></strong></p>
 <p>If the vector’s capacity is larger than its length, reallocates the
 vector so that its capacity is equal to its length.</p>
 <p><strong><code>v:clear()</code></strong></p>
-<p>Sets the size of the vector to 0.</p>
+<p>Sets the size of the vector to 0, and removes names, dims, and
+dimnames attributes.</p>
 <p><strong><code>v:resize(n, val)</code></strong></p>
 <p>Sets the size of the vector to <code>n</code>. If <code>n</code> is
 smaller than the vector’s current length, removes elements at the end of
@@ -234,13 +279,17 @@ the vector. If <code>n</code> is larger than the vector’s current
 length, adds new elements at the end equal to <code>val</code>.
 <code>val</code> can be <code>nil</code> or missing.</p>
 <p><strong><code>v:push_back(val)</code></strong></p>
-<p>Adds <code>val</code> to the end of the vector.</p>
+<p>Adds <code>val</code> to the end of the vector. If this operation
+would grow the vector past its current capacity, this allocates a new
+vector with the capacity for double the number of current elements. This
+is so that <code>push_back()</code> can be used in a loop without too
+much of a performance hit.</p>
 <p><strong><code>v:pop_back()</code></strong></p>
 <p>Removes one element from the end of the vector.</p>
 <p><strong><code>v:insert(i, a, b)</code></strong></p>
 <p>Inserts new elements before position <code>i</code>, which must be
 between 1 and <code>#v + 1</code>. <code>a</code> and <code>b</code>
-have the same meaning as in the <a href="#vcreate">vector type
+have the same meaning as in the <a href="#vcreate">vector
 constructors</a>.</p>
 <p><strong><code>v:erase(first, last)</code></strong></p>
 <p>Removes elements from position <code>first</code> to position
@@ -248,207 +297,221 @@ constructors</a>.</p>
 erases the whole vector). If <code>last</code> is <code>nil</code> or
 missing, just erases the single element at position
 <code>first</code>.</p>
+<p><strong><code>v:detach()</code></strong></p>
+<p>Allocates new memory for the vector and copies its contents to the
+new memory. If the vector has been passed into a Lua function by
+reference, or is aliasing an R SEXP, this ‘detaches’ the
+reference/alias. Not needed in normal use.</p>
+<p><strong><code>v:get_attr(k)</code></strong></p>
+<p>Gets the R attribute with name <code>k</code>.</p>
+<p><strong><code>v:set_attr(k, v)</code></strong></p>
+<p>Sets the R attribute named <code>k</code> to <code>v</code>.</p>
+<p><strong><code>v:unname()</code></strong></p>
+<p>Deletes any name attributes set on the vector.</p>
+<p><strong><code>v:find(name)</code></strong></p>
+<p>Returns the numerical index of the first element of the vector with
+name <code>name</code>. If no such element exists, returns
+<code>nil</code>.</p>
+<p><strong><code>v:get(name)</code></strong></p>
+<p>Gets the value of the vector element with name <code>name</code>.
+Returns <code>nil</code> if no such element exists. For
+<code>luajr.list</code>, the returned element functions as a copy, so
+mutating an element of a list does not write through to the list
+itself.</p>
+<p>To update an element in place, read it, mutate the local element, and
+assign back with <code>v:set()</code>. For example:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="kw">local</span> <span class="va">df</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>dataframe<span class="op">({</span> <span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>numeric<span class="op">({</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">}),</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>                             <span class="va">y</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span><span class="kw">true</span><span class="op">,</span> <span class="kw">false</span><span class="op">,</span> <span class="kw">true</span><span class="op">})</span> <span class="op">})</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="kw">local</span> <span class="va">col</span> <span class="op">=</span> <span class="va">df</span><span class="op">:</span>get<span class="op">(</span><span class="st">'x'</span><span class="op">)</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="va">col</span><span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> <span class="dv">42</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="va">df</span><span class="op">:</span>set<span class="op">(</span><span class="st">'x'</span><span class="op">,</span> <span class="va">col</span><span class="op">)</span></span></code></pre></div>
+<p><strong><code>v:set(name, v)</code></strong></p>
+<p>Sets the vector element named <code>name</code> to value
+<code>v</code>. If no such name exists, adds a new element to the back
+of the vector with that name and sets the value to <code>v</code>.</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="extra">Additional types<a class="anchor" aria-label="anchor" href="#extra"></a>
+</h2>
+<p>Besides the vector types, there are several additional types that
+enrich the functionality of the <code>luajr.lua</code> module.</p>
+<div class="section level3">
+<h3 id="r-function">R function<a class="anchor" aria-label="anchor" href="#r-function"></a>
+</h3>
+<p>The <code>luajr.rfunction</code> type wraps an R function so it can
+be called from Lua.</p>
+<p><strong><code>luajr.rfunction(a, b)</code></strong></p>
+<p>Constructs a <code>luajr.rfunction</code> around an R function. The
+forms are:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>rfunction<span class="op">(</span><span class="va">s</span><span class="op">)</span>           <span class="co">-- wrap an R function from an R.sexp</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>rfunction<span class="op">(</span><span class="va">name</span><span class="op">)</span>        <span class="co">-- look up `name` in the global environment</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>rfunction<span class="op">(</span><span class="va">name</span><span class="op">,</span> <span class="va">env</span><span class="op">)</span>   <span class="co">-- look up `name` in `env`</span></span></code></pre></div>
+<p>Above, <code>s</code> must be a SEXP of type <code>CLOSXP</code>,
+<code>SPECIALSXP</code>, or <code>BUILTINSXP</code>; <code>name</code>
+is a Lua string; <code>env</code> is a <code>luajr.environment</code>
+(or <code>R.sexp</code> of type <code>ENVSXP</code>).</p>
+<p><strong><code>luajr.is_rfunction(obj)</code></strong></p>
+<p>Returns <code>true</code> if <code>obj</code> is a
+<code>luajr.rfunction</code>, and <code>false</code> otherwise.</p>
+<p><strong><code>f(...)</code></strong></p>
+<p>Calls the R function with positional arguments. Each argument is
+converted to an R type automatically, and the result is returned as a
+<code>luajr</code> value depending on what the R function returned. For
+example:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="kw">local</span> <span class="va">mean</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>rfunction<span class="op">(</span><span class="st">"mean"</span><span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="kw">local</span> <span class="va">m</span> <span class="op">=</span> mean<span class="op">(</span><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">({</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">}))</span>   <span class="co">-- m == luajr.numeric({2})</span></span></code></pre></div>
+<p><strong><code>f:call(args, env)</code></strong></p>
+<p>Calls the R function using a Lua table of arguments and an optional
+evaluation environment. Integer keys <code>1..#args</code> are passed as
+positional arguments to the R function, in order; string keys are passed
+as named arguments. <code>env</code> is a <code>luajr.environment</code>
+(or <code>R.sexp</code> of type <code>ENVSXP</code>) and defaults to the
+global environment when nil or missing. For example:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="va">paste</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>rfunction<span class="op">(</span><span class="st">"paste"</span><span class="op">)</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="va">result</span> <span class="op">=</span> <span class="va">paste</span><span class="op">:</span>call<span class="op">({</span><span class="st">"a"</span><span class="op">,</span> <span class="st">"b"</span><span class="op">,</span> <span class="st">"c"</span><span class="op">,</span> <span class="va">sep</span> <span class="op">=</span> <span class="st">"-"</span><span class="op">})</span>  <span class="co">-- "a-b-c"</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="kw">local</span> <span class="va">sum</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>rfunction<span class="op">(</span><span class="st">"sum"</span><span class="op">)</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="va">result</span> <span class="op">=</span> <span class="va">sum</span><span class="op">:</span>call<span class="op">({</span><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">({</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="va">NA_real_</span><span class="op">}),</span> <span class="op">[</span><span class="st">"na.rm"</span><span class="op">]</span> <span class="op">=</span> <span class="kw">true</span><span class="op">})</span>  <span class="co">-- 3</span></span></code></pre></div>
+<p>Note that R argument names containing <code>.</code> (such as
+<code>na.rm</code>, <code>length.out</code>, <code>row.names</code>)
+cannot be written as Lua identifiers, so the bracket form
+<code>["na.rm"] = true</code> is needed.</p>
+<p>Integer keys must form a sequence (<code>1..#args</code> with no
+holes); any other integer key, or any key whose type is not number or
+string, raises an error.</p>
 </div>
 <div class="section level3">
-<h3 id="reference">Reference types<a class="anchor" aria-label="anchor" href="#reference"></a>
+<h3 id="environment">Environment<a class="anchor" aria-label="anchor" href="#environment"></a>
 </h3>
-<p>The reference types are similar to the vector types, but they are
-more “low-level” and hence are missing much of the functionality of the
-vector types. They map directly onto memory managed by R, so judicious
-use of reference types when passing to or returning from Lua can avoid
-unnecessary memory allocations and copies.</p>
-<p>Although reference types are missing lots of methods that the vector
-types have, they do have one feature that the vector types don’t have,
-namely that you can set and get the attributes associated with the
-underlying R value.</p>
-<p>A reference type is what you end up with if you pass an argument into
-a Lua function using <code><a href="../reference/lua_func.html">lua_func()</a></code> with arg code
-<code>"r"</code>, but you can also create new reference types within
-Lua.</p>
-<p>As with the vector types, indexes start at 1, not at 0, and you must
-be very careful not to access or write out of these bounds.</p>
-<p>Finally, because reference types depend upon R, they are not
-completely thread safe and therefore they cannot safely be used with
-<code>lua_parallel()</code>.</p>
-<div class="section level4">
-<h4 id="creating-and-testing-reference-types">Creating and testing reference types<a class="anchor" aria-label="anchor" href="#creating-and-testing-reference-types"></a>
-</h4>
-<p><strong><code>luajr.logical_r(a, b)</code>,
-<code>luajr.integer_r(a, b)</code>, <code>luajr.numeric_r(a, b)</code>,
-<code>luajr.character_r(a, b)</code></strong></p>
-<p>These functions can be used to create “vector types” in Lua code. The
-meaning of <code>a</code> and <code>b</code> depends on their type.
-Namely:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric_r<span class="op">(</span><span class="va">n</span><span class="op">,</span> <span class="va">x</span><span class="op">)</span> <span class="co">-- Size n, all entries equal to x if x ~= nil</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric_r<span class="op">(</span><span class="va">z</span><span class="op">)</span>    <span class="co">-- Copied from "vector-ish" object z</span></span></code></pre></div>
-<p>Above, <code>n</code> is a nonnegative number, <code>x</code> is a
-boolean, number, or string (as appropriate for the vector type) or
-<code>nil</code>, and <code>z</code> is a table, vector type, or
-reference type.</p>
-<p><strong><code>luajr.is_logical_r(obj)</code>,
-<code>luajr.is_integer_r(obj)</code>,
-<code>luajr.is_numeric_r(obj)</code>,
-<code>luajr.is_character_r(obj)</code></strong></p>
-<p>Check whether a value <code>obj</code> is one of the corresponding
-reference types. These return <code>true</code> if <code>obj</code> is
-of the corresponding type, and <code>false</code> otherwise.</p>
-</div>
-<div class="section level4">
-<h4 id="reference-type-methods">Reference type methods<a class="anchor" aria-label="anchor" href="#reference-type-methods"></a>
-</h4>
-<p>All the reference types have the following methods:</p>
-<p><strong><code>#v</code></strong></p>
-<p>Returns the length of the referenced vector.</p>
-<p><strong><code>x = v[i]</code>, <code>v[i] = x</code></strong></p>
-<p>Get or set the <code>i</code>th element of the referenced vector.</p>
-<p><strong><code>pairs(v)</code>, <code>ipairs(v)</code></strong></p>
-<p>Use with a Lua <code>for</code> loop to iterate over the values of
-the vector.</p>
-<p><strong><code>x = v(attr)</code>,
-<code>v(attr, x)</code></strong></p>
-<p>Get or set the attribute named <code>attr</code>. The second form,
-with two arguments, sets the attribute to <code>x</code>. Note that even
-though you can get and manipulate the <code>names</code> attribute, you
-cannot access a reference vector’s elements by their names.</p>
-</div>
+<p>The <code>luajr.environment</code> type wraps an R environment so its
+bindings can be read, written, and inspected from Lua.</p>
+<p><strong><code>luajr.environment(a)</code></strong></p>
+<p>Constructs a <code>luajr.environment</code>. The forms are:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>environment<span class="op">()</span>           <span class="co">-- new empty hashed environment under EmptyEnv</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>environment<span class="op">(</span><span class="va">s</span><span class="op">)</span>          <span class="co">-- wrap an existing R environment SEXP</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>environment<span class="op">(</span><span class="va">name</span><span class="op">)</span>       <span class="co">-- look up a registered namespace by name</span></span></code></pre></div>
+<p>Above, <code>s</code> is an <code>R.sexp</code> of type
+<code>ENVSXP</code>; <code>name</code> is a Lua string naming a loaded R
+package’s namespace (e.g. <code>"stats"</code>).</p>
+<p><strong><code>luajr.is_environment(obj)</code></strong></p>
+<p>Returns <code>true</code> if <code>obj</code> is a
+<code>luajr.environment</code>, and <code>false</code> otherwise.</p>
+<p><strong><code>e:get(k)</code></strong></p>
+<p>Returns the value bound to <code>k</code> in the environment, or
+<code>nil</code> if no such binding exists. The returned value is
+converted using the same rules as <a href="#utility"><code>luajr.from_sexp</code></a>, so atomic vectors come
+back as the corresponding <code>luajr</code> vector type, R functions as
+<code>luajr.rfunction</code>, etc.</p>
+<p><strong><code>e:set(k, v)</code></strong></p>
+<p>Binds the name <code>k</code> to value <code>v</code> in the
+environment. <code>v</code> is converted to a SEXP using the same rules
+as <a href="#utility"><code>luajr.to_sexp</code></a>.</p>
+<p><strong><code>e:exists(k)</code></strong></p>
+<p>Returns <code>true</code> if <code>k</code> is bound in the
+environment (equivalent to <code>e:get(k) ~= nil</code>), and
+<code>false</code> otherwise.</p>
+<p><strong><code>e:remove(k)</code></strong></p>
+<p>Removes the binding for <code>k</code> from the environment, if it
+exists.</p>
+<p><strong><code>e:get_parent()</code></strong></p>
+<p>Returns the parent (enclosing) environment as a new
+<code>luajr.environment</code>.</p>
+<p><strong><code>e:set_parent(env)</code></strong></p>
+<p>Sets the parent of <code>e</code> to <code>env</code>, which must be
+a <code>luajr.environment</code> or an <code>R.sexp</code> of type
+<code>ENVSXP</code>.</p>
+<p><strong><code>e:ls(all, sorted)</code></strong></p>
+<p>Returns the names bound in <code>e</code> as a
+<code>luajr.character</code> vector. If <code>all</code> is
+<code>true</code>, names beginning with <code>.</code> are also included
+(default: <code>false</code>). If <code>sorted</code> is
+<code>true</code>, the names are returned in lexicographic order
+(default: <code>true</code>).</p>
 </div>
 <div class="section level3">
-<h3 id="list">List type<a class="anchor" aria-label="anchor" href="#list"></a>
+<h3 id="data-frame">Data frame<a class="anchor" aria-label="anchor" href="#data-frame"></a>
 </h3>
-<p>A list is a special kind of Lua table that can be indexed either with
-positive integers or with strings. Unlike a Lua table, a list remembers
-the order in which you have added elements to it, like an R list
-does.</p>
-<div class="section level4">
-<h4 id="creating-and-testing-lists">Creating and testing lists<a class="anchor" aria-label="anchor" href="#creating-and-testing-lists"></a>
-</h4>
-<p><strong><code>luajr.list()</code></strong></p>
-<p>Creates a new, empty list.</p>
-<p><strong><code>luajr.is_list(obj)</code></strong></p>
-<p>Check whether a value <code>obj</code> is a list. Returns
-<code>true</code> if <code>obj</code> is a list, and <code>false</code>
-otherwise.</p>
-</div>
-<div class="section level4">
-<h4 id="list-methods">List methods<a class="anchor" aria-label="anchor" href="#list-methods"></a>
-</h4>
-<p>Lists have the following methods:</p>
-<p><strong><code>#v</code></strong></p>
-<p>Returns the length of the list, including both integer- and
-string-keyed entries. This differs from the behaviour of the
-<code>#</code> operator on normal Lua tables, which only report the
-number of integer-keyed entries.</p>
-<p><strong><code>x = v[i]</code>, <code>v[i] = x</code></strong></p>
-<p>Get or set element <code>i</code> of the list. <code>i</code> can be
-either a positive integer or a string. Note that you cannot write to any
-integer keys greater than <code>#v + 1</code>.</p>
-<p><strong><code>pairs(v)</code>, <code>ipairs(v)</code></strong></p>
-<p>Use with a Lua <code>for</code> loop to iterate over the values of
-the vector. Unlike with vector and reference types, <code>pairs</code>
-and <code>ipairs</code> are not exactly the same when applied to lists;
-the former will provide either string or number keys as you iterate
-through the list (strings if they are present, numbers otherwise) and
-the latter will give number keys only. Either one iterates through every
-element of the list and both iterate through the list in the same
-order.</p>
-<p><strong><code>x = v(attr)</code>,
-<code>v(attr, x)</code></strong></p>
-<p>Get or set the attribute named <code>attr</code>. The second form,
-with two arguments, sets the attribute to <code>x</code>. Note that, for
-a list, the <code>"names"</code> attribute is not a simple vector of
-names, like in R, but is an associative array linking keys to their
-indices. For example, for a list with elements <code>a = 1</code>,
-<code>2</code>, and <code>c = 3</code>, <code>v("names")</code> is equal
-to <code>{ "a" = 1, "c" = 3 }</code>. However, when a list is returned
-to R, its <code>"names"</code> attribute has the normal R format.</p>
-<p>Note that lists have this interface for setting and getting
-attributes, but unlike the reference types (which also have this
-capability), they are not internally managed by R. This means that they
-are safe to use with <code>lua_parallel()</code>, as long as they don’t
-contain any reference types.</p>
-</div>
-</div>
-<div class="section level3">
-<h3 id="dfm">Data frame and matrix types<a class="anchor" aria-label="anchor" href="#dfm"></a>
-</h3>
-<p>There are a handful of additional types based on the above types, but
-which have some special behaviour when returned to R.</p>
-<div class="section level4">
-<h4 id="data-frame">Data frame<a class="anchor" aria-label="anchor" href="#data-frame"></a>
-</h4>
 <p>A data frame can be created with</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="va">df</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>dataframe<span class="op">()</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="va">df</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>dataframe<span class="op">(</span><span class="va">a</span><span class="op">,</span> <span class="va">b</span><span class="op">)</span></span></code></pre></div>
 <p>This is just a <code>luajr.list</code> with the <code>"class"</code>
-attribute set to <code>"data.frame"</code>. However, when a list with
-this class gets returned to R, it gets turned into a data frame.</p>
+attribute set to <code>"data.frame"</code>. <code>a</code> and
+<code>b</code> have the same meaning as in the <a href="#vcreate">vector
+constructors</a>. When a list with this class gets returned to R, it
+gets turned into an R <code>data.frame</code> and row names are set
+automatically. Otherwise it is equivalent to <code>luajr.list</code> and
+all the methods of <code>luajr.list</code> can be used. Note that this
+allows you to do, e.g.,</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="kw">local</span> <span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>dataframe<span class="op">({</span> </span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>    <span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>numeric<span class="op">({</span><span class="dv">1</span><span class="op">,</span><span class="dv">2</span><span class="op">,</span><span class="dv">3</span><span class="op">}),</span> </span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>    <span class="va">y</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span><span class="kw">true</span><span class="op">,</span> <span class="kw">false</span><span class="op">,</span> <span class="kw">true</span><span class="op">})</span> </span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
 </div>
-<div class="section level4">
-<h4 id="matrix">Matrix<a class="anchor" aria-label="anchor" href="#matrix"></a>
-</h4>
+<div class="section level3">
+<h3 id="matrix">Matrix<a class="anchor" aria-label="anchor" href="#matrix"></a>
+</h3>
 <p>A matrix can be created with</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="va">df</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>matrix<span class="op">(</span><span class="va">nrow</span><span class="op">,</span> <span class="va">ncol</span><span class="op">,</span> <span class="va">init</span><span class="op">)</span></span></code></pre></div>
-<p>This is a special kind of <code>luajr.numeric_r</code> with the
+<div class="sourceCode" id="cb13"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="va">df</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>matrix<span class="op">(</span><span class="va">nrow</span><span class="op">,</span> <span class="va">ncol</span><span class="op">,</span> <span class="va">init</span><span class="op">)</span></span></code></pre></div>
+<p>This is a special kind of <code>luajr.numeric</code> with the
 <code>"dim"</code> attribute set to
-<code>luajr.integer_r({ nrow, ncol })</code>. It gets recognized as a
-matrix when returned to R. However, you can only access elements with a
-single index that starts at 1 and goes in column-major order. So, for
-example, for a 2x2 matrix, the top-left element has index 1, bottom-left
-has index 2, top-right has index 3 and bottom-right has index 4.</p>
-<p>Note that it is a reference type.</p>
+<code>luajr.integer({ nrow, ncol })</code>, and all entries set to
+<code>init</code>. If <code>init</code> is omitted or nil, the matrix is
+uninitialised.</p>
+<p>This gets recognized as a matrix when returned to R. However, you can
+only access elements with a single index that starts at 1 and goes in
+column-major order. So, for example, for a 2x2 matrix, the top-left
+element has index 1, bottom-left has index 2, top-right has index 3 and
+bottom-right has index 4.</p>
 </div>
-<div class="section level4">
-<h4 id="data-matrix">Data matrix<a class="anchor" aria-label="anchor" href="#data-matrix"></a>
-</h4>
+<div class="section level3">
+<h3 id="data-matrix">Data matrix<a class="anchor" aria-label="anchor" href="#data-matrix"></a>
+</h3>
 <p>A data matrix can be created with</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="va">dm</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>datamatrix_r<span class="op">(</span><span class="va">nrow</span><span class="op">,</span> <span class="va">ncol</span><span class="op">,</span> <span class="va">names</span><span class="op">,</span> <span class="va">init</span><span class="op">)</span></span></code></pre></div>
-<p>This is similar to <code>luajr.matrix_r</code>, but it has
+<div class="sourceCode" id="cb14"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="va">dm</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>datamatrix<span class="op">(</span><span class="va">nrow</span><span class="op">,</span> <span class="va">ncol</span><span class="op">,</span> <span class="va">names</span><span class="op">,</span> <span class="va">init</span><span class="op">)</span></span></code></pre></div>
+<p>This is similar to <code>luajr.matrix</code>, but it has
 <code>names</code> as column names. <code>names</code> can be passed in
 as a Lua table (e.g. <code>{ "foo", "bar" }</code>) or as a
-<code>luajr.character</code> or <code>luajr.character_r</code>
-object.</p>
+<code>luajr.character</code> object.</p>
 <p>Using a data matrix is very slightly faster than using a data frame
 because only one memory allocation needs to be made, but this difference
 is on the order of microseconds for normal sized data. Also, if you are
 just going to convert the returned matrix into a data frame anyway, you
 lose the speed advantage. So don’t worry about it too much.</p>
-<p>The column names can be get and set within Lua using the special
-attribute name <code>"/matrix/colnames"</code>.</p>
 </div>
 </div>
-<div class="section level3">
-<h3 id="constants">Constants<a class="anchor" aria-label="anchor" href="#constants"></a>
-</h3>
+<div class="section level2">
+<h2 id="constants">Constants<a class="anchor" aria-label="anchor" href="#constants"></a>
+</h2>
 <p>The following constants are defined in the <code>luajr</code>
 table:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span>          <span class="co">-- defined as 1</span></span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span>         <span class="co">-- defined as 0</span></span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_logical_</span>   <span class="co">-- equal to R.NA_LOGICAL</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_integer_</span>   <span class="co">-- equal to R.NA_INTEGER</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_real_</span>      <span class="co">-- equal to R.NA_REAL</span></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_character_</span> <span class="co">-- equal to R.NA_STRING</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NULL</span>          <span class="co">-- equal to R.NilValue</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span>          <span class="co">-- defined as 1</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span>         <span class="co">-- defined as 0</span></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_logical_</span>   <span class="co">-- equal to R.NA_LOGICAL</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_integer_</span>   <span class="co">-- equal to R.NA_INTEGER</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_real_</span>      <span class="co">-- equal to R.NA_REAL</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="va">NA_character_</span> <span class="co">-- equal to R.NA_STRING</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span><span class="cn">NULL</span>          <span class="co">-- equal to R.NilValue</span></span></code></pre></div>
 <p>Note that Lua’s semantics in dealing with logical types and NA values
 are very different from R’s semantics. Lua does not “understand” NA
 values in the same way that R does, and <code>luajr</code> sees the R
 logical type as fundamentally an integer, not a boolean.</p>
 <p>Specifically, whereas in R you can do the following:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">FALSE</span>, <span class="cn">NA</span><span class="op">)</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="va">x</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="st">"First element of x is TRUE!"</span><span class="op">)</span></span></code></pre></div>
 <p>in Lua you have to do this:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="va">NA_logical_</span> <span class="op">})</span></span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="cf">if</span> <span class="va">x</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span> <span class="cf">then</span> <span class="fu">print</span><span class="op">(</span><span class="st">"First element of x is TRUE!"</span><span class="op">)</span> <span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="va">NA_logical_</span> <span class="op">})</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="cf">if</span> <span class="va">x</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span> <span class="cf">then</span> <span class="fu">print</span><span class="op">(</span><span class="st">"First element of x is TRUE!"</span><span class="op">)</span> <span class="cf">end</span></span></code></pre></div>
 <p>This is because under the hood, R’s TRUE is defined as the integer 1
 (though any nonzero integer besides NA will also test as TRUE), FALSE is
 defined as 0, and NA (when logical or integer) is defined as a special
 ‘flag’ value of -2147483648 (i.e. -2^31). However, in Lua, anything
 other than <code>nil</code> or <code>false</code> evaluates as
 <code>true</code>, meaning that the following Lua code</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="va">NA_logical_</span> <span class="op">})</span></span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="cf">for</span> <span class="va">i</span> <span class="op">=</span> <span class="dv">1</span><span class="op">,</span> <span class="op">#</span><span class="va">x</span> <span class="cf">do</span></span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>    <span class="cf">if</span> <span class="va">x</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="cf">then</span> <span class="fu">print</span><span class="op">(</span><span class="st">"Element"</span><span class="op">,</span> <span class="va">i</span><span class="op">,</span> <span class="st">"of x is TRUE!"</span><span class="op">)</span> <span class="cf">end</span></span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="va">x</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>logical<span class="op">({</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">TRUE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="cn">FALSE</span><span class="op">,</span> <span class="va">luajr</span><span class="op">.</span><span class="va">NA_logical_</span> <span class="op">})</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="cf">for</span> <span class="va">i</span> <span class="op">=</span> <span class="dv">1</span><span class="op">,</span> <span class="op">#</span><span class="va">x</span> <span class="cf">do</span></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>    <span class="cf">if</span> <span class="va">x</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="cf">then</span> <span class="fu">print</span><span class="op">(</span><span class="st">"Element"</span><span class="op">,</span> <span class="va">i</span><span class="op">,</span> <span class="st">"of x is TRUE!"</span><span class="op">)</span> <span class="cf">end</span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <p>will incorrectly claim that <code>luajr.TRUE</code>,
 <code>luajr.FALSE</code>, and <code>luajr.NA_logical_</code> are all
 “<code>TRUE</code>”. So, instead, explicitly set logical values to
@@ -458,7 +521,13 @@ same values.</p>
 <p>Note that the different NA constants are not interchangeable. So,
 when testing for NA in Lua, you have to check if a value is equal to
 (<code>==</code>) or not equal to (<code>~=</code>) the corresponding NA
-constant above, depending on the type of the variable in question.</p>
+constant above, depending on the type of the variable in question. The
+one exception is <code>luajr.NA_real_</code>: because it is a
+<code>NaN</code> value, IEEE-754 semantics make
+<code>x == luajr.NA_real_</code> always <code>false</code>, even when
+<code>x</code> <em>is</em> <code>NA_real_</code>. For
+<code>luajr.numeric</code> vectors, use the <a href="#vector"><code>v:is_na(i)</code></a> method instead of
+<code>==</code> to test for <code>NA</code> (or <code>NaN</code>).</p>
 <p>All of this only applies only when using R values, e.g. with the
 vector types described above. Lua also has its own boolean type (with
 possible values <code>true</code> and <code>false</code>) which will
@@ -476,35 +545,244 @@ Lua through arg code <code>"native"</code>, it will come out as
 <code>nil</code> in Lua; but if you use arg code <code>"auto"</code>, it
 will come out as <code>luajr.NULL</code>.</p>
 </div>
-<div class="section level3">
-<h3 id="longvec">Long vectors<a class="anchor" aria-label="anchor" href="#longvec"></a>
-</h3>
+<div class="section level2">
+<h2 id="parallel">Parallel processing<a class="anchor" aria-label="anchor" href="#parallel"></a>
+</h2>
+<p><code>luajr</code> can run Lua code in parallel across multiple
+worker Lua states. Each worker is a fully independent Lua state. Because
+the vector types described above depend on R, and R is not fully
+thread-safe, <strong>do not allocate new R objects from inside a
+worker</strong> (do not create new <code>luajr.numeric</code>,
+<code>luajr.list</code>, etc., and do not call R functions that
+allocate). Reading and writing the elements of a vector that was
+<em>allocated in the main state</em> and passed in to the worker is
+safe, provided different workers do not write to the same slot — this is
+the standard pattern for collecting per-worker results, illustrated
+below.</p>
+<p>The following renders a <em>Buddhabrot</em> in parallel — a Monte
+Carlo image of the Mandelbrot set built by sampling random points,
+iterating each one, and accumulating the trajectories of those that
+escape. Each worker accumulates into its own image buffer (to avoid
+write races on shared pixels), and the main state sums them at the end.
+Then displays the result with R’s <code><a href="https://rdrr.io/r/graphics/image.html" class="external-link">image()</a></code>:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">buddhabrot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/lua_func.html">lua_func</a></span><span class="op">(</span><span class="st">"function(cfg)</span></span>
+<span><span class="st">    local pool = luajr.workers()</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">    -- Per-worker setup: seed the RNG so each worker draws different samples.</span></span>
+<span><span class="st">    -- srun runs this once in each worker, in sequence.</span></span>
+<span><span class="st">    pool:srun(function(thread_id)</span></span>
+<span><span class="st">        math.randomseed(thread_id * 7919)</span></span>
+<span><span class="st">    end)</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">    -- One image buffer per worker, allocated in the main state. Each worker</span></span>
+<span><span class="st">    -- writes only to its own buffer, so there's no race on shared pixels.</span></span>
+<span><span class="st">    local bufs = {}</span></span>
+<span><span class="st">    for t = 1, pool.n do bufs[t] = luajr.matrix(cfg.W, cfg.H, 0) end</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">    -- Each worker samples `n_per` random points and accumulates the orbits</span></span>
+<span><span class="st">    -- of those that escape into its own buffer.</span></span>
+<span><span class="st">    local n_per = math.ceil(cfg.samples / pool.n)</span></span>
+<span><span class="st">    pool:prun(function(bufs, cfg, n_per, thread_id)</span></span>
+<span><span class="st">        local img = bufs[thread_id]</span></span>
+<span><span class="st">        local W, H, max_iter = cfg.W, cfg.H, cfg.max_iter</span></span>
+<span><span class="st">        local cx, cy, scale = cfg.cx, cfg.cy, cfg.scale</span></span>
+<span><span class="st">        local xr = scale * W / H   -- half-width in cr</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">        for s = 1, n_per do</span></span>
+<span><span class="st">            local cr = cx + (math.random() * 2 - 1) * xr</span></span>
+<span><span class="st">            local ci = cy + (math.random() * 2 - 1) * scale</span></span>
+<span><span class="st">            local zr, zi, iter = 0, 0, 0</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">            -- First pass: does the orbit escape?</span></span>
+<span><span class="st">            while zr*zr + zi*zi &lt; 4 and iter &lt; max_iter do</span></span>
+<span><span class="st">                zr, zi = zr*zr - zi*zi + cr, 2*zr*zi + ci</span></span>
+<span><span class="st">                iter = iter + 1</span></span>
+<span><span class="st">            end</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">            -- Only escaping orbits contribute (the Buddhabrot proper).</span></span>
+<span><span class="st">            if iter &lt; max_iter then</span></span>
+<span><span class="st">                local escape_iters = iter</span></span>
+<span><span class="st">                zr, zi = 0, 0</span></span>
+<span><span class="st">                for k = 1, escape_iters do</span></span>
+<span><span class="st">                    zr, zi = zr*zr - zi*zi + cr, 2*zr*zi + ci</span></span>
+<span><span class="st">                    local i = math.floor((zr - cx) / xr * W / 2 + W / 2) + 1</span></span>
+<span><span class="st">                    local j = math.floor((zi - cy) / scale * H / 2 + H / 2) + 1</span></span>
+<span><span class="st">                    if i &gt;= 1 and i &lt;= W and j &gt;= 1 and j &lt;= H then</span></span>
+<span><span class="st">                        img[(j - 1) * W + i] = img[(j - 1) * W + i] + 1</span></span>
+<span><span class="st">                    end</span></span>
+<span><span class="st">                end</span></span>
+<span><span class="st">            end</span></span>
+<span><span class="st">        end</span></span>
+<span><span class="st">    end, bufs, cfg, n_per)</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">    pool:close()</span></span>
+<span><span class="st"></span></span>
+<span><span class="st">    -- Sum the per-worker buffers into one result.</span></span>
+<span><span class="st">    local result = luajr.matrix(cfg.W, cfg.H, 0)</span></span>
+<span><span class="st">    local n = cfg.W * cfg.H</span></span>
+<span><span class="st">    for t = 1, #bufs do</span></span>
+<span><span class="st">        local b = bufs[t]</span></span>
+<span><span class="st">        for k = 1, n do result[k] = result[k] + b[k] end</span></span>
+<span><span class="st">    end</span></span>
+<span><span class="st">    return result</span></span>
+<span><span class="st">end"</span>, <span class="st">"$."</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>W <span class="op">=</span> <span class="fl">600</span>, H <span class="op">=</span> <span class="fl">400</span>, max_iter <span class="op">=</span> <span class="fl">200</span>, samples <span class="op">=</span> <span class="fl">1e8</span>,</span>
+<span>            cx <span class="op">=</span> <span class="op">-</span><span class="fl">0.5</span>, cy <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1.25</span><span class="op">)</span></span>
+<span><span class="va">img</span> <span class="op">&lt;-</span> <span class="fu">buddhabrot</span><span class="op">(</span><span class="va">cfg</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/image.html" class="external-link">image</a></span><span class="op">(</span><span class="op">-</span><span class="va">img</span>, col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">hcl.colors</a></span><span class="op">(</span><span class="fl">256</span>, <span class="st">"Oslo"</span><span class="op">)</span>,</span>
+<span>      useRaster <span class="op">=</span> <span class="cn">TRUE</span>, axes <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="images/buddhabrot.jpg" alt="" width="600px" style="display: block; margin: auto;"></p>
+<p>Pulling the example apart:</p>
+<ul>
+<li>
+<code>luajr.workers()</code> creates a pool of one worker per core;
+<code>pool.n</code> reports the count.</li>
+<li>
+<code>pool:srun(setup)</code> runs <code>setup</code> in each worker
+once, in sequence — used here to give each worker a different RNG seed
+(via <code>thread_id</code>) so the workers don’t redundantly sample the
+same points. Because <code>srun</code> is sequential, the setup doesn’t
+need to be thread-safe.</li>
+<li>
+<code>bufs</code> is a Lua table of <code>luajr.matrix</code>
+buffers (one per worker), all allocated in the main state. Passing the
+table into the workers gives each one access to all the buffers; each
+worker picks its own via <code>thread_id</code>, so writes don’t
+race.</li>
+<li>
+<code>pool:prun(work, bufs, cfg, n_per)</code> runs
+<code>work</code> once in every worker, concurrently. Each worker draws
+<code>n_per</code> random points, runs the Mandelbrot escape test, and
+for escaping orbits re-traces the orbit and increments the pixel that
+each visited point maps to.</li>
+<li>
+<code>pool:close()</code> shuts the workers down.</li>
+<li>The main state sums the per-worker buffers into one result.
+<code><a href="https://rdrr.io/r/base/Log.html" class="external-link">log1p()</a></code> on the R side compresses the long count tail before
+<code><a href="https://rdrr.io/r/graphics/image.html" class="external-link">image()</a></code> displays it.</li>
+</ul>
+<p><strong><code>luajr.ncores()</code></strong></p>
+<p>Returns a suggested number of concurrent threads for the current
+machine (the value of <code>std::thread::hardware_concurrency()</code>
+from C++).</p>
+<p><strong><code>luajr.workers(n)</code></strong></p>
+<p>Constructs a pool of <code>n</code> worker Lua states. If
+<code>n</code> is <code>nil</code> or missing, the default is
+<code>luajr.ncores()</code>. Each worker is created with the standard
+<code>luajr</code> and Lua libraries already loaded.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="kw">local</span> <span class="va">pool</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>workers<span class="op">()</span>      <span class="co">-- one worker per core</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="kw">local</span> <span class="va">pool</span> <span class="op">=</span> <span class="va">luajr</span><span class="op">.</span>workers<span class="op">(</span><span class="dv">4</span><span class="op">)</span>     <span class="co">-- four workers</span></span></code></pre></div>
+<p>The pool’s workers are torn down automatically when the pool is
+garbage collected, or explicitly via <code>pool:close()</code>. A pool
+must be created and used within a single R <code>.Call</code>
+(i.e. within a single call from R into Lua): cross-state argument
+transfer uses by-reference handles that are only valid for that
+scope.</p>
+<p><strong><code>pool:preload(f, ...)</code></strong></p>
+<p>Loads the function <code>f</code> and the additional arguments
+<code>...</code> into every worker state. <code>f</code> is a Lua
+function, and the additional arguments are copied to each worker by
+value (for plain Lua values) or by reference handle (for cdata,
+restricted to the calling <code>.Call</code> lifetime).</p>
+<p><strong><code>pool:srun(f, ...)</code></strong></p>
+<p>Sequentially runs the preloaded function in each worker. If
+<code>f</code> is non-nil, calls <code>preload</code> first. The
+function is invoked in each worker as
+<code>f(arg1, arg2, ..., thread_id)</code>, where
+<code>arg1..argN</code> are the preloaded arguments and
+<code>thread_id</code> is the 1-based index of the worker. The main use
+case is running code that touches each worker’s Lua state, such as
+loading modules, setting globals, or otherwise preparing per-worker
+state, without having to worry about thread safety, since each worker
+runs sequentially.</p>
+<p><strong><code>pool:prun(f, ...)</code></strong></p>
+<p>Same call shape as <code>srun</code>, but runs the workers
+concurrently on separate threads. If any worker throws an error, the
+first error is propagated back to the calling state after all workers
+complete.</p>
+<p><strong><code>pool:pfor(i0, i1, f, ...)</code></strong></p>
+<p>Distributes the iterations <code>i0..i1</code> (inclusive) across the
+workers using atomic work-stealing. The function is invoked once per
+iteration as <code>f(i, arg1, ..., thread_id)</code>, where
+<code>i</code> is the iteration index. As with <code>prun</code>, errors
+from any worker are propagated after the loop completes.</p>
+<p><strong><code>pool:close()</code></strong></p>
+<p>Closes all worker states in the pool and releases their resources.
+Safe to call more than once. Workers cannot be used after the pool has
+been closed.</p>
+<p><strong><code>#pool</code></strong></p>
+<p>Returns the number of workers in the pool.</p>
+</div>
+<div class="section level2">
+<h2 id="utility">Utility functions<a class="anchor" aria-label="anchor" href="#utility"></a>
+</h2>
+<p>These are general-purpose helpers exposed by the <code>luajr</code>
+module.</p>
+<p><strong><code>luajr.to_sexp(v)</code></strong></p>
+<p>Converts a Lua value <code>v</code> to an R SEXP. The conversion
+rules are:</p>
+<ul>
+<li>
+<code>nil</code> → <code>R_NilValue</code>
+</li>
+<li>Lua <code>number</code> → <code>REALSXP</code> of length 1</li>
+<li>Lua <code>boolean</code> → <code>LGLSXP</code> of length 1</li>
+<li>Lua <code>string</code> → <code>STRSXP</code> of length 1 (or
+<code>RAWSXP</code> if the string contains embedded null bytes)</li>
+<li>Lua <code>table</code> → <code>VECSXP</code>; integer keys become
+positional entries, string keys become named entries (see also <a href="#vcreate"><code>luajr.list</code></a>)</li>
+<li>
+<code>luajr</code> vector/environment/rfunction cdata → the
+underlying SEXP</li>
+<li>bare <code>R.sexp</code> cdata → the SEXP unchanged</li>
+</ul>
+<p>Returns the result as an <code>R.sexp</code>. The returned SEXP is
+unprotected; most callers consume it immediately (e.g. as an argument to
+<code>R.SET_VECTOR_ELT</code> or <code>R.defineVar</code>).</p>
+<p><strong><code>luajr.from_sexp(s, argcode)</code></strong></p>
+<p>Converts an R SEXP <code>s</code> to the corresponding Lua/luajr
+value. <code>argcode</code> is an optional numeric byte value that
+selects the target representation; it is <strong>not</strong> the string
+format (e.g. <code>"$."</code>, <code>"&amp;V"</code>) accepted by <a href="luajr.html"><code>lua_func()</code></a>, but the underlying
+encoded byte that those strings ultimately compile to. If
+<code>argcode</code> is <code>nil</code> or missing, the default selects
+the <code>auto</code> representation.</p>
+<p><strong><code>luajr.readline(prompt)</code></strong></p>
+<p>Reads one line of input from R’s console using
+<code>R_ReadConsole</code>, displaying <code>prompt</code> first.
+Returns the line as a Lua string with the trailing newline removed. Used
+internally by the debugger but also available for any Lua code that
+needs an interactive prompt.</p>
+<p><strong><code>luajr.dbg(...)</code></strong></p>
+<p>Invokes the <a href="https://github.com/slembcke/debugger.lua" class="external-link">debugger.lua</a> module
+on the given arguments, opening an interactive debugger session at the
+current Lua frame.</p>
+</div>
+<div class="section level2">
+<h2 id="longvec">Long vectors<a class="anchor" aria-label="anchor" href="#longvec"></a>
+</h2>
 <p><code>luajr</code> can handle what are called “long vectors” in R
 (i.e., vectors with 2^31 elements or more), but there are some
 restrictions.</p>
-<p>Vector types are allocated in Lua, and they are limited to a maximum
-size of <code>luajr.max_alloc</code>, which is currently set to 2^37
-(i.e., 128 GiB). You can change <code>luajr.max_alloc</code> if you need
-to work with a larger vector. Note that if your vector is larger than
-R’s vector memory limit, you will not be able to return such a large
-vector back to R.</p>
-<p>Reference types are allocated by R, so their size is limited by R’s
+<p>Vector types are allocated by R, so their size is limited by R’s
 vector memory limit. This limit can be set and queried using the R
 function <code><a href="https://rdrr.io/r/base/memlimits.html" class="external-link">mem.maxVSize()</a></code>.</p>
-<p>Long vectors can be passed from R into Lua using the <code>"v"</code>
-or <code>"r"</code> arg codes. Passing by reference will be much more
-efficient for large vectors, as this avoids making a copy of the
-data.</p>
 <p>There are limits on how large of a table you can create in Lua when
 using the <code>lua_createtable()</code> function, which is what
 <code>luajr</code> uses to allocate space for tables. This means that if
-you try to pass a large vector into Lua as an array (arg code
-<code>"a"</code> or <code>"s"</code>), the operation will fail if there
-are too many elements in the vector. The maximum number of elements is
-currently set by LuaJIT to 2^27, or just over 134 million elements. This
-is also the maximum length of an R <code>list</code> that can be passed
-into Lua.</p>
-<p>As of R 4.5.1, a <code>data.frame</code> cannot hold long vectors;
+you try to pass a large vector into Lua as a native Lua array (e.g. arg
+code <code>$N</code> for an atomic vector, or <code>$V</code> for a
+list), the operation will fail if there are too many elements in the
+vector. The maximum number of elements is currently set by LuaJIT to
+2^27, or just over 134 million elements. This is also the maximum length
+of an R <code>list</code> that can be passed into Lua. Passing a vector
+as a SEXP (arg code <code>S</code>) or as a <code>luajr</code> vector
+type (arg codes <code>.</code>, <code>L</code>, <code>I</code>,
+<code>N</code>, <code>C</code>, <code>V</code>) does not go through
+<code>lua_createtable</code> and is not subject to this limit.</p>
+<p>As of R 4.6.0, a <code>data.frame</code> cannot hold long vectors;
 nor can a <code>data.table</code> or <code>tibble</code>. However, a
 <code>list</code> can hold long vectors.</p>
 <p>If you are working with lots of data, you may want to keep it on the
@@ -512,7 +790,6 @@ hard drive rather than trying to load it all into working memory. You
 could use something like C’s <a href="https://man7.org/linux/man-pages/man2/mmap.2.html" class="external-link"><code>mmap</code></a>
 for this, an R package like <a href="https://arrow.apache.org/docs/r/index.html" class="external-link"><code>arrow</code></a>,
 or something else.</p>
-</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
