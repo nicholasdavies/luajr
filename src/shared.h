@@ -99,7 +99,7 @@ void luajr_error(lua_State* L, const char* fmt, ...) __attribute__((noreturn));
 void luajr_internal_pushsexp(lua_State* L, void* x); // Not in public API
 void luajr_internal_pushvector(lua_State* L, int sxp_type, void* p, void* s, double n, double c); // Not in public API
 void luajr_internal_pushenvironment(lua_State* L, void* s); // Not in public API
-void luajr_internal_pushRfunction(lua_State* L, void* s); // Not in public API
+void luajr_internal_pushrfunction(lua_State* L, void* s); // Not in public API
 ptrdiff_t luajr_internal_tosexp(lua_State* L, int index, void** out_s); // Not in public API
 int luajr_internal_topointer(lua_State* L, int index, void** out_p); // Not in public API
 void luajr_internal_tablesize(lua_State* L, int index, uint32_t* asize, uint32_t* hsize); // Not in public API

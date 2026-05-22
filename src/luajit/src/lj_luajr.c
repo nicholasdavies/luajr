@@ -136,7 +136,7 @@ extern void luajr_internal_pushenvironment(lua_State *L, void *s)
 }
 
 /* Push a function_t cdata { SEXP s; SEXP cached; } onto the Lua stack. */
-extern void luajr_internal_pushRfunction(lua_State *L, void *s)
+extern void luajr_internal_pushrfunction(lua_State *L, void *s)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);

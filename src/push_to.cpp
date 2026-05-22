@@ -183,7 +183,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                     // R function: push luajr.rfunction cdata as upvalue of a C
                     // closure that calls it. The cdata's __gc releases on GC.
                     R_PreserveObject(x);
-                    luajr_internal_pushRfunction(L, (void*)x);
+                    luajr_internal_pushrfunction(L, (void*)x);
                     lua_pushcclosure(L, [](lua_State* L) -> int {
                         int n = lua_gettop(L);
                         lua_pushvalue(L, lua_upvalueindex(1));
@@ -207,7 +207,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                 if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
                     luajr_error(L, "Expected function, got %s.", Rf_type2char(TYPEOF(x)));
                 R_PreserveObject(x);
-                luajr_internal_pushRfunction(L, (void*)x);
+                luajr_internal_pushrfunction(L, (void*)x);
             }
             break;
 

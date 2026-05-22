@@ -90,8 +90,8 @@ extern void luajr_internal_pushsexp(lua_State *L, void *x)
     lj_gc_check(L);
 }
 
-/* Push a luajr vector cdata (logical_t/integer_t/numeric_t/character_t/list_t) 
- * onto the Lua stack with the given (p, s, n, c) field values. sxp_type 
+/* Push a luajr vector cdata (logical_t/integer_t/numeric_t/character_t/list_t)
+ * onto the Lua stack with the given (p, s, n, c) field values. sxp_type
  * selects which vector ctype to use. The caller is responsible for computing
  * the field values, including the -1-element offset on p for 1-based Lua
  * indexing. */
@@ -135,7 +135,7 @@ extern void luajr_internal_pushenvironment(lua_State *L, void *s)
 }
 
 /* Push a function_t cdata { SEXP s; SEXP cached; } onto the Lua stack. */
-extern void luajr_internal_pushRfunction(lua_State *L, void *s)
+extern void luajr_internal_pushrfunction(lua_State *L, void *s)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);
@@ -150,7 +150,7 @@ extern void luajr_internal_pushRfunction(lua_State *L, void *s)
 
 /* Extract a SEXP from the cdata at the given Lua stack index. Handles bare
  * SEXP cdata, the five luajr vector types (logical_t/integer_t/numeric_t/
- * character_t/list_t), and any pointer-type cdata with a NULL value (the 
+ * character_t/list_t), and any pointer-type cdata with a NULL value (the
  * `nullptr` idiom used in luajr.lua, returned to R as R_NilValue).
  *
  * The SEXP is written to *out_s on success. The return value is:
