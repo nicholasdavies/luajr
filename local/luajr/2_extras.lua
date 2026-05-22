@@ -117,9 +117,18 @@ local mt_environment = {
 }
 
 luajr.environment = ffi.metatype("environment_t", mt_environment)
+luajr.is_environment = function(obj) return ffi.istype(luajr.environment, obj) end
 
 -- R function type
 -- typedef struct { SEXP s; SEXP cached; } function_t;
+local methods_rfunction = {
+    -- in args table, integer keys are positional 1..#args,
+    -- string keys are named, env defaults to GlobalEnv if nil
+    call = function(self, args, env)
+        return luajr.rcall(self.s, args, env)
+    end
+}
+
 local mt_rfunction = {
     __new = function(ctype, a, b)
         local self = ffi.new(ctype)
@@ -146,15 +155,17 @@ local mt_rfunction = {
         R.ReleaseObject(self.s)
     end,
 
+    __index = function(self, k)
+        return methods_rfunction[k]
+    end,
+
     __call = function(self, ...)
-        return luajr.Rcall(self.s, ...)
+        return luajr.rcall(self.s, {...})
     end
 }
 
 luajr.rfunction = ffi.metatype("function_t", mt_rfunction)
-
-luajr.is_environment = function(obj) return ffi.istype(luajr.environment, obj) end
-luajr.is_rfunction   = function(obj) return ffi.istype(luajr.rfunction, obj) end
+luajr.is_rfunction = function(obj) return ffi.istype(luajr.rfunction, obj) end
 
 
 

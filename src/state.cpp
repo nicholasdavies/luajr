@@ -24,7 +24,7 @@ static const CFunctionEntry luajr_cfuncs[] =
 {
     { "tosexp",        luajr_tosexp_cf       },
     { "fromsexp",      luajr_fromsexp_cf     },
-    { "Rcall",         luajr_Rcall_cf         },
+    { "rcall",         luajr_rcall_cf         },
     { "parallel_load", luajr_parallel_load_cf },
     { "thisstate",     luajr_thisstate_cf     }
 };

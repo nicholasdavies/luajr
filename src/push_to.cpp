@@ -479,7 +479,7 @@ extern "C" int luajr_fromsexp_cf(lua_State* L)
         s = R_NilValue;
 
     unsigned char as = AC::value;
-    if (!lua_isnil(L, 2))
+    if (!lua_isnoneornil(L, 2))
         as = (unsigned char)lua_tointeger(L, 2);
 
     luajr_pushsexp(L, s, as);
@@ -643,32 +643,84 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
 }
 
 // lua_CFunction: call an R function from Lua.
-extern "C" int luajr_Rcall_cf(lua_State* L)
+// Lua args: (rfunc_sexp, args_table, env_or_nil).
+//   args_table: integer keys (1..#t) become positional args (in numeric order);
+//               string keys become named args (tagged in the pairlist).
+//   env_or_nil: optional ENVSXP for evaluation; defaults to R_GlobalEnv.
+extern "C" int luajr_rcall_cf(lua_State* L)
 {
-    int nargs = lua_gettop(L) - 1;
-
-    // First arg is R function as SEXP cdata
+    // Arg 1: R function as SEXP cdata
     SEXP f = NULL;
     if (luajr_internal_tosexp(L, 1, (void**)&f) != -1 || f == NULL)
-        luajr_error(L, "Rcall: first argument must be an R function SEXP.");
+        luajr_error(L, "rcall: first argument must be an R function SEXP.");
 
-    // Build pairlist of args in reverse order
+    // Arg 2: args table
+    if (!lua_istable(L, 2))
+        luajr_error(L, "rcall: second argument must be a table of args.");
+
+    // Arg 3: optional environment
+    SEXP env = R_GlobalEnv;
+    if (!lua_isnoneornil(L, 3))
+    {
+        SEXP env_sexp = NULL;
+        if (luajr_internal_tosexp(L, 3, (void**)&env_sexp) != -1 || env_sexp == NULL || TYPEOF(env_sexp) != ENVSXP)
+            luajr_error(L, "rcall: third argument must be an environment.");
+        env = env_sexp;
+    }
+
+    // Build positional pairlist from integer keys 1..#t in reverse so cons builds in forward order
     SEXP call = R_NilValue;
     PROTECT_INDEX call_pi;
     R_ProtectWithIndex(call, &call_pi);
 
-    for (int i = nargs + 1; i >= 2; i--)
+    int narr = lua_objlen(L, 2);
+    for (int i = narr; i >= 1; --i)
     {
-        SEXP arg = PROTECT(luajr_tosexp(L, i));
+        lua_rawgeti(L, 2, i);
+        SEXP arg = PROTECT(luajr_tosexp(L, -1));
         R_Reprotect(call = Rf_cons(arg, call), call_pi);
         UNPROTECT(1);
+        lua_pop(L, 1);
+    }
+
+    // Walk the args table: handle named args, validate that any integer keys
+    // are in [1, narr], and reject any other key type
+    SEXP tail = call;
+    if (tail != R_NilValue)
+        while (CDR(tail) != R_NilValue) tail = CDR(tail);
+    lua_pushnil(L);
+    while (lua_next(L, 2) != 0)
+    {
+        int kt = lua_type(L, -2);
+        if (kt == LUA_TSTRING)
+        {
+            SEXP arg = PROTECT(luajr_tosexp(L, -1));
+            SEXP node = PROTECT(Rf_cons(arg, R_NilValue));
+            SET_TAG(node, Rf_install(lua_tostring(L, -2)));
+            if (call == R_NilValue)
+                R_Reprotect(call = node, call_pi);
+            else
+                SETCDR(tail, node);
+            tail = node;
+            UNPROTECT(2);
+        }
+        else if (kt == LUA_TNUMBER)
+        {
+            lua_Number k = lua_tonumber(L, -2);
+            int ki = k;
+            if (k != ki || ki < 1 || ki > narr)
+                luajr_popstop(L, 2, "rcall: integer key %g in args table must be in [1, %d]", (double)k, narr);
+        }
+        else
+            luajr_popstop(L, 2, "rcall: invalid key type %s in args table", lua_typename(L, kt));
+        lua_pop(L, 1);
     }
 
     // Prepend function to make the call
     R_Reprotect(call = Rf_lcons(f, call), call_pi);
 
     // Evaluate
-    SEXP result = PROTECT(Rf_eval(call, R_GlobalEnv));
+    SEXP result = PROTECT(Rf_eval(call, env));
     luajr_pushsexp(L, result, AC::value);
     UNPROTECT(2);
 

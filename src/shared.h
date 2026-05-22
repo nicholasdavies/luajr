@@ -37,7 +37,7 @@ SEXP luajr_tosexp(lua_State* L, int index);
 void luajr_pass(lua_State* L, SEXP args, SEXP acode);
 SEXP luajr_return(lua_State* L, int nret);
 void luajr_xpush(lua_State* L, int index, lua_State* to);
-int luajr_Rcall_cf(lua_State* L); // Not in public API (lua_CFunction)
+int luajr_rcall_cf(lua_State* L); // Not in public API (lua_CFunction)
 int luajr_tosexp_cf(lua_State* L); // Not in public API (lua_CFunction)
 int luajr_fromsexp_cf(lua_State* L); // Not in public API (lua_CFunction)
 
