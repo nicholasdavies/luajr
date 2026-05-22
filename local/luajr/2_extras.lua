@@ -10,6 +10,7 @@ end
 
 -- dataframe type
 local df_classname = R.ScalarString(R.mkChar("data.frame"))
+R.PreserveObject(df_classname)
 function luajr.dataframe()
     local df = luajr.list()
     R.classgets(df.s, df_classname)
