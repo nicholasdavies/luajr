@@ -43,7 +43,7 @@ end
 
 -- Metatable for vector type
 -- typedef struct { ctype* p; SEXP s; double n; double c; } [vector]_t;
-local mt_vector_template = function(ct, stype, notfound, dataptr)
+local mt_vector_template = function(ct, stype, na_val, dataptr)
     local vtype = ffi.typeof(ct .. "[?]") -- not used for character
 
     -- Throw an error on an illegal use of a 'byref' vector
@@ -318,7 +318,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
                     -- byref: copy into existing storage
                     local s = R.PROTECT(to_sexp(a))
                     local n = R.length(s)
-                    if n ~= self.n then 
+                    if n ~= self.n then
                         R.UNPROTECT(1)
                         byref_error("assign")
                     end
@@ -351,25 +351,16 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
 
         concat = function(self, sep)
             sep = sep or ","
-            local str = ""
-            for i = 1, #self do
-                if i ~= #self then
-                    str = str .. tostring(self[i]) .. sep
-                else
-                    str = str .. tostring(self[i])
-                end
-            end
-            return str
+            local parts = {}
+            for i = 1, #self do parts[i] = tostring(self[i]) end
+            return table.concat(parts, sep)
         end,
 
         debug_str = function(self)
-            if self.c == byref then
-                return self.n .. "|byref|" .. self:concat(",")
-            elseif self.c == alias then
-                return self.n .. "|alias|" .. self:concat(",")
-            else
-                return self.n .. "|" .. self.c .. "|" .. self:concat(",")
-            end
+            local cap = (self.c == byref) and "byref"
+                or (self.c == alias) and "alias"
+                or tostring(self.c)
+            return self.n .. "|" .. cap .. "|" .. self:concat(",")
         end,
 
         -- Capacity
@@ -461,7 +452,19 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
             if type(i) ~= "number" or i < 1 or i > self.n + 1 then
                 error("insert: position must be in range [1, #vec+1]", 2)
             end
-            if type(a) == "number" and is_val(b) then
+            if a == nil and b == nil then
+                -- nothing to insert: no-op
+                return
+            elseif ffi.istype(R.sexp, a) and b == nil then
+                -- from a bare SEXP of matching type
+                if R.TYPEOF(a) ~= stype then
+                    error("cannot insert " .. ffi.string(R.type2char(stype)) ..
+                        " vector from " .. R.type_string(a), 2)
+                end
+                local alen = R.length(a)
+                insert_shift(self, i, alen, a)
+                op_copy(self.p, self.s, i, dataptr(a) - 1, alen)
+            elseif type(a) == "number" and (is_val(b) or b == nil) then
                 -- a copies of b
                 if a < 0 then error("insert: count must be non-negative", 2) end
                 insert_shift(self, i, a, nil)
@@ -500,7 +503,18 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
             allocate(self, self.n, { p = self.p, n = self.n })
         end,
 
-        -- Attributes
+        -- Attributes, etc
+        is_na = function(self, i)
+            if stype == R.VECSXP then
+                error("is_na is not defined for luajr.list", 2)
+            elseif stype == R.REALSXP then
+                local v = self.p[i]
+                return v ~= v
+            else
+                return self.p[i] == na_val
+            end
+        end,
+
         get_attr = function(self, k)
             if type(k) ~= "string" then
                 error("can only get string-keyed attributes", 2)
@@ -631,7 +645,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
             end
             -- Build length-1 result
             local v = ffi.typeof(self)(1)
-            v[1] = i and self[i] or notfound
+            v[1] = i and self[i] or na_val
             -- Copy or set name
             local names = get_names(self.s)
             if names then
@@ -671,7 +685,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
             return table.concat(parts, ", ")
         end,
 
-        __pairs = function(self)
+        __ipairs = function(self)
             return function(t, k)
                 k = k + 1
                 if k > t.n then
@@ -681,7 +695,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
             end, self, 0
         end
     }
-    mt.__ipairs = mt.__pairs
+    mt.__pairs = mt.__ipairs
 
     return mt
 end

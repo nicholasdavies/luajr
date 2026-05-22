@@ -164,10 +164,11 @@ extern void luajr_internal_pushrfunction(lua_State *L, void *s)
 extern ptrdiff_t luajr_internal_tosexp(lua_State *L, int index, void **out_s)
 {
     luajr_ensure_ctype_ids(L);
-    /* Slot N (1-based, positive) lives at L->base + N - 1; if past L->top
-     * the slot doesn't exist, so substitute the sentinel nil TValue. */
-    TValue *o = L->base + (index - 1);
-    o = o < L->top ? o : niltv(L);
+    /* Resolve the stack index. Positive index N lives at L->base + N - 1;
+     * negative -N is N from the top (L->top - N). If past L->top or below
+     * L->base the slot doesn't exist, so substitute the sentinel nil TValue. */
+    TValue *o = (index > 0) ? L->base + (index - 1) : L->top + index;
+    o = (o >= L->base && o < L->top) ? o : niltv(L);
     /* tviscdata checks the TValue's tag bits. */
     if (!tviscdata(o)) return -2;
     /* cdataV extracts the GCcdata* the TValue refers to. */
@@ -220,8 +221,10 @@ extern ptrdiff_t luajr_internal_tosexp(lua_State *L, int index, void **out_s)
  * a pointer-type cdata. */
 extern int luajr_internal_topointer(lua_State *L, int index, void **out_p)
 {
-    TValue *o = L->base + (index - 1);
-    o = o < L->top ? o : niltv(L);
+    /* Handle negative indices (e.g., from xpush table iteration) by counting
+     * from the top. See the matching logic in luajr_internal_tosexp. */
+    TValue *o = (index > 0) ? L->base + (index - 1) : L->top + index;
+    o = (o >= L->base && o < L->top) ? o : niltv(L);
     if (!tviscdata(o)) return -1;
     GCcdata *cd = cdataV(o);
     CTState *cts = ctype_cts(L);
@@ -238,8 +241,9 @@ extern int luajr_internal_topointer(lua_State *L, int index, void **out_p)
  * stack index. Returns via out-params for use from push_to.cpp. */
 extern void luajr_internal_tablesize(lua_State *L, int index, uint32_t *asize, uint32_t *hsize)
 {
-    TValue *o = L->base + (index - 1);
-    o = o < L->top ? o : niltv(L);
+    /* Handle negative indices (counting from the top). See luajr_internal_tosexp. */
+    TValue *o = (index > 0) ? L->base + (index - 1) : L->top + index;
+    o = (o >= L->base && o < L->top) ? o : niltv(L);
     if (tvistab(o))
     {
         GCtab *t = tabV(o);

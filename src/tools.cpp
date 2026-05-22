@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <vector>
 #include <string>
+#include <cstring>
 #include <algorithm>
 extern "C" {
 #include "lua.h"
@@ -96,10 +97,10 @@ end
 profile.start(mode, cb)
 )";
 
-// Like luaL_loadstring, but produce an R error on failure
+// Like luaL_loadstring, but produce an R error on failure.
 extern "C" void luajr_loadstring(lua_State* L, const char* str)
 {
-    luajr_handleerror(L, luaL_loadstring(L, str), "string", 0);
+    luajr_handleerror(L, luaL_loadbuffer(L, str, std::strlen(str), "=string"), "string", 0);
 }
 
 // Like luaL_dostring, but produce an R error on failure, and with support for luajr tooling

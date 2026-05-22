@@ -11,8 +11,8 @@ end
 -- dataframe type
 local df_classname = R.ScalarString(R.mkChar("data.frame"))
 R.PreserveObject(df_classname)
-function luajr.dataframe()
-    local df = luajr.list()
+function luajr.dataframe(a, b)
+    local df = luajr.list(a, b)
     R.classgets(df.s, df_classname)
     return df
 end

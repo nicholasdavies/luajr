@@ -243,6 +243,6 @@ correspond to the values returned by `R.TYPEOF(x)`:
 | `R.OBJSXP` | 25 | objects not of simple type |
 
 If all of this makes sense to you, then enjoy and happy coding. If not, then 
-stick to using [The luajr.lua module](luajr-module.html) and don't worry about 
+stick to using [the luajr.lua module](luajr-module.html) and don't worry about 
 it too much -- you probably don't need this anyway!
 

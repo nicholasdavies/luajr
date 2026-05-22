@@ -103,6 +103,21 @@ test_that("numeric insert and erase work", {
     lua("x:insert(3, luajr.numeric(2, 8))")
     expect_equal(lua("return x:debug_str()"), "12|12|1,2,8,8,3,4,9,9,9,5,6,7")
 
+    # insert(i) with no value: no-op
+    lua("x = luajr.numeric({1,2,3})")
+    lua("x:insert(2)")
+    expect_equal(lua("return x:debug_str()"), "3|3|1,2,3")
+    lua("x:insert(1)")
+    expect_equal(lua("return x:debug_str()"), "3|3|1,2,3")
+
+    # insert from a bare SEXP of matching type
+    lua("x = luajr.numeric({1,2,3,4,5})")
+    lua("x:insert(3, luajr.numeric({8,9}).s)")
+    expect_equal(lua("return x:debug_str()"), "7|7|1,2,8,9,3,4,5")
+
+    # insert from a bare SEXP of wrong type: errors
+    expect_error(lua("luajr.numeric({1,2,3}):insert(2, luajr.integer({9}).s)"))
+
     # erase
     lua("x = luajr.numeric({1,2,3,4,5,6,7,8,9,10})")
     lua("x:erase(1)")

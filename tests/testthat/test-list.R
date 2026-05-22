@@ -135,3 +135,34 @@ test_that("push_back of a Lua table converts to nested list", {
 
     lua_reset()
 })
+
+test_that("luajr.list:insert with no a, b is a no-op", {
+    lua("l = luajr.list({1, 2, 3})")
+    lua("l:insert(2)")
+    expect_identical(lua("return l"), list(1, 2, 3))
+
+    lua_reset()
+})
+
+test_that("luajr.list:insert from a bare SEXP", {
+    lua("R = require('R')")
+    lua("l = luajr.list({1, 4, 5})")
+    lua("l:insert(2, luajr.list({2, 3}).s)")
+    expect_identical(lua("return l"), list(1, 2, 3, 4, 5))
+
+    lua_reset()
+})
+
+test_that("luajr.list:insert from a bare SEXP of wrong type errors", {
+    expect_error(lua("luajr.list({1, 2}):insert(2, luajr.numeric({9}).s)"))
+
+    lua_reset()
+})
+
+test_that("luajr.list:insert n copies of nil inserts NULLs", {
+    lua("l = luajr.list({1, 4, 5})")
+    lua("l:insert(2, 2)")  # insert 2 nils
+    expect_identical(lua("return l"), list(1, NULL, NULL, 4, 5))
+
+    lua_reset()
+})

@@ -261,6 +261,6 @@ the next garbage collection.
 ## Further reading
 
 For notes on how to create and manipulate R objects -- such as vectors, lists, 
-and data.frames -- in your Lua code, see the 
-[R objects in Lua code](objects.html) vignette.
+and data.frames -- in your Lua code, see [the luajr.lua module](luajr-module.html) 
+vignette.
 

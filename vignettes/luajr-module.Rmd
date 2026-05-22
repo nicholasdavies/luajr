@@ -41,8 +41,8 @@ Specifically, this vignette describes:
 - [Additional types](#extra), including environments, R functions, matrices,
   and data frames.
 - [Constants](#constants) defined by the `luajr` module.
-- [Parallel processing](#parallel) features of the `luajr` module. /ncores, workers/
-- [Utility functions](#utility) for `luajr`. /debugger, luajr.from_sexp, luajr.to_sexp/
+- [Parallel processing](#parallel) features of the `luajr` module.
+- [Utility functions](#utility) for `luajr`.
 - Considerations for using [long vectors](#longvec) in Lua.
 
 ## Vector types {#vector}
@@ -84,30 +84,40 @@ only be indexed with integers from 1 to the vector length, not with strings or
 any other types (although there are methods of getting or setting elements by
 name; see below).
 
+**Important**: Because vector types depend upon R, they are not completely 
+thread safe and therefore they cannot safely be used with 
+[parallel processing](#parallel).
+
 ### Creating and testing vector types {#vcreate}
 
 **`luajr.logical(a, b)`, `luajr.integer(a, b)`, `luajr.numeric(a, b)`, `luajr.character(a, b)`, `luajr.list(a, b)`**
 
-These functions can be used to create "vector types" in Lua code. The meaning 
+These functions can be used to create R vectors in Lua code. The meaning 
 of `a` and `b` depends on the type of `a` and `b` and whether both are
 present. Specifically, 
 
 ```lua
 luajr.logical()     -- Size-0 logical vector
+luajr.integer(s)    -- Integer vector copy of SEXP
 luajr.numeric(n, x) -- Size-n numeric vector, all entries equal to x
-luajr.numeric(v)    -- Copied from vector v
-luajr.numeric(z)    -- Copied from "vector-ish" object z
+luajr.character(v)  -- Character vector copy of v
+luajr.list(t)       -- List copied from Lua table t
+luajr.numeric(z)    -- Numeric vector copied from "vector-ish" object z
 ```
 
-Above, `n` is a nonnegative number, `x` is a boolean, number, string (as
-appropriate for the vector type) or `nil`, `v` is another vector object of 
-the same type, and `z` is a table, vector type, or reference type.
+Above, `s` is an `R.sexp` of the same underlying type as the vector, `n` is a 
+nonnegative number, `x` is a boolean, number, string, etc. (as appropriate for 
+the vector type) or `nil`, `v` is another vector object of the same type, `t` is
+a Lua table, and `z` is a Lua table or vector type. If `t` is a table and the
+vector is `luajr.list` type, then the names from `t` will be copied over into
+the `luajr.list`.
 
 If `x == nil` in the `(n, x)` form of the above functions, then the values of
 the vector are left uninitialized (except for `luajr.character`, where the 
-values are set to the empty string).
+values are set to the empty string; for `luajr.list`, the values are set to
+`luajr.NULL`).
 
-**`luajr.is_logical(obj)`, `luajr.is_integer(obj)`, `luajr.is_numeric(obj)`, `luajr.is_character(obj)`**
+**`luajr.is_logical(obj)`, `luajr.is_integer(obj)`, `luajr.is_numeric(obj)`, `luajr.is_character(obj)`, `luajr.is_list(obj)`**
 
 Check whether a value `obj` is one of the corresponding vector types. These 
 return `true` if `obj` is of the corresponding type, and `false` otherwise.
@@ -118,7 +128,11 @@ All the vector types have the following methods:
 
 **`#v`**
 
-Returns the length of the vector.
+Returns the number of elements in the vector. 
+
+Note: This is distinct from the vector's capacity (returned by `v:capacity()`), 
+which can be larger after `v:reserve()` or if `v:push_back()` overallocates
+to amortize future growth (see below).
 
 **`x = v[i]`, `v[i] = x`**
 
@@ -130,19 +144,42 @@ does **not** do bounds checking. Going out of bounds will cause crashes or
 other undefined behaviour. Unlike Lua tables, vector types can only be indexed 
 with integers from 1 to the vector length, not with strings or any other types.
 
-**`pairs(v)`, `ipairs(v)`**
+**`x = v(i)`**
 
-Use with a Lua `for` loop to iterate over the values of the vector. For 
-example:
+Gets the `i`th element of the vector, but as a new vector type instead of as
+a 'bare' value. If you are returning a single value to R, prefer to use this 
+form as it will preserve `NA`s; for example, if 
+`v = luajr.integer({1, 2, luajr.NA_integer_})`, then `return v[3]` will return 
+-2147483648 to R, but `return v(3)` will correctly return `NA` of integer type.
+
+Instead of a numeric index, you can also pass a string key as `i`. If this
+string key is not found, `v(i)` will return the appropriate `NA` for atomic
+vectors or `NULL` for `luajr.list`.
+
+**`v:is_na(i)`**
+
+Returns `true` if the `i`th element of the vector is `NA`, and `false`
+otherwise. This is the recommended way to test for `NA` because direct
+comparison with `luajr.NA_real_` always returns `false` (due to NaN semantics
+in IEEE-754: `NaN == NaN` is false). For `luajr.numeric`, `v:is_na(i)` matches
+R's `is.na()` semantics and returns `true` for both `NA_real_` and any other
+`NaN` value. `v:is_na(i)` errors on `luajr.list`, since list elements are
+themselves R values and have no per-element NA concept.
+
+**`ipairs(v)`, `pairs(v)`**
+
+Use with a Lua `for` loop to iterate over the values of the vector. `ipairs`
+is used to iterate over integer keys and values of the vector. For example:
 
 ```lua
-for i,x in pairs(v) do
+for i,x in ipairs(v) do
     print(i, x)
 end
 ```
 
-Note that for vector types, `pairs` and `ipairs` are interchangeable and the
-same loop above can be written as
+At the moment, `pairs` is the same as `ipairs`, but in the future, `pairs` may 
+be changed so that it provides vector element names instead of an integer. The
+same loop above can be written as:
 
 ```lua
 for i = 1, #v do
@@ -150,14 +187,20 @@ for i = 1, #v do
 end
 ```
 
+**`tostring(v)`**
+
+Converts the vector to a human-readable string; output is capped at the first
+100 entries, with a `... (N elements)` tail for longer vectors. Names, if
+present, are shown as `"name = value"` for each element. For `luajr.list`
+vectors, each element is shown as a short type tag and length (e.g.
+`"num[5]"`, `"chr[3]"`) rather than its full contents.
+
 **`v:assign(a, b)`**
 
 Assign a new value to the vector; `a` and `b` have the same meaning as in the
-[vector type constructors](#vcreate).
-
-**`v:print()`**
-
-Print each value of the vector next to its index, each value on a new line.
+[vector constructors](#vcreate). Unlike construction, `assign` reuses the
+vector's existing storage in place when capacity allows, and only allocates a
+new buffer if the new length would exceed the current capacity.
 
 **`v:concat(sep)`**
 
@@ -173,8 +216,8 @@ vector, then each of the vector elements separated by commas.
 
 **`v:reserve(n)`**
 
-If `n` is larger than the vector's current capacity, suggests that the vector
-be enlarged to a capacity of `n`. Otherwise, does nothing.
+If `n` is larger than the vector's current capacity, enlarges the vector's 
+capacity to `n`. Otherwise, does nothing.
 
 **`v:capacity()`**
 
@@ -187,7 +230,8 @@ that its capacity is equal to its length.
 
 **`v:clear()`**
 
-Sets the size of the vector to 0.
+Sets the size of the vector to 0, and removes names, dims, and dimnames
+attributes.
 
 **`v:resize(n, val)`**
 
@@ -198,7 +242,10 @@ be `nil` or missing.
 
 **`v:push_back(val)`**
 
-Adds `val` to the end of the vector.
+Adds `val` to the end of the vector. If this operation would grow the vector
+past its current capacity, this allocates a new vector with the capacity for
+double the number of current elements. This is so that `push_back()` can be 
+used in a loop without too much of a performance hit.
 
 **`v:pop_back()`**
 
@@ -207,8 +254,7 @@ Removes one element from the end of the vector.
 **`v:insert(i, a, b)`**
 
 Inserts new elements before position `i`, which must be between 1 and `#v + 1`.
-`a` and `b` have the same meaning as in the 
-[vector type constructors](#vcreate).
+`a` and `b` have the same meaning as in the [vector constructors](#vcreate).
 
 **`v:erase(first, last)`**
 
@@ -216,143 +262,193 @@ Removes elements from position `first` to position `last`, inclusive (e.g. so
 that `v:erase(1, #v)` erases the whole vector). If `last` is `nil` or missing,
 just erases the single element at position `first`.
 
-## Reference types {#reference}
+**`v:detach()`**
 
-The reference types are similar to the vector types, but they are more 
-"low-level" and hence are missing much of the functionality of the vector 
-types. They map directly onto memory managed by R, so judicious use of 
-reference types when passing to or returning from Lua can avoid unnecessary
-memory allocations and copies.
+Allocates new memory for the vector and copies its contents to the new memory.
+If the vector has been passed into a Lua function by reference, or is aliasing
+an R SEXP, this 'detaches' the reference/alias. Not needed in normal use.
 
-Although reference types are missing lots of methods that the vector types 
-have, they do have one feature that the vector types don't have, namely that
-you can set and get the attributes associated with the underlying R value.
+**`v:get_attr(k)`**
 
-A reference type is what you end up with if you pass an argument into a Lua 
-function using `lua_func()` with arg code `"r"`, but you can also create new 
-reference types within Lua. 
+Gets the R attribute with name `k`.
 
-As with the vector types, indexes start at 1, not at 0, and you must be very
-careful not to access or write out of these bounds.
+**`v:set_attr(k, v)`**
 
-Finally, because reference types depend upon R, they are not completely 
-thread safe and therefore they cannot safely be used with `lua_parallel()`.
+Sets the R attribute named `k` to `v`.
 
-### Creating and testing reference types
+**`v:unname()`**
 
-**`luajr.logical_r(a, b)`, `luajr.integer_r(a, b)`, `luajr.numeric_r(a, b)`, `luajr.character_r(a, b)`**
+Deletes any name attributes set on the vector.
 
-These functions can be used to create "vector types" in Lua code. The meaning 
-of `a` and `b` depends on their type. Namely:
+**`v:find(name)`**
+
+Returns the numerical index of the first element of the vector with name `name`.
+If no such element exists, returns `nil`.
+
+**`v:get(name)`**
+
+Gets the value of the vector element with name `name`. Returns `nil` if no such
+element exists. For `luajr.list`, the returned element functions as a copy, so 
+mutating an element of a list does not write through to the list itself. 
+
+To update an element in place, read it, mutate the local element, and assign
+back with `v:set()`. For example:
 
 ```lua
-luajr.numeric_r(n, x) -- Size n, all entries equal to x if x ~= nil
-luajr.numeric_r(z)    -- Copied from "vector-ish" object z
+local df = luajr.dataframe({ x = luajr.numeric({1, 2, 3}),
+                             y = luajr.logical({true, false, true}) })
+local col = df:get('x')
+col[2] = 42
+df:set('x', col)
 ```
 
-Above, `n` is a nonnegative number, `x` is a boolean, number, or string (as
-appropriate for the vector type) or `nil`, and `z` is a table, vector type, or 
-reference type.
+**`v:set(name, v)`**
 
-**`luajr.is_logical_r(obj)`, `luajr.is_integer_r(obj)`, `luajr.is_numeric_r(obj)`, `luajr.is_character_r(obj)`**
+Sets the vector element named `name` to value `v`. If no such name exists,
+adds a new element to the back of the vector with that name and sets the value
+to `v`.
 
-Check whether a value `obj` is one of the corresponding reference types. These 
-return `true` if `obj` is of the corresponding type, and `false` otherwise.
+## Additional types {#extra}
 
-### Reference type methods
+Besides the vector types, there are several additional types that enrich the
+functionality of the `luajr.lua` module. 
 
-All the reference types have the following methods:
+### R function
 
-**`#v`**
+The `luajr.rfunction` type wraps an R function so it can be called from Lua.
 
-Returns the length of the referenced vector.
+**`luajr.rfunction(a, b)`**
 
-**`x = v[i]`, `v[i] = x`**
+Constructs a `luajr.rfunction` around an R function. The forms are:
 
-Get or set the `i`th element of the referenced vector. 
+```lua
+luajr.rfunction(s)           -- wrap an R function from an R.sexp
+luajr.rfunction(name)        -- look up `name` in the global environment
+luajr.rfunction(name, env)   -- look up `name` in `env`
+```
 
-**`pairs(v)`, `ipairs(v)`**
+Above, `s` must be a SEXP of type `CLOSXP`, `SPECIALSXP`, or `BUILTINSXP`;
+`name` is a Lua string; `env` is a `luajr.environment` (or `R.sexp` of type
+`ENVSXP`).
 
-Use with a Lua `for` loop to iterate over the values of the vector.
+**`luajr.is_rfunction(obj)`**
 
-**`x = v(attr)`, `v(attr, x)`**
+Returns `true` if `obj` is a `luajr.rfunction`, and `false` otherwise.
 
-Get or set the attribute named `attr`. The second form, with two arguments,
-sets the attribute to `x`. Note that even though you can get and manipulate
-the `names` attribute, you cannot access a reference vector's elements by their 
-names.
+**`f(...)`**
 
-## List type {#list}
+Calls the R function with positional arguments. Each argument is converted to 
+an R type automatically, and the result is returned as a `luajr` value 
+depending on what the R function returned. For example:
 
-A list is a special kind of Lua table that can be indexed either with positive
-integers or with strings. Unlike a Lua table, a list remembers the order in 
-which you have added elements to it, like an R list does. 
+```lua
+local mean = luajr.rfunction("mean")
+local m = mean(luajr.numeric({1, 2, 3}))   -- m == luajr.numeric({2})
+```
 
-### Creating and testing lists
+**`f:call(args, env)`**
 
-**`luajr.list()`**
+Calls the R function using a Lua table of arguments and an optional evaluation 
+environment. Integer keys `1..#args` are passed as positional arguments to the 
+R function, in order; string keys are passed as named arguments. `env` is a 
+`luajr.environment` (or `R.sexp` of type `ENVSXP`) and defaults to the global 
+environment when nil or missing. For example:
 
-Creates a new, empty list.
+```lua
+paste = luajr.rfunction("paste")
+result = paste:call({"a", "b", "c", sep = "-"})  -- "a-b-c"
 
-**`luajr.is_list(obj)`**
+local sum = luajr.rfunction("sum")
+result = sum:call({luajr.numeric({1, 2, luajr.NA_real_}), ["na.rm"] = true})  -- 3
+```
 
-Check whether a value `obj` is a list. Returns `true` if `obj` is a list, and
-`false` otherwise.
+Note that R argument names containing `.` (such as `na.rm`, `length.out`,
+`row.names`) cannot be written as Lua identifiers, so the bracket form
+`["na.rm"] = true` is needed.
 
-### List methods
+Integer keys must form a sequence (`1..#args` with no holes); any other
+integer key, or any key whose type is not number or string, raises an error.
 
-Lists have the following methods:
+### Environment
 
-**`#v`**
+The `luajr.environment` type wraps an R environment so its bindings can be
+read, written, and inspected from Lua.
 
-Returns the length of the list, including both integer- and string-keyed 
-entries. This differs from the behaviour of the `#` operator on normal Lua
-tables, which only report the number of integer-keyed entries.
+**`luajr.environment(a)`**
 
-**`x = v[i]`, `v[i] = x`**
+Constructs a `luajr.environment`. The forms are:
 
-Get or set element `i` of the list. `i` can be either a positive integer or
-a string. Note that you cannot write to any integer keys greater than `#v + 1`.
+```lua
+luajr.environment()           -- new empty hashed environment under EmptyEnv
+luajr.environment(s)          -- wrap an existing R environment SEXP
+luajr.environment(name)       -- look up a registered namespace by name
+```
 
-**`pairs(v)`, `ipairs(v)`**
+Above, `s` is an `R.sexp` of type `ENVSXP`; `name` is a Lua string naming a
+loaded R package's namespace (e.g. `"stats"`).
 
-Use with a Lua `for` loop to iterate over the values of the vector. Unlike with
-vector and reference types, `pairs` and `ipairs` are not exactly the same when
-applied to lists; the former will provide either string or number keys as you
-iterate through the list (strings if they are present, numbers otherwise) and
-the latter will give number keys only. Either one iterates through every 
-element of the list and both iterate through the list in the same order.
+**`luajr.is_environment(obj)`**
 
-**`x = v(attr)`, `v(attr, x)`**
+Returns `true` if `obj` is a `luajr.environment`, and `false` otherwise.
 
-Get or set the attribute named `attr`. The second form, with two arguments,
-sets the attribute to `x`. Note that, for a list, the `"names"` attribute is 
-not a simple vector of names, like in R, but is an associative array linking
-keys to their indices. For example, for a list with elements `a = 1`, `2`, and 
-`c = 3`, `v("names")` is equal to `{ "a" = 1, "c" = 3 }`. However, when a
-list is returned to R, its `"names"` attribute has the normal R format.
+**`e:get(k)`**
 
-Note that lists have this interface for setting and getting attributes, but
-unlike the reference types (which also have this capability), they are not
-internally managed by R. This means that they are safe to use with 
-`lua_parallel()`, as long as they don't contain any reference types.
+Returns the value bound to `k` in the environment, or `nil` if no such
+binding exists. The returned value is converted using the same rules as
+[`luajr.from_sexp`](#utility), so atomic vectors come back as the
+corresponding `luajr` vector type, R functions as `luajr.rfunction`, etc.
 
-## Data frame and matrix types {#dfm}
+**`e:set(k, v)`**
 
-There are a handful of additional types based on the above types, but which
-have some special behaviour when returned to R.
+Binds the name `k` to value `v` in the environment. `v` is converted to a
+SEXP using the same rules as [`luajr.to_sexp`](#utility).
+
+**`e:exists(k)`**
+
+Returns `true` if `k` is bound in the environment (equivalent to
+`e:get(k) ~= nil`), and `false` otherwise.
+
+**`e:remove(k)`**
+
+Removes the binding for `k` from the environment, if it exists.
+
+**`e:get_parent()`**
+
+Returns the parent (enclosing) environment as a new `luajr.environment`.
+
+**`e:set_parent(env)`**
+
+Sets the parent of `e` to `env`, which must be a `luajr.environment` or an
+`R.sexp` of type `ENVSXP`.
+
+**`e:ls(all, sorted)`**
+
+Returns the names bound in `e` as a `luajr.character` vector. If `all` is
+`true`, names beginning with `.` are also included (default: `false`). If
+`sorted` is `true`, the names are returned in lexicographic order (default:
+`true`).
 
 ### Data frame
 
 A data frame can be created with
 
 ```lua
-df = luajr.dataframe()
+df = luajr.dataframe(a, b)
 ```
 
 This is just a `luajr.list` with the `"class"` attribute set to `"data.frame"`.
-However, when a list with this class gets returned to R, it gets turned into a
-data frame.
+`a` and `b` have the same meaning as in the [vector constructors](#vcreate). 
+When a list with this class gets returned to R, it gets turned into an R 
+`data.frame` and row names are set automatically. Otherwise it is equivalent to 
+`luajr.list` and all the methods of `luajr.list` can be used. Note that this 
+allows you to do, e.g., 
+
+```lua
+local x = luajr.dataframe({ 
+    x = luajr.numeric({1,2,3}), 
+    y = luajr.logical({true, false, true}) 
+})
+```
 
 ### Matrix
 
@@ -362,35 +458,32 @@ A matrix can be created with
 df = luajr.matrix(nrow, ncol, init)
 ```
 
-This is a special kind of `luajr.numeric_r` with the `"dim"` attribute set to
-`luajr.integer_r({ nrow, ncol })`. It gets recognized as a matrix when returned 
-to R. However, you can only access elements with a single index that starts at 
-1 and goes in column-major order. So, for example, for a 2x2 matrix, the 
-top-left element has index 1, bottom-left has index 2, top-right has index 3 
-and bottom-right has index 4.
+This is a special kind of `luajr.numeric` with the `"dim"` attribute set to
+`luajr.integer({ nrow, ncol })`, and all entries set to `init`. If `init` is
+omitted or nil, the matrix is uninitialised. 
 
-Note that it is a reference type.
+This gets recognized as a matrix when returned to R. However, you can only 
+access elements with a single index that starts at 1 and goes in column-major 
+order. So, for example, for a 2x2 matrix, the top-left element has index 1, 
+bottom-left has index 2, top-right has index 3 and bottom-right has index 4.
 
 ### Data matrix
 
 A data matrix can be created with
 
 ```lua
-dm = luajr.datamatrix_r(nrow, ncol, names, init)
+dm = luajr.datamatrix(nrow, ncol, names, init)
 ```
 
-This is similar to `luajr.matrix_r`, but it has `names` as column names. 
+This is similar to `luajr.matrix`, but it has `names` as column names. 
 `names` can be passed in as a Lua table (e.g. `{ "foo", "bar" }`) or as a 
-`luajr.character` or `luajr.character_r` object.
+`luajr.character` object.
 
 Using a data matrix is very slightly faster than using a data frame because 
 only one memory allocation needs to be made, but this difference is on the
 order of microseconds for normal sized data. Also, if you are just going to
 convert the returned matrix into a data frame anyway, you lose the speed 
 advantage. So don't worry about it too much.
-
-The column names can be get and set within Lua using the special attribute name 
-`"/matrix/colnames"`.
 
 ## Constants {#constants}
 
@@ -443,10 +536,13 @@ will incorrectly claim that `luajr.TRUE`, `luajr.FALSE`, and
 values to either `luajr.TRUE`, or `luajr.FALSE`, or `luajr.NA_logical_`, and
 explicitly test them against the same values.
 
-Note that the different NA constants are not interchangeable. So, when testing 
-for NA in Lua, you have to check if a value is equal to (`==`) or not equal to 
-(`~=`) the corresponding NA constant above, depending on the type of the 
-variable in question.
+Note that the different NA constants are not interchangeable. So, when
+testing for NA in Lua, you have to check if a value is equal to (`==`) or not
+equal to (`~=`) the corresponding NA constant above, depending on the type of
+the variable in question. The one exception is `luajr.NA_real_`: because it
+is a `NaN` value, IEEE-754 semantics make `x == luajr.NA_real_` always
+`false`, even when `x` *is* `NA_real_`. For `luajr.numeric` vectors, use the
+[`v:is_na(i)`](#vector) method instead of `==` to test for `NA` (or `NaN`).
 
 All of this only applies only when using R values, e.g. with the vector types
 described above. Lua also has its own boolean type (with possible values `true` 
@@ -456,39 +552,247 @@ and `false`) which will never compare equal with either `luajr.TRUE`,
 equal with `luajr.NA_logical_`, `luajr.NA_integer_`, or `luajr.NA_real_`, so
 do be careful not to mix Lua types and these R constants.
 
-Finally, `luajr.NULL` can be used to represent a `NULL` value, either on its 
+Finally, `luajr.NULL` can be used to represent a `NULL` value, either on its
 own or as part of a table or `luajr.list` that gets returned to R. If you pass
-NULL in to Lua through arg code `"native"`, it will come out as `nil` in Lua; 
+NULL in to Lua through arg code `"native"`, it will come out as `nil` in Lua;
 but if you use arg code `"auto"`, it will come out as `luajr.NULL`.
+
+## Parallel processing {#parallel}
+
+`luajr` can run Lua code in parallel across multiple worker Lua states. Each
+worker is a fully independent Lua state. Because the vector types described
+above depend on R, and R is not fully thread-safe, **do not allocate new R
+objects from inside a worker** (do not create new `luajr.numeric`,
+`luajr.list`, etc., and do not call R functions that allocate). Reading and
+writing the elements of a vector that was *allocated in the main state* and
+passed in to the worker is safe, provided different workers do not write to
+the same slot — this is the standard pattern for collecting per-worker
+results, illustrated below.
+
+The following renders a *Buddhabrot* in parallel — a Monte Carlo image of the
+Mandelbrot set built by sampling random points, iterating each one, and
+accumulating the trajectories of those that escape. Each worker accumulates
+into its own image buffer (to avoid write races on shared pixels), and the
+main state sums them at the end. Then displays the result with R's `image()`:
+
+```{r, eval = FALSE}
+buddhabrot <- lua_func("function(cfg)
+    local pool = luajr.workers()
+
+    -- Per-worker setup: seed the RNG so each worker draws different samples.
+    -- srun runs this once in each worker, in sequence.
+    pool:srun(function(thread_id)
+        math.randomseed(thread_id * 7919)
+    end)
+
+    -- One image buffer per worker, allocated in the main state. Each worker
+    -- writes only to its own buffer, so there's no race on shared pixels.
+    local bufs = {}
+    for t = 1, pool.n do bufs[t] = luajr.matrix(cfg.W, cfg.H, 0) end
+
+    -- Each worker samples `n_per` random points and accumulates the orbits
+    -- of those that escape into its own buffer.
+    local n_per = math.ceil(cfg.samples / pool.n)
+    pool:prun(function(bufs, cfg, n_per, thread_id)
+        local img = bufs[thread_id]
+        local W, H, max_iter = cfg.W, cfg.H, cfg.max_iter
+        local cx, cy, scale = cfg.cx, cfg.cy, cfg.scale
+        local xr = scale * W / H   -- half-width in cr
+
+        for s = 1, n_per do
+            local cr = cx + (math.random() * 2 - 1) * xr
+            local ci = cy + (math.random() * 2 - 1) * scale
+            local zr, zi, iter = 0, 0, 0
+
+            -- First pass: does the orbit escape?
+            while zr*zr + zi*zi < 4 and iter < max_iter do
+                zr, zi = zr*zr - zi*zi + cr, 2*zr*zi + ci
+                iter = iter + 1
+            end
+
+            -- Only escaping orbits contribute (the Buddhabrot proper).
+            if iter < max_iter then
+                local escape_iters = iter
+                zr, zi = 0, 0
+                for k = 1, escape_iters do
+                    zr, zi = zr*zr - zi*zi + cr, 2*zr*zi + ci
+                    local i = math.floor((zr - cx) / xr * W / 2 + W / 2) + 1
+                    local j = math.floor((zi - cy) / scale * H / 2 + H / 2) + 1
+                    if i >= 1 and i <= W and j >= 1 and j <= H then
+                        img[(j - 1) * W + i] = img[(j - 1) * W + i] + 1
+                    end
+                end
+            end
+        end
+    end, bufs, cfg, n_per)
+
+    pool:close()
+
+    -- Sum the per-worker buffers into one result.
+    local result = luajr.matrix(cfg.W, cfg.H, 0)
+    local n = cfg.W * cfg.H
+    for t = 1, #bufs do
+        local b = bufs[t]
+        for k = 1, n do result[k] = result[k] + b[k] end
+    end
+    return result
+end", "$.")
+
+cfg <- list(W = 600, H = 400, max_iter = 200, samples = 1e8,
+            cx = -0.5, cy = 0, scale = 1.25)
+img <- buddhabrot(cfg)
+image(-img, col = hcl.colors(256, "Oslo"),
+      useRaster = TRUE, axes = FALSE)
+```
+
+![Buddhabrot rendered with luajr](images/buddhabrot.jpg)
+
+Pulling the example apart:
+
+- `luajr.workers()` creates a pool of one worker per core; `pool.n` reports
+  the count.
+- `pool:srun(setup)` runs `setup` in each worker once, in sequence — used
+  here to give each worker a different RNG seed (via `thread_id`) so the
+  workers don't redundantly sample the same points. Because `srun` is
+  sequential, the setup doesn't need to be thread-safe.
+- `bufs` is a Lua table of `luajr.matrix` buffers (one per worker), all
+  allocated in the main state. Passing the table into the workers gives each
+  one access to all the buffers; each worker picks its own via `thread_id`,
+  so writes don't race.
+- `pool:prun(work, bufs, cfg, n_per)` runs `work` once in every worker,
+  concurrently. Each worker draws `n_per` random points, runs the Mandelbrot
+  escape test, and for escaping orbits re-traces the orbit and increments
+  the pixel that each visited point maps to.
+- `pool:close()` shuts the workers down.
+- The main state sums the per-worker buffers into one result. `log1p()` on
+  the R side compresses the long count tail before `image()` displays it.
+
+**`luajr.ncores()`**
+
+Returns a suggested number of concurrent threads for the current machine
+(the value of `std::thread::hardware_concurrency()` from C++).
+
+**`luajr.workers(n)`**
+
+Constructs a pool of `n` worker Lua states. If `n` is `nil` or missing, the
+default is `luajr.ncores()`. Each worker is created with the standard `luajr`
+and Lua libraries already loaded.
+
+```lua
+local pool = luajr.workers()      -- one worker per core
+local pool = luajr.workers(4)     -- four workers
+```
+
+The pool's workers are torn down automatically when the pool is garbage
+collected, or explicitly via `pool:close()`. A pool must be created and used
+within a single R `.Call` (i.e. within a single call from R into Lua):
+cross-state argument transfer uses by-reference handles that are only valid
+for that scope.
+
+**`pool:preload(f, ...)`**
+
+Loads the function `f` and the additional arguments `...` into every worker
+state. `f` is a Lua function, and the additional arguments are copied to each 
+worker by value (for plain Lua values) or by reference handle (for cdata, 
+restricted to the calling `.Call` lifetime).
+
+**`pool:srun(f, ...)`**
+
+Sequentially runs the preloaded function in each worker. If `f` is non-nil,
+calls `preload` first. The function is invoked in each worker as
+`f(arg1, arg2, ..., thread_id)`, where `arg1..argN` are the preloaded
+arguments and `thread_id` is the 1-based index of the worker. The main use
+case is running code that touches each worker's Lua state, such as loading
+modules, setting globals, or otherwise preparing per-worker state, without
+having to worry about thread safety, since each worker runs sequentially.
+
+**`pool:prun(f, ...)`**
+
+Same call shape as `srun`, but runs the workers concurrently on separate
+threads. If any worker throws an error, the first error is propagated back to
+the calling state after all workers complete.
+
+**`pool:pfor(i0, i1, f, ...)`**
+
+Distributes the iterations `i0..i1` (inclusive) across the workers using
+atomic work-stealing. The function is invoked once per iteration as
+`f(i, arg1, ..., thread_id)`, where `i` is the iteration index. As with
+`prun`, errors from any worker are propagated after the loop completes.
+
+**`pool:close()`**
+
+Closes all worker states in the pool and releases their resources. Safe to
+call more than once. Workers cannot be used after the pool has been closed.
+
+**`#pool`**
+
+Returns the number of workers in the pool.
+
+## Utility functions {#utility}
+
+These are general-purpose helpers exposed by the `luajr` module.
+
+**`luajr.to_sexp(v)`**
+
+Converts a Lua value `v` to an R SEXP. The conversion rules are:
+
+- `nil` &rarr; `R_NilValue`
+- Lua `number` &rarr; `REALSXP` of length 1
+- Lua `boolean` &rarr; `LGLSXP` of length 1
+- Lua `string` &rarr; `STRSXP` of length 1 (or `RAWSXP` if the string contains
+  embedded null bytes)
+- Lua `table` &rarr; `VECSXP`; integer keys become positional entries, string keys
+  become named entries (see also [`luajr.list`](#vcreate))
+- `luajr` vector/environment/rfunction cdata &rarr; the underlying SEXP
+- bare `R.sexp` cdata &rarr; the SEXP unchanged
+
+Returns the result as an `R.sexp`. The returned SEXP is unprotected; most
+callers consume it immediately (e.g. as an argument to `R.SET_VECTOR_ELT` or
+`R.defineVar`).
+
+**`luajr.from_sexp(s, argcode)`**
+
+Converts an R SEXP `s` to the corresponding Lua/luajr value. `argcode` is an
+optional numeric byte value that selects the target representation; it is
+**not** the string format (e.g. `"$."`, `"&V"`) accepted by
+[`lua_func()`](luajr.html), but the underlying encoded byte that those strings
+ultimately compile to. If `argcode` is `nil` or missing, the default selects
+the `auto` representation.
+
+**`luajr.readline(prompt)`**
+
+Reads one line of input from R's console using `R_ReadConsole`, displaying
+`prompt` first. Returns the line as a Lua string with the trailing newline
+removed. Used internally by the debugger but also available for any Lua code
+that needs an interactive prompt.
+
+**`luajr.dbg(...)`**
+
+Invokes the [debugger.lua](https://github.com/slembcke/debugger.lua) module
+on the given arguments, opening an interactive debugger session at the
+current Lua frame.
 
 ## Long vectors {#longvec}
 
 `luajr` can handle what are called "long vectors" in R (i.e., vectors with 2^31 
 elements or more), but there are some restrictions.
 
-Vector types are allocated in Lua, and they are limited to a maximum size of
-`luajr.max_alloc`, which is currently set to 2^37 (i.e., 128 GiB). You can 
-change `luajr.max_alloc` if you need to work with a larger vector. Note that if 
-your vector is larger than R's vector memory limit, you will not be able to 
-return such a large vector back to R.
-
-Reference types are allocated by R, so their size is limited by R's vector 
+Vector types are allocated by R, so their size is limited by R's vector 
 memory limit. This limit can be set and queried using the R function 
 `mem.maxVSize()`.
 
-Long vectors can be passed from R into Lua using the `"v"` or `"r"` arg codes.
-Passing by reference will be much more efficient for large vectors, as this 
-avoids making a copy of the data.
-
 There are limits on how large of a table you can create in Lua when using the
 `lua_createtable()` function, which is what `luajr` uses to allocate space for
-tables. This means that if you try to pass a large vector into Lua as an array 
-(arg code `"a"` or `"s"`), the operation will fail if there are too many 
-elements in the vector. The maximum number of elements is currently set by 
-LuaJIT to 2^27, or just over 134 million elements. This is also the maximum 
-length of an R `list` that can be passed into Lua.
+tables. This means that if you try to pass a large vector into Lua as a native
+Lua array (e.g. arg code `$N` for an atomic vector, or `$V` for a list), the
+operation will fail if there are too many elements in the vector. The maximum
+number of elements is currently set by LuaJIT to 2^27, or just over 134 million
+elements. This is also the maximum length of an R `list` that can be passed
+into Lua. Passing a vector as a SEXP (arg code `S`) or as a `luajr` vector type
+(arg codes `.`, `L`, `I`, `N`, `C`, `V`) does not go through `lua_createtable`
+and is not subject to this limit.
 
-As of R 4.5.1, a `data.frame` cannot hold long vectors; nor can a 
+As of R 4.6.0, a `data.frame` cannot hold long vectors; nor can a 
 `data.table` or `tibble`. However, a `list` can hold long vectors.
 
 If you are working with lots of data, you may want to keep it on the hard drive
