@@ -1,3 +1,12 @@
+# Lua tables don't preserve insertion order for the hash part.
+sort_list_names = function(x) {
+    if (!is.list(x)) return(x)
+    x = lapply(x, sort_list_names)
+    nms = names(x)
+    if (!is.null(nms) && all(nzchar(nms))) x = x[order(nms)]
+    x
+}
+
 test_that("luajr.list construction and basic ops", {
     lua("ffi = require('ffi'); R = require('R')")
 
@@ -96,7 +105,8 @@ test_that("luajr.list constructs nested lists from nested tables", {
 
 test_that("luajr.list nested list preserves names in sub-tables", {
     r = lua("return luajr.list({a = 1, b = {x = 10, y = 20}})")
-    expect_identical(r, list(a = 1, b = list(x = 10, y = 20)))
+    expect_identical(sort_list_names(r),
+        sort_list_names(list(a = 1, b = list(x = 10, y = 20))))
 
     lua_reset()
 })
@@ -120,7 +130,8 @@ test_that("push_back of a Lua table converts to nested list", {
     lua("x:push_back('first')")
     lua("x:push_back({nested = true, value = 42})")
     r = lua("return x")
-    expect_identical(r, list("first", list(nested = TRUE, value = 42)))
+    expect_identical(sort_list_names(r),
+        sort_list_names(list("first", list(nested = TRUE, value = 42))))
 
     lua_reset()
 })

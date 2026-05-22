@@ -44,7 +44,7 @@ extern "C" void luajr_parallel_closeworkers(workers_t* w)
 // Load a function + args into all worker states (lua_CFunction).
 // The runners below (srun, prun, pfor) use the preloaded functions and arguments.
 // Lua args to this function: (workers_t, function, args...)
-extern "C" int luajr_parallel_load(lua_State* L)
+extern "C" int luajr_parallel_load_cf(lua_State* L)
 {
     workers_t* w = (workers_t*)lua_topointer(L, 1);
     int nvalues = lua_gettop(L) - 1;
@@ -82,11 +82,11 @@ extern "C" void luajr_parallel_srun(lua_State* L, workers_t* w)
         if (err)
         {
             std::string error_msg(1024, ' ');
-            luajr_handle_lua_error(w->l[t], err, "parallel_srun", &error_msg[0]);
+            luajr_handleerror(w->l[t], err, "parallel_srun", &error_msg[0]);
             clear_worker_stacks(w);
             luajr_error(L, "%s", error_msg.c_str());
         }
-        luajr_profile_collect(w->l[t]);
+        luajr_flushprofile(w->l[t]);
     }
 }
 
@@ -113,13 +113,13 @@ extern "C" void luajr_parallel_prun(lua_State* L, workers_t* w)
             if (error_msg.empty())
             {
                 error_msg.assign(1024, ' ');
-                luajr_handle_lua_error(w->l[t], err, "parallel_prun", &error_msg[0]);
+                luajr_handleerror(w->l[t], err, "parallel_prun", &error_msg[0]);
             }
         }
     };
 
     // Use sequential execution in debug/profile mode, or if only one worker.
-    if (w->n > 1 && !luajr_debug_mode() && !luajr_profile_mode())
+    if (w->n > 1 && !luajr_indebug() && !luajr_inprofile())
     {
         std::vector<std::thread> thr;
         for (int t = 0; t < w->n; ++t)
@@ -135,7 +135,7 @@ extern "C" void luajr_parallel_prun(lua_State* L, workers_t* w)
 
     // Collect any profiler data
     for (int t = 0; t < w->n; ++t)
-        luajr_profile_collect(w->l[t]);
+        luajr_flushprofile(w->l[t]);
 
     if (!error_msg.empty())
     {
@@ -181,7 +181,7 @@ extern "C" void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1)
                 if (error_msg.empty())
                 {
                     error_msg.assign(1024, ' ');
-                    luajr_handle_lua_error(w->l[t], err, "parallel_pfor", &error_msg[0]);
+                    luajr_handleerror(w->l[t], err, "parallel_pfor", &error_msg[0]);
                 }
             }
             if (!error_msg.empty())
@@ -190,7 +190,7 @@ extern "C" void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1)
     };
 
     // Use sequential execution in debug/profile mode, or if only one worker.
-    if (w->n > 1 && !luajr_debug_mode() && !luajr_profile_mode())
+    if (w->n > 1 && !luajr_indebug() && !luajr_inprofile())
     {
         std::vector<std::thread> thr;
         for (int t = 0; t < w->n; ++t)
@@ -206,7 +206,7 @@ extern "C" void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1)
 
     // Collect any profiler data
     for (int t = 0; t < w->n; ++t)
-        luajr_profile_collect(w->l[t]);
+        luajr_flushprofile(w->l[t]);
 
     if (!error_msg.empty())
     {

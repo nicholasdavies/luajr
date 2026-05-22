@@ -11,7 +11,7 @@ extern "C" {
 }
 
 // Run the specified Lua code.
-extern "C" SEXP luajr_run_code(SEXP code, SEXP Lx)
+extern "C" SEXP luajr_runcode(SEXP code, SEXP Lx)
 {
     CheckSEXPLen(code, STRSXP, 1);
 
@@ -28,7 +28,7 @@ extern "C" SEXP luajr_run_code(SEXP code, SEXP Lx)
 }
 
 // Run the specified Lua file.
-extern "C" SEXP luajr_run_file(SEXP filename, SEXP Lx)
+extern "C" SEXP luajr_runfile(SEXP filename, SEXP Lx)
 {
     CheckSEXPLen(filename, STRSXP, 1);
 
@@ -45,7 +45,7 @@ extern "C" SEXP luajr_run_file(SEXP filename, SEXP Lx)
 }
 
 // Create a Lua function
-extern "C" SEXP luajr_func_create(SEXP func, SEXP Lx)
+extern "C" SEXP luajr_fcreate(SEXP func, SEXP Lx)
 {
     if (TYPEOF(func) == EXTPTRSXP)
     {
@@ -76,9 +76,9 @@ extern "C" SEXP luajr_func_create(SEXP func, SEXP Lx)
 
         // Handle mistakes
         if (nret != 1)
-            luajr_pop_stop(L, nret, "lua_func expects `func' to evaluate to one value, not %d.", nret);
+            luajr_popstop(L, nret, "lua_func expects `func' to evaluate to one value, not %d.", nret);
         if (lua_type(L, -1) != LUA_TFUNCTION)
-            luajr_pop_stop(L, 1, "lua_func expects `func' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
+            luajr_popstop(L, 1, "lua_func expects `func' to evaluate to a function, not a %s.", lua_typename(L, lua_type(L, -1)));
 
         // Create the registry entry with the value on the top of the stack
         RegistryEntry* re = new RegistryEntry(L);
@@ -91,7 +91,7 @@ extern "C" SEXP luajr_func_create(SEXP func, SEXP Lx)
 }
 
 // Call a Lua function
-extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 {
     // Get Lua state
     lua_State* L = luajr_getstate(Lx);
@@ -102,7 +102,7 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
     luajr_pass(L, alist, acode);
 
     // Call function
-    luajr_pcall(L, Rf_length(alist), LUA_MULTRET, "user function from luajr_func_call()", LUAJR_TOOLING_ALL);
+    luajr_pcall(L, Rf_length(alist), LUA_MULTRET, "user function from luajr_fcall()", LUAJR_TOOLING_ALL);
     int top1 = lua_gettop(L);
 
     // Return results
@@ -119,24 +119,24 @@ extern "C" SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx)
 
 // N = number of user args
 #define FUNC_CALL_END(N) \
-    luajr_pcall(L, N, LUA_MULTRET, "user function from luajr_func_call()", LUAJR_TOOLING_ALL); \
+    luajr_pcall(L, N, LUA_MULTRET, "user function from luajr_fcall()", LUAJR_TOOLING_ALL); \
     int top1 = lua_gettop(L); \
     return luajr_return(L, top1 - top0);
 
-extern "C" SEXP luajr_func_call0(SEXP fx, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall0(SEXP fx, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     FUNC_CALL_END(0)
 }
 
-extern "C" SEXP luajr_func_call1(SEXP fx, SEXP a1, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall1(SEXP fx, SEXP a1, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
     FUNC_CALL_END(1)
 }
 
-extern "C" SEXP luajr_func_call2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
@@ -144,7 +144,7 @@ extern "C" SEXP luajr_func_call2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx)
     FUNC_CALL_END(2)
 }
 
-extern "C" SEXP luajr_func_call3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
@@ -153,7 +153,7 @@ extern "C" SEXP luajr_func_call3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode,
     FUNC_CALL_END(3)
 }
 
-extern "C" SEXP luajr_func_call4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
@@ -163,7 +163,7 @@ extern "C" SEXP luajr_func_call4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SE
     FUNC_CALL_END(4)
 }
 
-extern "C" SEXP luajr_func_call5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
@@ -174,7 +174,7 @@ extern "C" SEXP luajr_func_call5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SE
     FUNC_CALL_END(5)
 }
 
-extern "C" SEXP luajr_func_call6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
@@ -186,7 +186,7 @@ extern "C" SEXP luajr_func_call6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SE
     FUNC_CALL_END(6)
 }
 
-extern "C" SEXP luajr_func_call7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
@@ -199,7 +199,7 @@ extern "C" SEXP luajr_func_call7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SE
     FUNC_CALL_END(7)
 }
 
-extern "C" SEXP luajr_func_call8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP acode, SEXP Lx)
+extern "C" SEXP luajr_fcall8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP acode, SEXP Lx)
 {
     FUNC_CALL_BEGIN
     luajr_pushsexp(L, a1, ac[0]);
@@ -214,11 +214,11 @@ extern "C" SEXP luajr_func_call8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SE
 }
 
 // Get the number of parameters, vararg status, and argument names of a Lua function
-extern "C" SEXP luajr_func_info(SEXP fx)
+extern "C" SEXP luajr_finfo(SEXP fx)
 {
     RegistryEntry* re = reinterpret_cast<RegistryEntry*>(luajr_getpointer(fx, LUAJR_REGFUNC_CODE));
     if (!re)
-        Rf_error("luajr_func_info expects a valid registry entry.");
+        Rf_error("luajr_finfo expects a valid registry entry.");
 
     lua_State* L = re->GetState();
 

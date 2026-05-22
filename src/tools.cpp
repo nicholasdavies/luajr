@@ -99,7 +99,7 @@ profile.start(mode, cb)
 // Like luaL_loadstring, but produce an R error on failure
 extern "C" void luajr_loadstring(lua_State* L, const char* str)
 {
-    luajr_handle_lua_error(L, luaL_loadstring(L, str), "string", 0);
+    luajr_handleerror(L, luaL_loadstring(L, str), "string", 0);
 }
 
 // Like luaL_dostring, but produce an R error on failure, and with support for luajr tooling
@@ -112,7 +112,7 @@ extern "C" void luajr_dostring(lua_State* L, const char* str, int tooling)
 // Like luaL_loadfile, but produce an R error on failure
 extern "C" void luajr_loadfile(lua_State* L, const char* filename)
 {
-    luajr_handle_lua_error(L, luaL_loadfile(L, filename), "file", 0);
+    luajr_handleerror(L, luaL_loadfile(L, filename), "file", 0);
 }
 
 // Like luaL_dofile, but produce an R error on failure, and with support for luajr tooling
@@ -125,10 +125,10 @@ extern "C" void luajr_dofile(lua_State* L, const char* filename, int tooling)
 // Like luaL_loadbuffer, but produce an R error on failure
 extern "C" void luajr_loadbuffer(lua_State *L, const char *buff, unsigned int sz, const char *name)
 {
-    luajr_handle_lua_error(L, luaL_loadbuffer(L, buff, sz, name), "buffer", 0);
+    luajr_handleerror(L, luaL_loadbuffer(L, buff, sz, name), "buffer", 0);
 }
 
-// Buffer for error messages from luajr_handle_lua_error
+// Buffer for error messages from luajr_handleerror
 // The use of this is what makes this function non-thread-safe unless
 // LUAJR_NO_ERROR_HANDLING is set.
 static char errbuf[1024];
@@ -230,7 +230,7 @@ extern "C" int luajr_pcall(lua_State* L, int nargs, int nresults, const char* wh
 
             // Profile collection is not thread-safe, so make this optional
             if (!(tooling & LUAJR_NO_PROFILE_COLLECT))
-                luajr_profile_collect(L);
+                luajr_flushprofile(L);
         }
 
         if (jit_mode == "off")
@@ -247,7 +247,7 @@ extern "C" int luajr_pcall(lua_State* L, int nargs, int nresults, const char* wh
     }
 
     // Get the error using our static errbuf
-    int errcode = luajr_handle_lua_error(L, lua_err, what, errbuf);
+    int errcode = luajr_handleerror(L, lua_err, what, errbuf);
 
     // Propagate error
     if (errcode == 1) {
@@ -267,7 +267,7 @@ extern "C" int luajr_pcall(lua_State* L, int nargs, int nresults, const char* wh
 }
 
 // Set mode for calls to luajr_pcall().
-extern "C" SEXP luajr_set_mode(SEXP debug, SEXP profile, SEXP jit)
+extern "C" SEXP luajr_setmode(SEXP debug, SEXP profile, SEXP jit)
 {
     // Argument checking
     auto arg = [](SEXP s, const char* what, std::string& current,
@@ -306,7 +306,7 @@ extern "C" SEXP luajr_set_mode(SEXP debug, SEXP profile, SEXP jit)
 }
 
 // Get current modes for calls to luajr_pcall().
-extern "C" SEXP luajr_get_mode()
+extern "C" SEXP luajr_getmode()
 {
     SEXP ret = PROTECT(Rf_allocVector(STRSXP, 3));
     SET_STRING_ELT(ret, 0, Rf_mkChar(debug_mode.c_str()));
@@ -324,7 +324,7 @@ extern "C" SEXP luajr_get_mode()
 }
 
 // Is debugger on?
-extern "C" int luajr_debug_mode()
+extern "C" int luajr_indebug()
 {
     if (debug_mode == "off")
         return LUAJR_DEBUG_MODE_OFF;
@@ -337,7 +337,7 @@ extern "C" int luajr_debug_mode()
 }
 
 // Is profiler on?
-extern "C" int luajr_profile_mode()
+extern "C" int luajr_inprofile()
 {
     if (profile_mode == "off")
         return LUAJR_PROFILE_MODE_OFF;
@@ -346,7 +346,7 @@ extern "C" int luajr_profile_mode()
 }
 
 // Internalize profiler data from state L.
-void luajr_profile_collect(lua_State* L)
+void luajr_flushprofile(lua_State* L)
 {
     // Get luajr profile data on stack
     lua_getfield(L, LUA_REGISTRYINDEX, "luajr_pd");
@@ -386,7 +386,7 @@ void luajr_profile_collect(lua_State* L)
 }
 
 // Extract profiler data.
-extern "C" SEXP luajr_profile_data(SEXP flush)
+extern "C" SEXP luajr_getprofile(SEXP flush)
 {
     CheckSEXPLen(flush, LGLSXP, 1);
 
@@ -428,7 +428,7 @@ extern "C" SEXP luajr_profile_data(SEXP flush)
 }
 
 // Remove profiler data for state L (call before lua_close).
-extern "C" void luajr_tooling_cleanup(lua_State* L)
+extern "C" void luajr_closeprofile(lua_State* L)
 {
     profile_data.erase(L);
 }

@@ -24,12 +24,12 @@ extern "C" {
 // Declare luajr API functions in src/shared.h, inst/include/luajr.h, and inst/include/luajr_funcs.h.
 
 // Lua state related functions (state.cpp)
-SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP R_lib, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod); // Not in public API
+SEXP luajr_register(SEXP Rver, SEXP dylib, SEXP R_lib, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod); // Not in public API
 SEXP luajr_open();
 SEXP luajr_reset();
 lua_State* luajr_newstate();
 lua_State* luajr_getstate(SEXP Lx);
-int luajr_thisstate(lua_State* L); // Not in public API (lua_CFunction)
+int luajr_thisstate_cf(lua_State* L); // Not in public API (lua_CFunction)
 
 // Move values between R and Lua (push_to.cpp)
 void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as);
@@ -37,35 +37,37 @@ SEXP luajr_tosexp(lua_State* L, int index);
 void luajr_pass(lua_State* L, SEXP args, SEXP acode);
 SEXP luajr_return(lua_State* L, int nret);
 void luajr_xpush(lua_State* L, int index, lua_State* to);
-int luajr_Rcall(lua_State* L); // Not in public API
+int luajr_Rcall_cf(lua_State* L); // Not in public API (lua_CFunction)
+int luajr_tosexp_cf(lua_State* L); // Not in public API (lua_CFunction)
+int luajr_fromsexp_cf(lua_State* L); // Not in public API (lua_CFunction)
 
 // Run Lua code and functions (run_func.cpp)
-SEXP luajr_run_code(SEXP code, SEXP Lx);
-SEXP luajr_run_file(SEXP filename, SEXP Lx);
-SEXP luajr_func_create(SEXP func, SEXP Lx);
-SEXP luajr_func_call(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
-SEXP luajr_func_call0(SEXP fx, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call1(SEXP fx, SEXP a1, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_call8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP acode, SEXP Lx); // Not in public API
-SEXP luajr_func_info(SEXP fx); // Not in public API
+SEXP luajr_runcode(SEXP code, SEXP Lx);
+SEXP luajr_runfile(SEXP filename, SEXP Lx);
+SEXP luajr_fcreate(SEXP func, SEXP Lx);
+SEXP luajr_fcall(SEXP fx, SEXP alist, SEXP acode, SEXP Lx);
+SEXP luajr_fcall0(SEXP fx, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall1(SEXP fx, SEXP a1, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall2(SEXP fx, SEXP a1, SEXP a2, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall3(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall4(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall5(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall6(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall7(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_fcall8(SEXP fx, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP acode, SEXP Lx); // Not in public API
+SEXP luajr_finfo(SEXP fx); // Not in public API
 void luajr_pushfunc(SEXP fx);
 
 // Load and access Lua modules (module.cpp)
-SEXP luajr_module_load(SEXP filename, SEXP Lx);
-SEXP luajr_module_get(SEXP module, SEXP keys, SEXP typecheck);
-SEXP luajr_module_set(SEXP module, SEXP keys, SEXP as, SEXP value);
+SEXP luajr_loadmodule(SEXP filename, SEXP Lx);
+SEXP luajr_moduleget(SEXP module, SEXP keys, SEXP typecheck);
+SEXP luajr_moduleset(SEXP module, SEXP keys, SEXP as, SEXP value);
 
 // Run Lua code in parallel (parallel.cpp)
 int luajr_parallel_ncores(); // Not in public API
 void luajr_parallel_newworkers(lua_State* L, workers_t* w); // Not in public API
 void luajr_parallel_closeworkers(workers_t* w); // Not in public API
-int luajr_parallel_load(lua_State* L); // Not in public API
+int luajr_parallel_load_cf(lua_State* L); // Not in public API (lua_CFunction)
 void luajr_parallel_srun(lua_State* L, workers_t* w); // Not in public API
 void luajr_parallel_prun(lua_State* L, workers_t* w); // Not in public API
 void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1); // Not in public API
@@ -77,31 +79,31 @@ void luajr_loadfile(lua_State* L, const char* filename);
 void luajr_dofile(lua_State* L, const char* filename, int tooling);
 void luajr_loadbuffer(lua_State *L, const char *buff, unsigned int sz, const char *name);
 int luajr_pcall(lua_State* L, int nargs, int nresults, const char* what, int tooling);
-SEXP luajr_set_mode(SEXP debug, SEXP profile, SEXP jit);
-SEXP luajr_get_mode();
-int luajr_debug_mode();
-int luajr_profile_mode();
-void luajr_profile_collect(lua_State* L);
-SEXP luajr_profile_data(SEXP flush);
-void luajr_tooling_cleanup(lua_State* L); // Not in public API
+SEXP luajr_setmode(SEXP debug, SEXP profile, SEXP jit);
+SEXP luajr_getmode();
+int luajr_indebug();
+int luajr_inprofile();
+void luajr_flushprofile(lua_State* L);
+SEXP luajr_getprofile(SEXP flush);
+void luajr_closeprofile(lua_State* L); // Not in public API
 
 // Miscellaneous functions (setup.cpp)
 SEXP luajr_makepointer(void* ptr, int tag_code, void (*finalize)(SEXP));
 void* luajr_getpointer(SEXP x, int tag_code);
-int luajr_handle_lua_error(lua_State* L, int err, const char* what, char* buf); // Not in public API
+int luajr_handleerror(lua_State* L, int err, const char* what, char* buf); // Not in public API
 SEXP luajr_readline(SEXP prompt);   // Not in public API
-void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...); // Not in public API
+void luajr_popstop(lua_State* L, int n, const char* fmt, ...); // Not in public API
 void luajr_error(lua_State* L, const char* fmt, ...) __attribute__((noreturn));
 
 // LuaJIT internal helpers (local/lj_luajr.c -> luajit/src/lj_luajr.c)
-void luajr_push_sexp_cdata(lua_State* L, void* x); // Not in public API
-void luajr_push_vector_cdata(lua_State* L, int sxp_type, void* p, void* s, double n, double c); // Not in public API
-ptrdiff_t luajr_get_sexp_cdata(lua_State* L, int index, void** out_s); // Not in public API
-void luajr_push_environment_cdata(lua_State* L, void* s); // Not in public API
-void luajr_push_function_cdata(lua_State* L, void* s); // Not in public API
-void luajr_table_sizes(lua_State* L, int index, uint32_t* asize, uint32_t* hsize); // Not in public API
-int luajr_get_pointer_cdata(lua_State* L, int index, void** out_p); // Not in public API
-int luajr_state_in_pcall(lua_State* L); // Not in public API
+void luajr_internal_pushsexp(lua_State* L, void* x); // Not in public API
+void luajr_internal_pushvector(lua_State* L, int sxp_type, void* p, void* s, double n, double c); // Not in public API
+void luajr_internal_pushenvironment(lua_State* L, void* s); // Not in public API
+void luajr_internal_pushRfunction(lua_State* L, void* s); // Not in public API
+ptrdiff_t luajr_internal_tosexp(lua_State* L, int index, void** out_s); // Not in public API
+int luajr_internal_topointer(lua_State* L, int index, void** out_p); // Not in public API
+void luajr_internal_tablesize(lua_State* L, int index, uint32_t* asize, uint32_t* hsize); // Not in public API
+int luajr_internal_inpcall(lua_State* L); // Not in public API
 
 } // end of extern "C"
 
@@ -134,7 +136,7 @@ namespace AC {
 // External pointer code tags, for use with luajr_makepointer and luajr_getpointer
 enum
 {
-    // For luajr_func_create, luajr_pushfunc, and luajr_tosexp with functions
+    // For luajr_fcreate, luajr_pushfunc, and luajr_tosexp with functions
     LUAJR_REGFUNC_CODE = 0x7CA12E6F,
 
     // For luajr_open and luajr_getstate's use of external pointers

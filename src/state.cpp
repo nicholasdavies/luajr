@@ -18,6 +18,17 @@ static const RegistryFunc luajr_registry_funcs[] =
     { 0, 0 }
 };
 
+// lua_CFunctions to expose to the luajr.lua
+struct CFunctionEntry { const char* name; int (*fn)(lua_State*); };
+static const CFunctionEntry luajr_cfuncs[] =
+{
+    { "tosexp",        luajr_tosexp_cf       },
+    { "fromsexp",      luajr_fromsexp_cf     },
+    { "Rcall",         luajr_Rcall_cf         },
+    { "parallel_load", luajr_parallel_load_cf },
+    { "thisstate",     luajr_thisstate_cf     }
+};
+
 // R version as array of three integers
 static int luajr_R_version[3] = { 0, 0, 0 };
 
@@ -43,7 +54,7 @@ static std::string luajr_R_module_bytecode;
 static std::string luajr_debugger_path;
 
 // Provide information to luajr on R version and paths
-extern "C" SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP dll, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod)
+extern "C" SEXP luajr_register(SEXP Rver, SEXP dylib, SEXP dll, SEXP luajr_mod, SEXP R_mod, SEXP dbg_mod)
 {
     CheckSEXPLen(Rver, INTSXP, 3);
     CheckSEXPLen(dylib, STRSXP, 1);
@@ -69,7 +80,7 @@ extern "C" SEXP luajr_set_info(SEXP Rver, SEXP dylib, SEXP dll, SEXP luajr_mod, 
 static void finalize_lua_state(SEXP xptr)
 {
     lua_State* L = reinterpret_cast<lua_State*>(R_ExternalPtrAddr(xptr));
-    luajr_tooling_cleanup(L);
+    luajr_closeprofile(L);
     RegistryEntry::DisarmAll(L);
     lua_close(L);
     R_ClearExternalPtr(xptr);
@@ -86,7 +97,7 @@ extern "C" SEXP luajr_reset()
 {
     if (L0)
     {
-        luajr_tooling_cleanup(L0);
+        luajr_closeprofile(L0);
         RegistryEntry::DisarmAll(L0);
         lua_close(L0);
         L0 = 0;
@@ -152,11 +163,19 @@ extern "C" lua_State* luajr_newstate()
     // Load luajr module bytecode
     luajr_loadbuffer(l, luajr_module_bytecode.data(), luajr_module_bytecode.size(), "=luajr module");
 
-    // Run script: takes as arguments the full path to the luajr dylib and the
-    // path to debugger.lua.
+    // Run script: takes as arguments the full path to the luajr dylib, the
+    // path to debugger.lua, and a Lua table of CFunctions to install as
+    // luajr.funcname.
     lua_pushstring(l, luajr_dylib_path.c_str());
     lua_pushstring(l, luajr_debugger_path.c_str());
-    luajr_pcall(l, 2, 0, "luajr module from luajr_newstate()", LUAJR_TOOLING_NONE);
+    const int n_cfuncs = (int)(sizeof(luajr_cfuncs) / sizeof(*luajr_cfuncs));
+    lua_createtable(l, 0, n_cfuncs);
+    for (int i = 0; i < n_cfuncs; ++i)
+    {
+        lua_pushcfunction(l, luajr_cfuncs[i].fn);
+        lua_setfield(l, -2, luajr_cfuncs[i].name);
+    }
+    luajr_pcall(l, 3, 0, "luajr module from luajr_newstate()", LUAJR_TOOLING_NONE);
 
     // Open luajr module
     luajr_dostring(l, "luajr = require 'luajr'", LUAJR_TOOLING_NONE);
@@ -171,16 +190,6 @@ extern "C" lua_State* luajr_newstate()
         lua_getfield(l, -2, luajr_registry_funcs[i].name);
         lua_rawset(l, LUA_REGISTRYINDEX);
     }
-
-    // Add C-defined lua_CFunctions to the luajr table.
-    lua_pushcfunction(l, luajr_Rcall);
-    lua_setfield(l, -2, "Rcall");
-
-    lua_pushcfunction(l, luajr_parallel_load);
-    lua_setfield(l, -2, "parallel_load");
-
-    lua_pushcfunction(l, luajr_thisstate);
-    lua_setfield(l, -2, "thisstate");
 
     lua_pop(l, 1); // luajr
 
@@ -215,7 +224,7 @@ extern "C" lua_State* luajr_getstate(SEXP Lx)
 
 // lua_CFunction: returns the calling Lua state as a lightuserdata. Used to
 // expose lua_State* to FFI calls that need it for pcall-aware error handling.
-extern "C" int luajr_thisstate(lua_State* L)
+extern "C" int luajr_thisstate_cf(lua_State* L)
 {
     lua_pushlightuserdata(L, L);
     return 1;

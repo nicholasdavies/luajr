@@ -151,15 +151,15 @@ lua_mode = function(expr, debug, profile, jit)
     ms = function(x) if (missing(x)) "" else x
 
     if (missing(expr) && missing(debug) && missing(profile) && missing(jit)) {
-        return (.Call(`_luajr_get_mode`))
+        return (.Call(`_luajr_getmode`))
     } else if (missing(expr)) {
-        .Call(`_luajr_set_mode`, ms(debug), ms(profile), ms(jit))
+        .Call(`_luajr_setmode`, ms(debug), ms(profile), ms(jit))
         return (invisible())
     } else {
-        saved = .Call(`_luajr_get_mode`)
-        .Call(`_luajr_set_mode`, ms(debug), ms(profile), ms(jit))
+        saved = .Call(`_luajr_getmode`)
+        .Call(`_luajr_setmode`, ms(debug), ms(profile), ms(jit))
         ret = tryCatch(eval(expr, -2),
-            finally = .Call(`_luajr_set_mode`, saved[["debug"]], saved[["profile"]], saved[["jit"]]))
+            finally = .Call(`_luajr_setmode`, saved[["debug"]], saved[["profile"]], saved[["jit"]]))
         if (is.null(ret)) return (invisible())
         return (ret)
     }
@@ -204,7 +204,7 @@ lua_mode = function(expr, debug, profile, jit)
 #' @export
 lua_profile = function(flush = TRUE)
 {
-    pd = .Call(`_luajr_profile_data`, flush)
+    pd = .Call(`_luajr_getprofile`, flush)
 
     results = list(data.frame(
             state = character(0), vmstate = character(0), samples = character(0),

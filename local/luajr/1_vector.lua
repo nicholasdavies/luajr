@@ -82,7 +82,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
         -- the same across the alias->owned transition that happens when an
         -- alias list is first mutated.
         op_readv = function(self, k)
-            return from_sexp(self.p[k], (self.c == byref) and byref or alias)
+            return from_sexp(self.p[k], (self.c == byref) and ac_reference or ac_value)
         end
         op_writev = function(self, k, v) R.SET_VECTOR_ELT(self.s, k - 1, to_sexp(v)) end
         op_write = function(p, s, k, v) R.SET_VECTOR_ELT(s, k - 1, v) end
@@ -275,7 +275,21 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
     -- Methods
     local methods = {
         assign = function(self, a, b)
-            if a == nil and b == nil then
+            if ffi.istype(R.sexp, a) and b == nil then
+                -- copy of SEXP
+                if R.TYPEOF(a) ~= stype then
+                    error("cannot assign " .. ffi.string(R.type2char(stype)) ..
+                        " vector from " .. R.type_string(a), 2)
+                end
+                local alen = R.length(a)
+                if self.c == byref and alen ~= self.n then byref_error("assign") end
+                if self.c == byref or alen <= self.c then
+                    set_inplace(self, { p = dataptr(a) - 1, n = alen }, a)
+                else
+                    allocate(self, alen, { p = dataptr(a) - 1, n = alen }, a)
+                end
+            elseif a == nil and b == nil then
+                -- empty vector
                 if self.c == byref then
                     if self.n ~= 0 then byref_error("assign") end
                 else
@@ -291,12 +305,34 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
                     allocate(self, a, { fill = b, n = a }, R.NilValue)
                 end
             elseif ffi.istype(self, a) and b == nil then
-                -- from vector
+                -- from vector to copy
                 if self.c == byref and a.n ~= self.n then byref_error("assign") end
                 if self.c == byref or a.n <= self.c then
                     set_inplace(self, { p = a.p, n = a.n }, a.s)
                 else
                     allocate(self, a.n, { p = a.p, n = a.n }, a.s)
+                end
+            elseif stype == R.VECSXP and type(a) == "table" and b == nil then
+                -- luajr.list with a table input: build VECSXP via to_sexp
+                if self.c == byref then
+                    -- byref: copy into existing storage
+                    local s = R.PROTECT(to_sexp(a))
+                    local n = R.length(s)
+                    if n ~= self.n then 
+                        R.UNPROTECT(1)
+                        byref_error("assign")
+                    end
+                    set_inplace(self, { p = dataptr(s) - 1, n = n }, s)
+                    R.UNPROTECT(1)
+                else
+                    -- anything else: adopt the to_sexp VECSXP
+                    local s = to_sexp(a)
+                    R.PreserveObject(s)
+                    if self.p ~= nullptr then R.ReleaseObject(self.s) end
+                    self.s = s
+                    self.p = dataptr(s) - 1
+                    self.n = R.length(s)
+                    self.c = self.n
                 end
             elseif vectorish(a) and b == nil then
                 -- from vector-ish object
@@ -308,7 +344,7 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
                     allocate(self, #a, { copy = a, n = #a }, src_sexp)
                 end
             else
-                error("cannot use vector:assign with argument types " ..
+                error("cannot assign to vector with argument types " ..
                     type(a) .. ", " .. type(b) .. ".", 2)
             end
         end,
@@ -542,44 +578,20 @@ local mt_vector_template = function(ct, stype, notfound, dataptr)
     local mt = {
         __new = function(ctype, a, b)
             local self = ffi.new(ctype)
-            self.p = nullptr
-            self.s = R.NilValue
-            if ffi.istype(R.sexp, a) and type(b) == "number" and (b == byref or b == alias) then
-                -- direct construction of reference or alias
+            if ffi.istype(R.sexp, a) and (b == byref or b == alias) then
+                -- argument-passing construction of reference or alias
                 self.p = dataptr(a) - 1
                 self.s = a
                 self.c = b
                 self.n = R.length(a)
                 -- preserve object if alias
                 if self.c == alias then R.PreserveObject(self.s) end
-            elseif ffi.istype(R.sexp, a) and b == nil then
-                -- direct construction from SEXP alias (by user)
-                if R.TYPEOF(a) ~= stype then
-                    error("cannot construct " .. ffi.string(R.type2char(stype)) ..
-                        " vector from " .. R.type_string(a))
-                end
-                self.p = dataptr(a) - 1
-                self.s = a
-                self.c = alias
-                self.n = R.length(a)
-                R.PreserveObject(self.s)
-            elseif a == nil and b == nil then
-                -- empty vector
-                allocate(self, 0, { n = 0 })
-            elseif type(a) == "number" and (is_val(b) or b == nil) then
-                -- a copies of b
-                if a < 0 then error("cannot construct vector with negative size", 2) end
-                allocate(self, a, { fill = b, n = a })
-            elseif ffi.istype(ctype, a) and b == nil then
-                -- from vector to copy
-                allocate(self, a.n, { p = a.p, n = a.n }, a.s)
-            elseif vectorish(a) and b == nil then
-                -- from vector-ish object
-                local src_sexp = (type(a) ~= "table") and a.s or R.NilValue
-                allocate(self, #a, { copy = a, n = #a }, src_sexp)
             else
-                error("cannot construct vector with argument types " ..
-                    type(a) .. ", " .. type(b) .. ".", 2)
+                self.p = nullptr
+                self.s = R.NilValue
+                self.n = 0
+                self.c = alias
+                self:assign(a, b)
             end
             return self
         end,

@@ -2,52 +2,6 @@
 -- 4. EXTRA TYPES --
 --------------------
 
--- Convert SEXP to luajr type by TYPEOF dispatch
-from_sexp = function(s, mode)
-    mode = mode or alias
-    local t = R.TYPEOF(s)
-    if     t == R.NILSXP  then return R.NilValue
-    elseif t == R.LGLSXP  then return luajr.logical(s, mode)
-    elseif t == R.INTSXP  then return luajr.integer(s, mode)
-    elseif t == R.REALSXP then return luajr.numeric(s, mode)
-    elseif t == R.STRSXP  then return luajr.character(s, mode)
-    elseif t == R.VECSXP  then return luajr.list(s, mode)
-    elseif t == R.CLOSXP or t == R.SPECIALSXP or t == R.BUILTINSXP then
-        return luajr.rfunction(s)
-    elseif t == R.ENVSXP  then return luajr.environment(s)
-    else return s
-    end
-end
-luajr.from_sexp = from_sexp
-
--- Convert luajr type or Lua scalar to SEXP
-to_sexp = function(v)
-    if v == nil then return R.NilValue end
-    local t = type(v)
-    if t == "cdata" then
-        if luajr.is_logical(v) or luajr.is_integer(v) or
-           luajr.is_numeric(v) or luajr.is_character(v) or
-           luajr.is_list(v) then
-            return v.s
-        elseif ffi.istype(R.sexp, v) then
-            return v
-        elseif ffi.istype(luajr.rfunction, v) then
-            return v.s
-        elseif ffi.istype(luajr.environment, v) then
-            return v.s
-        else
-            error("cannot convert cdata of this type to SEXP", 2)
-        end
-    elseif t == "boolean" then return R.ScalarLogical(v)
-    elseif t == "number" then return R.ScalarReal(v)
-    elseif t == "string" then return R.ScalarString(R.mkChar(v))
-    elseif t == "table" then return luajr.list(v).s
-    else
-        error("cannot convert " .. t .. " to SEXP", 2)
-    end
-end
-luajr.to_sexp = to_sexp
-
 -- Does obj have indexing and length capabilities?
 vectorish = function(obj)
     return type(obj) == "table" or luajr.is_logical(obj) or luajr.is_integer(obj) or
@@ -221,17 +175,17 @@ local methods_workers = {
 
     srun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_srun(get_thisstate(), self)
+        internal.luajr_parallel_srun(this_state, self)
     end,
 
     prun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_prun(get_thisstate(), self)
+        internal.luajr_parallel_prun(this_state, self)
     end,
 
     pfor = function(self, i0, i1, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_pfor(get_thisstate(), self, i0, i1)
+        internal.luajr_parallel_pfor(this_state, self, i0, i1)
     end,
 
     close = function(self)
@@ -251,7 +205,7 @@ local mt_workers = {
         else
             error("worker number must be a positive integer or nil", 2)
         end
-        internal.luajr_parallel_newworkers(get_thisstate(), self)
+        internal.luajr_parallel_newworkers(this_state, self)
         return self
     end,
 

@@ -94,8 +94,8 @@
 lua_func = function(func, argcode = ".", L = NULL)
 {
     # Get function and information
-    fx = .Call(`_luajr_func_create`, func, L)
-    info = .Call(`_luajr_func_info`, fx)
+    fx = .Call(`_luajr_fcreate`, func, L)
+    info = .Call(`_luajr_finfo`, fx)
     nparams = info[[1]]  # number of parameters, not including vararg ...
     isvararg = info[[2]]
     arg_names = as.character(info[[3]])
@@ -118,7 +118,7 @@ lua_func = function(func, argcode = ".", L = NULL)
     }
 
     # Build function
-    f = function() .Call(`_luajr_func_call0`, fx, argcode, L)
+    f = function() .Call(`_luajr_fcall0`, fx, argcode, L)
 
     # Set formals
     arg_syms = lapply(arg_names, as.symbol)
@@ -129,10 +129,10 @@ lua_func = function(func, argcode = ".", L = NULL)
     # Set body
     b = as.list(body(f))
     if (isvararg || nparams > 8) {
-        call_name = "_luajr_func_call"
+        call_name = "_luajr_fcall"
         b = append(b, list(as.call(c(quote(list), arg_syms))), after = 3)
     } else {
-        call_name = paste0("_luajr_func_call", nparams)
+        call_name = paste0("_luajr_fcall", nparams)
         b = append(b, arg_syms, after = 3)
     }
 

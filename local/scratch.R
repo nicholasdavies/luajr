@@ -46,11 +46,11 @@ noopL = lua_func("function() end", "s")
 noopR = function() { return (invisible()) }
 noopC = Rcpp::cppFunction("void nothing() { }")
 
-noopL2 = luajr:::luajr_func_create("function() end", NULL)
+noopL2 = luajr:::luajr_fcreate("function() end", NULL)
 
 bench::mark(
     noopL(),
-    luajr:::luajr_func_call(noopL2, list(), "s", NULL),
+    luajr:::luajr_fcall(noopL2, list(), "s", NULL),
     noopR(),
     noopC(),
     check = FALSE

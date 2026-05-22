@@ -191,19 +191,19 @@ lua_import = function(module, name, argcode)
     load_module(module)
 
     # Get module entry
-    fx = .Call(`_luajr_module_get`, module[["mod"]], list(name), "function")
+    fx = .Call(`_luajr_moduleget`, module[["mod"]], list(name), "function")
 
     # Interpret argcode
     argcode = interpret_argcode(argcode)
 
     # Create new body for R function which directly calls the Lua function
     R_body = quote({
-        ret = .Call(`_luajr_func_call`, FX, ARGS, ARGCODE, L);
+        ret = .Call(`_luajr_fcall`, FX, ARGS, ARGCODE, L);
         if (is.null(ret)) invisible() else ret
     })
-    # Reassign _luajr_func_call through L above
+    # Reassign _luajr_fcall through L above
     R_body[[2]][[3]][2:6] = list(
-        `_luajr_func_call`$address,
+        `_luajr_fcall`$address,
         fx,
         as.call(lapply(c("list", names(formals(R_func))), as.name)),
         argcode,
@@ -220,7 +220,7 @@ lua_import = function(module, name, argcode)
     # We have to do this in a slightly roundabout way to ensure we get
     # the function arguments from the correct calling frame.
     evaluated_args = as.list(match.call(definition = sys.function(-1), call = sys.call(-1)))[-1]
-    ret = .Call(`_luajr_func_call`, fx, evaluated_args, argcode, module[["L"]])
+    ret = .Call(`_luajr_fcall`, fx, evaluated_args, argcode, module[["L"]])
     if (is.null(ret)) invisible() else ret
 }
 
@@ -254,9 +254,9 @@ print.luajr_module = function(x, ...)
 
     # This seems to be needed for the [ method.
     if (missing(..1)) {
-        .Call(`_luajr_module_get`, x[["mod"]], list(), NULL)
+        .Call(`_luajr_moduleget`, x[["mod"]], list(), NULL)
     } else {
-        .Call(`_luajr_module_get`, x[["mod"]], list(...), NULL)
+        .Call(`_luajr_moduleget`, x[["mod"]], list(...), NULL)
     }
 }
 
@@ -274,9 +274,9 @@ print.luajr_module = function(x, ...)
 
     # This seems to be needed for the [ method.
     if (missing(..1)) {
-        .Call(`_luajr_module_set`, x[["mod"]], list(), as, value)
+        .Call(`_luajr_moduleset`, x[["mod"]], list(), as, value)
     } else {
-        .Call(`_luajr_module_set`, x[["mod"]], list(...), as, value)
+        .Call(`_luajr_moduleset`, x[["mod"]], list(...), as, value)
     }
 
     return (x)
@@ -302,7 +302,7 @@ load_module = function(module)
                 package = module[["package"]]
             )
         }
-        module[["mod"]] = .Call(`_luajr_module_load`, file, module[["L"]])
+        module[["mod"]] = .Call(`_luajr_loadmodule`, file, module[["L"]])
     }
 
     # Lock the module to prevent later changes

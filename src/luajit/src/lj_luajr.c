@@ -74,7 +74,7 @@ static void luajr_ensure_ctype_ids(lua_State *L)
 }
 
 /* Push a SEXP (passed as void*) onto the Lua stack as a cdata of type SEXP. */
-extern void luajr_push_sexp_cdata(lua_State *L, void *x)
+extern void luajr_internal_pushsexp(lua_State *L, void *x)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);
@@ -96,7 +96,7 @@ extern void luajr_push_sexp_cdata(lua_State *L, void *x)
  * INTSXP=13, REALSXP=14, STRSXP=16). The caller is responsible for computing
  * the field values, including the -1-element offset on p for 1-based Lua
  * indexing. */
-extern void luajr_push_vector_cdata(lua_State *L, int sxp_type,
+extern void luajr_internal_pushvector(lua_State *L, int sxp_type,
                                     void *p, void *s, double n, double c)
 {
     luajr_ensure_ctype_ids(L);
@@ -124,7 +124,7 @@ extern void luajr_push_vector_cdata(lua_State *L, int sxp_type,
 }
 
 /* Push an environment_t cdata { SEXP s; } onto the Lua stack. */
-extern void luajr_push_environment_cdata(lua_State *L, void *s)
+extern void luajr_internal_pushenvironment(lua_State *L, void *s)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);
@@ -136,7 +136,7 @@ extern void luajr_push_environment_cdata(lua_State *L, void *s)
 }
 
 /* Push a function_t cdata { SEXP s; SEXP cached; } onto the Lua stack. */
-extern void luajr_push_function_cdata(lua_State *L, void *s)
+extern void luajr_internal_pushRfunction(lua_State *L, void *s)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);
@@ -162,7 +162,7 @@ extern void luajr_push_function_cdata(lua_State *L, void *s)
  *
  * This function never modifies the vector cdata. The caller (in push_to.cpp,
  * with R headers in scope) is responsible for any shrink-to-fit allocation. */
-extern ptrdiff_t luajr_get_sexp_cdata(lua_State *L, int index, void **out_s)
+extern ptrdiff_t luajr_internal_tosexp(lua_State *L, int index, void **out_s)
 {
     luajr_ensure_ctype_ids(L);
     /* Slot N (1-based, positive) lives at L->base + N - 1; if past L->top
@@ -219,7 +219,7 @@ extern ptrdiff_t luajr_get_sexp_cdata(lua_State *L, int index, void **out_s)
 /* Try to extract a raw pointer from any pointer-type cdata at the given stack
  * index. Writes the pointer value to *out_p. Returns 0 on success, -1 if not
  * a pointer-type cdata. */
-extern int luajr_get_pointer_cdata(lua_State *L, int index, void **out_p)
+extern int luajr_internal_topointer(lua_State *L, int index, void **out_p)
 {
     TValue *o = L->base + (index - 1);
     o = o < L->top ? o : niltv(L);
@@ -237,7 +237,7 @@ extern int luajr_get_pointer_cdata(lua_State *L, int index, void **out_p)
 
 /* Get the array part size and hash part size of a table at the given
  * stack index. Returns via out-params for use from push_to.cpp. */
-extern void luajr_table_sizes(lua_State *L, int index, uint32_t *asize, uint32_t *hsize)
+extern void luajr_internal_tablesize(lua_State *L, int index, uint32_t *asize, uint32_t *hsize)
 {
     TValue *o = L->base + (index - 1);
     o = o < L->top ? o : niltv(L);
@@ -256,7 +256,7 @@ extern void luajr_table_sizes(lua_State *L, int index, uint32_t *asize, uint32_t
 
 /* Returns 1 if L is currently inside a protected call (lua_pcall), 0 otherwise.
  * Used by luajr_error to decide between luaL_error and Rf_error. */
-extern int luajr_state_in_pcall(lua_State *L)
+extern int luajr_internal_inpcall(lua_State *L)
 {
     return L->cframe != NULL;
 }

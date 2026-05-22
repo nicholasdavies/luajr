@@ -17,30 +17,30 @@ lua_State* L0 = 0;
 // Initializes the luajr package
 static const R_CallMethodDef CallEntries[] =
 {
-    { "_luajr_set_info",        (DL_FUNC)&luajr_set_info,        6 },
-    { "_luajr_open",            (DL_FUNC)&luajr_open,            0 },
-    { "_luajr_reset",           (DL_FUNC)&luajr_reset,           0 },
-    { "_luajr_run_code",        (DL_FUNC)&luajr_run_code,        2 },
-    { "_luajr_run_file",        (DL_FUNC)&luajr_run_file,        2 },
-    { "_luajr_func_create",     (DL_FUNC)&luajr_func_create,     2 },
-    { "_luajr_func_call",       (DL_FUNC)&luajr_func_call,       4 },
-    { "_luajr_func_call0",      (DL_FUNC)&luajr_func_call0,      3 },
-    { "_luajr_func_call1",      (DL_FUNC)&luajr_func_call1,      4 },
-    { "_luajr_func_call2",      (DL_FUNC)&luajr_func_call2,      5 },
-    { "_luajr_func_call3",      (DL_FUNC)&luajr_func_call3,      6 },
-    { "_luajr_func_call4",      (DL_FUNC)&luajr_func_call4,      7 },
-    { "_luajr_func_call5",      (DL_FUNC)&luajr_func_call5,      8 },
-    { "_luajr_func_call6",      (DL_FUNC)&luajr_func_call6,      9 },
-    { "_luajr_func_call7",      (DL_FUNC)&luajr_func_call7,      10 },
-    { "_luajr_func_call8",      (DL_FUNC)&luajr_func_call8,      11 },
-    { "_luajr_func_info",       (DL_FUNC)&luajr_func_info,       1 },
-    { "_luajr_module_load",     (DL_FUNC)&luajr_module_load,     2 },
-    { "_luajr_module_get",      (DL_FUNC)&luajr_module_get,      3 },
-    { "_luajr_module_set",      (DL_FUNC)&luajr_module_set,      4 },
-    { "_luajr_profile_data",    (DL_FUNC)&luajr_profile_data,    1 },
-    { "_luajr_set_mode",        (DL_FUNC)&luajr_set_mode,        3 },
-    { "_luajr_get_mode",        (DL_FUNC)&luajr_get_mode,        0 },
-    { "_luajr_readline",        (DL_FUNC)&luajr_readline,        1 },
+    { "_luajr_register",   (DL_FUNC)&luajr_register,   6 },
+    { "_luajr_open",       (DL_FUNC)&luajr_open,       0 },
+    { "_luajr_reset",      (DL_FUNC)&luajr_reset,      0 },
+    { "_luajr_runcode",    (DL_FUNC)&luajr_runcode,    2 },
+    { "_luajr_runfile",    (DL_FUNC)&luajr_runfile,    2 },
+    { "_luajr_fcreate",    (DL_FUNC)&luajr_fcreate,    2 },
+    { "_luajr_fcall",      (DL_FUNC)&luajr_fcall,      4 },
+    { "_luajr_fcall0",     (DL_FUNC)&luajr_fcall0,     3 },
+    { "_luajr_fcall1",     (DL_FUNC)&luajr_fcall1,     4 },
+    { "_luajr_fcall2",     (DL_FUNC)&luajr_fcall2,     5 },
+    { "_luajr_fcall3",     (DL_FUNC)&luajr_fcall3,     6 },
+    { "_luajr_fcall4",     (DL_FUNC)&luajr_fcall4,     7 },
+    { "_luajr_fcall5",     (DL_FUNC)&luajr_fcall5,     8 },
+    { "_luajr_fcall6",     (DL_FUNC)&luajr_fcall6,     9 },
+    { "_luajr_fcall7",     (DL_FUNC)&luajr_fcall7,     10 },
+    { "_luajr_fcall8",     (DL_FUNC)&luajr_fcall8,     11 },
+    { "_luajr_finfo",      (DL_FUNC)&luajr_finfo,      1 },
+    { "_luajr_loadmodule", (DL_FUNC)&luajr_loadmodule, 2 },
+    { "_luajr_moduleget",  (DL_FUNC)&luajr_moduleget,  3 },
+    { "_luajr_moduleset",  (DL_FUNC)&luajr_moduleset,  4 },
+    { "_luajr_getprofile", (DL_FUNC)&luajr_getprofile, 1 },
+    { "_luajr_setmode",    (DL_FUNC)&luajr_setmode,    3 },
+    { "_luajr_getmode",    (DL_FUNC)&luajr_getmode,    0 },
+    { "_luajr_readline",   (DL_FUNC)&luajr_readline,   1 },
     { NULL, NULL, 0 }
 };
 
@@ -124,7 +124,7 @@ extern "C" void luajr_error(lua_State* L, const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    if (L && luajr_state_in_pcall(L))
+    if (L && luajr_internal_inpcall(L))
     {
         lua_pushvfstring(L, fmt, args);
         va_end(args);
@@ -149,7 +149,7 @@ extern "C" void luajr_error(lua_State* L, const char* fmt, ...)
 
 // Raise an R error for Lua error 'err', which can be 0 for no error
 // The error object must be at the top of the stack
-extern "C" int luajr_handle_lua_error(lua_State* L, int err, const char* what, char* buf)
+extern "C" int luajr_handleerror(lua_State* L, int err, const char* what, char* buf)
 {
     if (err != 0)
     {
@@ -198,7 +198,7 @@ extern "C" SEXP luajr_readline(SEXP prompt)
 }
 
 // Pop n items from the Lua stack, then throw an error via luajr_error.
-extern "C" void luajr_pop_stop(lua_State* L, int n, const char* fmt, ...)
+extern "C" void luajr_popstop(lua_State* L, int n, const char* fmt, ...)
 {
     char buf[1024];
     va_list args;

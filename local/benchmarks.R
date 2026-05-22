@@ -2,7 +2,7 @@ library(luajr)
 
 bench::mark(
     lua("return nil", NULL, NULL),
-    .Call(luajr:::`_luajr_run_code`, "return nil", NULL),
+    .Call(luajr:::`_luajr_runcode`, "return nil", NULL),
     min_time = 5
 )
 
@@ -22,7 +22,7 @@ bench::mark(
 # A tibble: 1 × 13
 # expression                                          min   median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result memory             time                gc
 # <bch:expr>                                     <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list> <list>             <list>              <list>
-# "luajr:::luajr_run_code(\"return nil\", NULL)"   1.73µs   1.96µs   439693.        0B        0 10000     0     22.7ms <NULL> <Rprofmem [0 × 3]> <bench_tm [10,000]> <tibble [10,000 × 3]>
+# "luajr:::luajr_runcode(\"return nil\", NULL)"   1.73µs   1.96µs   439693.        0B        0 10000     0     22.7ms <NULL> <Rprofmem [0 × 3]> <bench_tm [10,000]> <tibble [10,000 × 3]>
 
 
 # func, before removing Rcpp:

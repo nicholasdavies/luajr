@@ -136,7 +136,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
         if (is_native)
             lua_pushnil(L);
         else
-            luajr_push_sexp_cdata(L, (void*)R_NilValue);
+            luajr_internal_pushsexp(L, (void*)R_NilValue);
         return;
     }
 
@@ -169,7 +169,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
 
         // sexp / S
         case AC::sexp:
-            luajr_push_sexp_cdata(L, (void*)x);
+            luajr_internal_pushsexp(L, (void*)x);
             break;
 
         // symbol, pairlist: not implemented
@@ -183,7 +183,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                     // R function: push luajr.rfunction cdata as upvalue of a C
                     // closure that calls it. The cdata's __gc releases on GC.
                     R_PreserveObject(x);
-                    luajr_push_function_cdata(L, (void*)x);
+                    luajr_internal_pushRfunction(L, (void*)x);
                     lua_pushcclosure(L, [](lua_State* L) -> int {
                         int n = lua_gettop(L);
                         lua_pushvalue(L, lua_upvalueindex(1));
@@ -207,7 +207,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                 if (TYPEOF(x) != CLOSXP && TYPEOF(x) != SPECIALSXP && TYPEOF(x) != BUILTINSXP)
                     luajr_error(L, "Expected function, got %s.", Rf_type2char(TYPEOF(x)));
                 R_PreserveObject(x);
-                luajr_push_function_cdata(L, (void*)x);
+                luajr_internal_pushRfunction(L, (void*)x);
             }
             break;
 
@@ -216,7 +216,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
             if (TYPEOF(x) != ENVSXP)
                 luajr_error(L, "Expected environment, got %s.", Rf_type2char(TYPEOF(x)));
             R_PreserveObject(x);
-            luajr_push_environment_cdata(L, (void*)x);
+            luajr_internal_pushenvironment(L, (void*)x);
             break;
 
         // language: not implemented
@@ -276,7 +276,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                 }
                 if (!is_ref)
                     R_PreserveObject(x);
-                luajr_push_vector_cdata(L, actual, p, (void*)x, (double)Rf_xlength(x), c_val);
+                luajr_internal_pushvector(L, actual, p, (void*)x, (double)Rf_xlength(x), c_val);
             }
 
             if (coerced)
@@ -297,7 +297,7 @@ extern "C" void luajr_pushsexp(lua_State* L, SEXP x, unsigned char as)
                 double c_val = is_ref ? -1.0 : -2.0;
                 if (!is_ref)
                     R_PreserveObject(x);
-                luajr_push_vector_cdata(L, VECSXP,
+                luajr_internal_pushvector(L, VECSXP,
                     (void*)(const_cast<SEXP*>((const SEXP*)DATAPTR_RO(x)) - 1),
                     (void*)x, (double)Rf_xlength(x), c_val);
             }
@@ -367,7 +367,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
                 if      (lua_type(L, -2) == LUA_TNUMBER) ++narr;
                 else if (lua_type(L, -2) == LUA_TSTRING) ++nrec;
                 else
-                    luajr_pop_stop(L, 2, "Lua type %s keys cannot be represented in an R list.",
+                    luajr_popstop(L, 2, "Lua type %s keys cannot be represented in an R list.",
                         lua_typename(L, lua_type(L, -2)));
                 lua_pop(L, 1);
             }
@@ -427,7 +427,7 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
             // Recognized cdata: bare SEXP, a luajr vector type or any null
             // pointer cdata (which becomes R_NilValue).
             SEXP s = NULL;
-            ptrdiff_t status = luajr_get_sexp_cdata(L, index, (void**)&s);
+            ptrdiff_t status = luajr_internal_tosexp(L, index, (void**)&s);
             if (status == -2)
                 luajr_error(L, "Cannot return cdata of this type to R.");
             if (s == NULL)
@@ -455,6 +455,35 @@ extern "C" SEXP luajr_tosexp(lua_State* L, int index)
         default:
             luajr_error(L, "Unknown return type detected: %d", lua_type(L, index));
     }
+}
+
+// lua_CFunction: luajr_tosexp wrapper.
+// Args: (1) any Lua value. Returns: SEXP cdata.
+// Note: returned SEXP may be unprotected (e.g. fresh ScalarReal). The caller
+// must consume immediately or PROTECT it.
+extern "C" int luajr_tosexp_cf(lua_State* L)
+{
+    SEXP s = luajr_tosexp(L, 1);
+    luajr_internal_pushsexp(L, (void*)s);
+    return 1;
+}
+
+// lua_CFunction: luajr_pushsexp wrapper.
+// Args: (1) SEXP cdata, (2) optional argcode byte (default AC::value).
+extern "C" int luajr_fromsexp_cf(lua_State* L)
+{
+    SEXP s = NULL;
+    if (luajr_internal_tosexp(L, 1, (void**)&s) == -2)
+        luajr_error(L, "luajr.from_sexp: first argument must be a SEXP cdata.");
+    if (s == NULL)
+        s = R_NilValue;
+
+    unsigned char as = AC::value;
+    if (!lua_isnil(L, 2))
+        as = (unsigned char)lua_tointeger(L, 2);
+
+    luajr_pushsexp(L, s, as);
+    return 1;
 }
 
 // Take a list of values passed from R and pass them to Lua
@@ -544,7 +573,7 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
         {
             index = abs_index(L, index);
             uint32_t asize, hsize;
-            luajr_table_sizes(L, index, &asize, &hsize);
+            luajr_internal_tablesize(L, index, &asize, &hsize);
             lua_createtable(dst, asize, hsize);
 
             lua_pushnil(L);
@@ -588,7 +617,7 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
         case LUA_TCDATA:
         {
             void* sexp = NULL;
-            ptrdiff_t status = luajr_get_sexp_cdata(L, index, &sexp);
+            ptrdiff_t status = luajr_internal_tosexp(L, index, &sexp);
             if (status != -2)
             {
                 if (sexp == NULL)
@@ -599,7 +628,7 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
             else
             {
                 void* ptr = NULL;
-                if (luajr_get_pointer_cdata(L, index, &ptr) == 0)
+                if (luajr_internal_topointer(L, index, &ptr) == 0)
                     lua_pushlightuserdata(dst, ptr);
                 else
                     luajr_error(L, "luajr_xpush: cannot transfer cdata of this type to target state.");
@@ -614,13 +643,13 @@ extern "C" void luajr_xpush(lua_State* L, int index, lua_State* dst)
 }
 
 // lua_CFunction: call an R function from Lua.
-extern "C" int luajr_Rcall(lua_State* L)
+extern "C" int luajr_Rcall_cf(lua_State* L)
 {
     int nargs = lua_gettop(L) - 1;
 
     // First arg is R function as SEXP cdata
     SEXP f = NULL;
-    if (luajr_get_sexp_cdata(L, 1, (void**)&f) != -1 || f == NULL)
+    if (luajr_internal_tosexp(L, 1, (void**)&f) != -1 || f == NULL)
         luajr_error(L, "Rcall: first argument must be an R function SEXP.");
 
     // Build pairlist of args in reverse order

@@ -25,11 +25,33 @@ table.clear = require("table.clear")
 -- Load R module
 local R = require("R")
 
--- Script receives the path to the luajr R package dylib as argument
-local luajr_dylib_path = ({...})[1]
-
--- Script also receives the path to debugger.lua as argument
+-- Script receives:
+-- 1 path to the luajr R package dylib
+-- 2 path to debugger.lua
+-- 3 named table of lua_CFunctions
+local luajr_dylib_path  = ({...})[1]
 local debugger_lua_path = ({...})[2]
+local cfuncs            = ({...})[3]
+
+-- Capture the cfunctions used in hot paths as locals.
+local to_sexp_cf    = cfuncs.tosexp
+local from_sexp     = cfuncs.fromsexp
+local this_state_cf = cfuncs.thisstate
+
+-- Argcode constants, reflect AC namespace in src/shared.h
+local ac_value = 0
+local ac_reference = 64
+
+-- to_sexp: inline scalar conversions and fall through to C++ for others
+local to_sexp = function(v)
+    local t = type(v)
+    if     t == "number"  then return R.ScalarReal(v)
+    elseif t == "string"  then return R.ScalarString(R.mkChar(v))
+    elseif t == "boolean" then return R.ScalarLogical(v)
+    elseif t == "nil"     then return R.NilValue
+    else return to_sexp_cf(v)
+    end
+end
 
 -- Null pointer object
 local nullptr = ffi.cast("void*", 0)
@@ -86,14 +108,8 @@ void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1);
 ]]
 local internal = ffi.load(luajr_dylib_path)
 
--- Cache the current lua_State* for FFI calls that need pcall-aware error handling.
--- luajr.thisstate is registered as a lua_CFunction in state.cpp, after this module
--- loads, so this must be lazily initialised on first use.
-local thisstate
-local function get_thisstate()
-    if not thisstate then thisstate = ffi.cast("lua_State*", luajr.thisstate()) end
-    return thisstate
-end
+-- Cache the current lua_State
+local this_state = ffi.cast("lua_State*", this_state_cf())
 
 
 
@@ -118,9 +134,14 @@ luajr.NA_real_      = R.NA_REAL
 luajr.NA_character_ = R.NA_STRING
 luajr.NULL          = R.NilValue
 
+-- Install all C lua_CFunctions onto the luajr table.
+for name, fn in pairs(cfuncs) do luajr[name] = fn end
+
+-- Override luajr.to_sexp with the hybrid Lua wrapper so scalar conversions
+-- stay JIT-traceable (see definition near the top of this file).
+luajr.to_sexp = to_sexp
+
 -- Forward declarations
-local from_sexp
-local to_sexp
 local vectorish
 
 -- Buffer for luajr.readline
@@ -141,7 +162,7 @@ function luajr.readline(prompt)
 end
 
 -- Get nparams and isvararg for a Lua function, plus argument names.
--- Called from C++ (luajr_func_info).
+-- Called from C++ (luajr_finfo).
 function luajr.get_func_info(f)
     local info = debug.getinfo(f, "u")
     local arg_names = {}

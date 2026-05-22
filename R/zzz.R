@@ -1,6 +1,6 @@
 .onLoad = function(libname, pkgname)
 {
-    .Call(`_luajr_set_info`,
+    .Call(`_luajr_register`,
         # R version as size-3 integer vector
         getRversion()[[1, 1:3]],
         # Path to package dylib for LuaJIT FFI

@@ -74,7 +74,7 @@ static void luajr_ensure_ctype_ids(lua_State *L)
 }
 
 /* Push a SEXP (passed as void*) onto the Lua stack as a cdata of type SEXP. */
-extern void luajr_push_sexp_cdata(lua_State *L, void *x)
+extern void luajr_internal_pushsexp(lua_State *L, void *x)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);
@@ -90,13 +90,12 @@ extern void luajr_push_sexp_cdata(lua_State *L, void *x)
     lj_gc_check(L);
 }
 
-/* Push a luajr vector cdata (logical_t/integer_t/numeric_t/character_t) onto
- * the Lua stack with the given (p, s, n, c) field values. sxp_type selects
- * which vector ctype to use; values match R's SEXPTYPE codes (LGLSXP=10,
- * INTSXP=13, REALSXP=14, STRSXP=16). The caller is responsible for computing
+/* Push a luajr vector cdata (logical_t/integer_t/numeric_t/character_t/list_t) 
+ * onto the Lua stack with the given (p, s, n, c) field values. sxp_type 
+ * selects which vector ctype to use. The caller is responsible for computing
  * the field values, including the -1-element offset on p for 1-based Lua
  * indexing. */
-extern void luajr_push_vector_cdata(lua_State *L, int sxp_type,
+extern void luajr_internal_pushvector(lua_State *L, int sxp_type,
                                     void *p, void *s, double n, double c)
 {
     luajr_ensure_ctype_ids(L);
@@ -124,7 +123,7 @@ extern void luajr_push_vector_cdata(lua_State *L, int sxp_type,
 }
 
 /* Push an environment_t cdata { SEXP s; } onto the Lua stack. */
-extern void luajr_push_environment_cdata(lua_State *L, void *s)
+extern void luajr_internal_pushenvironment(lua_State *L, void *s)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);
@@ -136,7 +135,7 @@ extern void luajr_push_environment_cdata(lua_State *L, void *s)
 }
 
 /* Push a function_t cdata { SEXP s; SEXP cached; } onto the Lua stack. */
-extern void luajr_push_function_cdata(lua_State *L, void *s)
+extern void luajr_internal_pushRfunction(lua_State *L, void *s)
 {
     luajr_ensure_ctype_ids(L);
     CTState *cts = ctype_cts(L);
@@ -150,9 +149,9 @@ extern void luajr_push_function_cdata(lua_State *L, void *s)
 }
 
 /* Extract a SEXP from the cdata at the given Lua stack index. Handles bare
- * SEXP cdata, the four luajr vector types (logical_t/integer_t/numeric_t/
- * character_t), and any pointer-type cdata with a NULL value (the `nullptr`
- * idiom used in luajr.lua, returned to R as R_NilValue).
+ * SEXP cdata, the five luajr vector types (logical_t/integer_t/numeric_t/
+ * character_t/list_t), and any pointer-type cdata with a NULL value (the 
+ * `nullptr` idiom used in luajr.lua, returned to R as R_NilValue).
  *
  * The SEXP is written to *out_s on success. The return value is:
  *   >= 0 : recognized; the SEXP needs to be shrunk to this length before
@@ -162,7 +161,7 @@ extern void luajr_push_function_cdata(lua_State *L, void *s)
  *
  * This function never modifies the vector cdata. The caller (in push_to.cpp,
  * with R headers in scope) is responsible for any shrink-to-fit allocation. */
-extern ptrdiff_t luajr_get_sexp_cdata(lua_State *L, int index, void **out_s)
+extern ptrdiff_t luajr_internal_tosexp(lua_State *L, int index, void **out_s)
 {
     luajr_ensure_ctype_ids(L);
     /* Slot N (1-based, positive) lives at L->base + N - 1; if past L->top
@@ -219,7 +218,7 @@ extern ptrdiff_t luajr_get_sexp_cdata(lua_State *L, int index, void **out_s)
 /* Try to extract a raw pointer from any pointer-type cdata at the given stack
  * index. Writes the pointer value to *out_p. Returns 0 on success, -1 if not
  * a pointer-type cdata. */
-extern int luajr_get_pointer_cdata(lua_State *L, int index, void **out_p)
+extern int luajr_internal_topointer(lua_State *L, int index, void **out_p)
 {
     TValue *o = L->base + (index - 1);
     o = o < L->top ? o : niltv(L);
@@ -237,7 +236,7 @@ extern int luajr_get_pointer_cdata(lua_State *L, int index, void **out_p)
 
 /* Get the array part size and hash part size of a table at the given
  * stack index. Returns via out-params for use from push_to.cpp. */
-extern void luajr_table_sizes(lua_State *L, int index, uint32_t *asize, uint32_t *hsize)
+extern void luajr_internal_tablesize(lua_State *L, int index, uint32_t *asize, uint32_t *hsize)
 {
     TValue *o = L->base + (index - 1);
     o = o < L->top ? o : niltv(L);
@@ -256,7 +255,7 @@ extern void luajr_table_sizes(lua_State *L, int index, uint32_t *asize, uint32_t
 
 /* Returns 1 if L is currently inside a protected call (lua_pcall), 0 otherwise.
  * Used by luajr_error to decide between luaL_error and Rf_error. */
-extern int luajr_state_in_pcall(lua_State *L)
+extern int luajr_internal_inpcall(lua_State *L)
 {
     return L->cframe != NULL;
 }
