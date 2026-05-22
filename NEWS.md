@@ -17,8 +17,8 @@
 
 -   luajr is now compatible (and tested) with R versions 4.0.0 and up.
 
--   Fixed a bug when returning a Lua table to R containing certain LuaJIT cdata
-    types.
+-   Fixed some bugs in running long Lua strings and when passing / returning 
+    certain LuaJIT cdata types.
 
 # luajr 0.2.2
 

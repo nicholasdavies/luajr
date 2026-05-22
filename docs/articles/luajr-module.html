@@ -184,7 +184,19 @@ the corresponding type, and <code>false</code> otherwise.</p>
 <div class="section level3">
 <h3 id="vector-type-methods">Vector type methods<a class="anchor" aria-label="anchor" href="#vector-type-methods"></a>
 </h3>
-<p>All the vector types have the following methods:</p>
+<p>All the vector types have the following methods.</p>
+<p><strong>Note on attribute behaviour</strong>: the <code>names</code>
+attribute is preserved across length-changing operations
+(<code>push_back</code>, <code>pop_back</code>, <code>insert</code>,
+<code>erase</code>, <code>resize</code>); whether those operations
+preserve <code>dim</code> or <code>dimnames</code> attributes is
+undefined, so do not call them on a matrix-shaped value unless you
+intend the matrix shape to be discarded. “Replacing” operations
+(<code>v:assign()</code>, <code>v:clear()</code>) drop all structural
+attributes (<code>names</code>, <code>dim</code>, <code>dimnames</code>)
+consistently. If you need a result to keep matrix shape after such
+changes, re-attach <code>dim</code> via
+<code>v:set_attr("dim", ...)</code> before returning it.</p>
 <p><strong><code>#v</code></strong></p>
 <p>Returns the number of elements in the vector.</p>
 <p>Note: This is distinct from the vector’s capacity (returned by
@@ -678,8 +690,12 @@ from C++).</p>
 garbage collected, or explicitly via <code>pool:close()</code>. A pool
 must be created and used within a single R <code>.Call</code>
 (i.e. within a single call from R into Lua): cross-state argument
-transfer uses by-reference handles that are only valid for that
-scope.</p>
+transfer uses by-reference handles that are only valid for that scope.
+Specifically, cdata arguments (vectors, environments, R functions)
+carried into workers reference the calling state’s R objects, which R
+only keeps alive for the duration of the <code>.Call</code>;
+pointer-type cdata transferred as light userdata is similarly subject to
+whatever lifetime the source state guarantees.</p>
 <p><strong><code>pool:preload(f, ...)</code></strong></p>
 <p>Loads the function <code>f</code> and the additional arguments
 <code>...</code> into every worker state. <code>f</code> is a Lua

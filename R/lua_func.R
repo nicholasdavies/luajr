@@ -40,6 +40,16 @@
 #' Lua native type. So `$auto` is equivalent to `native` and `$C` is equivalent
 #' to `string`.
 #'
+#' Note that native scalar argcodes (e.g. `$L`, `$I`, `$N`, `$C`, `boolean`,
+#' `number`, `string`) do not preserve R's `NA` values, because Lua has no
+#' `NA` concept: an R `NA` of any type is passed as Lua `nil`, which a
+#' non-strict argcode silently treats as missing. Plain `NaN` values (e.g.
+#' from `0/0`) do survive as Lua `NaN` because they are distinct from R's
+#' `NA_real_`. To preserve typed `NA`s on a round-trip, pass values through a
+#' `luajr` vector type (e.g. `luajr.numeric`, `luajr.logical`) instead of the
+#' native scalar form, and read individual elements in Lua via `v(i)` (which
+#' returns a length-1 vector of the same type rather than a bare scalar).
+#'
 #' The prefix `!` specifies strict type handling (i.e., error if the type cannot
 #' be converted). `!` also yields an error on passing `NULL` if the argcode
 #' specifies a Lua native type (otherwise, `NULL` gets passed as Lua `nil`).

@@ -60,6 +60,16 @@ Additionally, the prefix \code{$} specifies that the type should be passed as a
 Lua native type. So \verb{$auto} is equivalent to \code{native} and \verb{$C} is equivalent
 to \code{string}.
 
+Note that native scalar argcodes (e.g. \verb{$L}, \verb{$I}, \verb{$N}, \verb{$C}, \code{boolean},
+\code{number}, \code{string}) do not preserve R's \code{NA} values, because Lua has no
+\code{NA} concept: an R \code{NA} of any type is passed as Lua \code{nil}, which a
+non-strict argcode silently treats as missing. Plain \code{NaN} values (e.g.
+from \code{0/0}) do survive as Lua \code{NaN} because they are distinct from R's
+\code{NA_real_}. To preserve typed \code{NA}s on a round-trip, pass values through a
+\code{luajr} vector type (e.g. \code{luajr.numeric}, \code{luajr.logical}) instead of the
+native scalar form, and read individual elements in Lua via \code{v(i)} (which
+returns a length-1 vector of the same type rather than a bare scalar).
+
 The prefix \code{!} specifies strict type handling (i.e., error if the type cannot
 be converted). \code{!} also yields an error on passing \code{NULL} if the argcode
 specifies a Lua native type (otherwise, \code{NULL} gets passed as Lua \code{nil}).

@@ -120,7 +120,16 @@ return `true` if `obj` is of the corresponding type, and `false` otherwise.
 
 ### Vector type methods
 
-All the vector types have the following methods:
+All the vector types have the following methods.
+
+**Note on attribute behaviour**: the `names` attribute is preserved across
+length-changing operations (`push_back`, `pop_back`, `insert`, `erase`,
+`resize`); whether those operations preserve `dim` or `dimnames` attributes 
+is undefined, so do not call them on a matrix-shaped value unless you intend 
+the matrix shape to be discarded. "Replacing" operations (`v:assign()`, 
+`v:clear()`) drop all structural attributes (`names`, `dim`, `dimnames`) 
+consistently. If you need a result to keep matrix shape after such changes, 
+re-attach `dim` via `v:set_attr("dim", ...)` before returning it.
 
 **`#v`**
 
@@ -685,7 +694,11 @@ The pool's workers are torn down automatically when the pool is garbage
 collected, or explicitly via `pool:close()`. A pool must be created and used
 within a single R `.Call` (i.e. within a single call from R into Lua):
 cross-state argument transfer uses by-reference handles that are only valid
-for that scope.
+for that scope. Specifically, cdata arguments (vectors, environments, R
+functions) carried into workers reference the calling state's R objects,
+which R only keeps alive for the duration of the `.Call`; pointer-type cdata
+transferred as light userdata is similarly subject to whatever lifetime the
+source state guarantees.
 
 **`pool:preload(f, ...)`**
 
