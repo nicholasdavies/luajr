@@ -28,24 +28,21 @@ local R = require("R")
 -- Script receives:
 -- 1 path to the luajr R package dylib
 -- 2 path to debugger.lua
--- 3 table of C lua_CFunctions keyed by Lua-visible name
+-- 3 named table of lua_CFunctions
 local luajr_dylib_path  = ({...})[1]
 local debugger_lua_path = ({...})[2]
 local cfuncs            = ({...})[3]
 
 -- Capture the cfunctions used in hot paths as locals.
-local to_sexp_cf   = cfuncs.to_sexp
-local from_sexp    = cfuncs.from_sexp
-local thisstate_cf = cfuncs.thisstate
+local to_sexp_cf    = cfuncs.tosexp
+local from_sexp     = cfuncs.fromsexp
+local this_state_cf = cfuncs.thisstate
 
--- Argcode constants; reflects AC:: namespace in src/shared.h
+-- Argcode constants, reflect AC namespace in src/shared.h
 local ac_value = 0
 local ac_reference = 64
 
--- Hybrid to_sexp: inline scalar conversions (JIT-traceable) and fall through
--- to C for cdata, tables, functions, userdata. The scalar paths each amount
--- to one FFI call that LuaJIT can compile into the surrounding loop trace;
--- routing them through a lua_CFunction would abort the trace.
+-- to_sexp: inline scalar conversions and fall through to C++ for others
 local to_sexp = function(v)
     local t = type(v)
     if     t == "number"  then return R.ScalarReal(v)
@@ -112,7 +109,7 @@ void luajr_parallel_pfor(lua_State* L, workers_t* w, int i0, int i1);
 local internal = ffi.load(luajr_dylib_path)
 
 -- Cache the current lua_State
-local thisstate = ffi.cast("lua_State*", thisstate_cf())
+local this_state = ffi.cast("lua_State*", this_state_cf())
 
 
 
@@ -1070,17 +1067,17 @@ local methods_workers = {
 
     srun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_srun(thisstate, self)
+        internal.luajr_parallel_srun(this_state, self)
     end,
 
     prun = function(self, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_prun(thisstate, self)
+        internal.luajr_parallel_prun(this_state, self)
     end,
 
     pfor = function(self, i0, i1, f, ...)
         if f ~= nil then self:preload(f, ...) end
-        internal.luajr_parallel_pfor(thisstate, self, i0, i1)
+        internal.luajr_parallel_pfor(this_state, self, i0, i1)
     end,
 
     close = function(self)
@@ -1100,7 +1097,7 @@ local mt_workers = {
         else
             error("worker number must be a positive integer or nil", 2)
         end
-        internal.luajr_parallel_newworkers(thisstate, self)
+        internal.luajr_parallel_newworkers(this_state, self)
         return self
     end,
 

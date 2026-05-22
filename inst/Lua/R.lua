@@ -28,6 +28,7 @@ void DUPLICATE_ATTRIB(SEXP to, SEXP from);
 int* INTEGER(SEXP x);
 int* LOGICAL(SEXP x);
 const char* R_CHAR(SEXP x);
+void R_CheckUserInterrupt(void);
 void* R_ExternalPtrAddr(SEXP s);
 void R_FlushConsole(void);
 SEXP R_lsInternal3(SEXP env, Rboolean all, Rboolean sorted);
@@ -39,20 +40,26 @@ void R_removeVarFromFrame(SEXP name, SEXP env);
 Rbyte* RAW(SEXP x);
 double* REAL(SEXP x);
 SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length);
-SEXP Rf_classgets(SEXP, SEXP);
+SEXP Rf_classgets(SEXP vec, SEXP klass);
+SEXP Rf_coerceVector(SEXP v, SEXPTYPE type);
 SEXP Rf_cons(SEXP car, SEXP cdr);
 void Rf_copyMostAttrib(SEXP inp, SEXP ans);
 void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho);
-SEXP Rf_dimgets(SEXP, SEXP);
+SEXP Rf_dimgets(SEXP vec, SEXP val);
 SEXP Rf_dimnamesgets(SEXP vec, SEXP val);
+SEXP Rf_duplicate(SEXP s);
 SEXP Rf_eval(SEXP e, SEXP rho);
 SEXP Rf_findFun(SEXP symbol, SEXP rho);
 SEXP Rf_getAttrib(SEXP vec, SEXP name);
+SEXP Rf_GetOption1(SEXP tag);
+Rboolean Rf_inherits(SEXP s, const char* name);
 SEXP Rf_install(const char* name);
+Rboolean Rf_isObject(SEXP s);
 SEXP Rf_lcons(SEXP car, SEXP cdr);
 SEXP Rf_mkChar(const char* name);
 SEXP Rf_mkCharLen(const char* name, int len);
-SEXP Rf_namesgets(SEXP, SEXP);
+SEXP Rf_namesgets(SEXP vec, SEXP val);
+void Rf_PrintValue(SEXP s);
 SEXP Rf_protect(SEXP s);
 SEXP Rf_ScalarInteger(int x);
 SEXP Rf_ScalarLogical(int x);
@@ -62,10 +69,12 @@ SEXP Rf_setAttrib(SEXP vec, SEXP name, SEXP val);
 const char* Rf_type2char(SEXPTYPE t);
 void Rf_unprotect(int l);
 void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v);
+void SET_TAG(SEXP x, SEXP y);
 SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v);
 void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from);
 SEXP STRING_ELT(SEXP x, R_xlen_t i);
 const SEXP* STRING_PTR_RO(SEXP x);
+SEXP TAG(SEXP e);
 int TYPEOF(SEXP x);
 SEXP VECTOR_ELT(SEXP x, R_xlen_t i);
 // === end R API declarations ===
@@ -162,21 +171,27 @@ end
 -- === R API bindings ===
 R.allocVector = C.Rf_allocVector
 R.CHAR = C.R_CHAR
+R.CheckUserInterrupt = C.R_CheckUserInterrupt
 R.classgets = C.Rf_classgets
+R.coerceVector = C.Rf_coerceVector
 R.cons = C.Rf_cons
 R.copyMostAttrib = C.Rf_copyMostAttrib
 R.DATAPTR_RO = C.DATAPTR_RO
 R.defineVar = C.Rf_defineVar
 R.dimgets = C.Rf_dimgets
 R.dimnamesgets = C.Rf_dimnamesgets
+R.duplicate = C.Rf_duplicate
 R.DUPLICATE_ATTRIB = C.DUPLICATE_ATTRIB
 R.eval = C.Rf_eval
 R.ExternalPtrAddr = C.R_ExternalPtrAddr
 R.findFun = C.Rf_findFun
 R.FlushConsole = C.R_FlushConsole
 R.getAttrib = C.Rf_getAttrib
+R.GetOption1 = C.Rf_GetOption1
+R.inherits = C.Rf_inherits
 R.install = C.Rf_install
 R.INTEGER = C.INTEGER
+R.isObject = C.Rf_isObject
 R.lcons = C.Rf_lcons
 R.LOGICAL = C.LOGICAL
 R.lsInternal3 = C.R_lsInternal3
@@ -185,6 +200,7 @@ R.mkChar = C.Rf_mkChar
 R.mkCharLen = C.Rf_mkCharLen
 R.namesgets = C.Rf_namesgets
 R.PreserveObject = C.R_PreserveObject
+R.PrintValue = C.Rf_PrintValue
 R.PROTECT = C.Rf_protect
 R.RAW = C.RAW
 R.ReadConsole = C.R_ReadConsole
@@ -196,11 +212,13 @@ R.ScalarLogical = C.Rf_ScalarLogical
 R.ScalarReal = C.Rf_ScalarReal
 R.ScalarString = C.Rf_ScalarString
 R.SET_STRING_ELT = C.SET_STRING_ELT
+R.SET_TAG = C.SET_TAG
 R.SET_VECTOR_ELT = C.SET_VECTOR_ELT
 R.setAttrib = C.Rf_setAttrib
 R.SHALLOW_DUPLICATE_ATTRIB = C.SHALLOW_DUPLICATE_ATTRIB
 R.STRING_ELT = C.STRING_ELT
 R.STRING_PTR_RO = C.STRING_PTR_RO
+R.TAG = C.TAG
 R.type2char = C.Rf_type2char
 R.TYPEOF = C.TYPEOF
 R.UNPROTECT = C.Rf_unprotect

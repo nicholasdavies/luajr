@@ -97,33 +97,40 @@ the following R API functions:
 |--|------|
 | `R.allocVector` | `SEXP Rf_allocVector(SEXPTYPE type, R_xlen_t length)` |
 | `R.CHAR` | `const char* R_CHAR(SEXP x)` |
-| `R.classgets` | `SEXP Rf_classgets(SEXP, SEXP)` |
+| `R.CheckUserInterrupt` | `void R_CheckUserInterrupt(void)` |
+| `R.classgets` | `SEXP Rf_classgets(SEXP vec, SEXP klass)` |
+| `R.coerceVector` | `SEXP Rf_coerceVector(SEXP v, SEXPTYPE type)` |
 | `R.cons` | `SEXP Rf_cons(SEXP car, SEXP cdr)` |
 | `R.copyMostAttrib` | `void Rf_copyMostAttrib(SEXP inp, SEXP ans)` |
 | `R.DATAPTR_RO` | `const void* DATAPTR_RO(SEXP x)` |
 | `R.defineVar` | `void Rf_defineVar(SEXP symbol, SEXP value, SEXP rho)` |
-| `R.dimgets` | `SEXP Rf_dimgets(SEXP, SEXP)` |
+| `R.dimgets` | `SEXP Rf_dimgets(SEXP vec, SEXP val)` |
 | `R.dimnamesgets` | `SEXP Rf_dimnamesgets(SEXP vec, SEXP val)` |
+| `R.duplicate` | `SEXP Rf_duplicate(SEXP s)` |
 | `R.DUPLICATE_ATTRIB` | `void DUPLICATE_ATTRIB(SEXP to, SEXP from)` |
 | `R.eval` | `SEXP Rf_eval(SEXP e, SEXP rho)` |
 | `R.ExternalPtrAddr` | `void* R_ExternalPtrAddr(SEXP s)` |
 | `R.findFun` | `SEXP Rf_findFun(SEXP symbol, SEXP rho)` |
 | `R.FlushConsole` | `void R_FlushConsole(void)` |
 | `R.getAttrib` | `SEXP Rf_getAttrib(SEXP vec, SEXP name)` |
+| `R.GetOption1` | `SEXP Rf_GetOption1(SEXP tag)` |
 | `R.getRegisteredNamespace`\* | `SEXP R_getRegisteredNamespace(const char* name)` <span style="color: gray; font-style: italic;">added in 4.6.0</span> |
 | `R.getVarEx`\* | `SEXP R_getVarEx(SEXP sym, SEXP rho, Rboolean inherits, SEXP ifnotfound)` <span style="color: gray; font-style: italic;">added in 4.5.0</span> |
+| `R.inherits` | `Rboolean Rf_inherits(SEXP s, const char* name)` |
 | `R.install` | `SEXP Rf_install(const char* name)` |
 | `R.INTEGER` | `int* INTEGER(SEXP x)` |
+| `R.isObject` | `Rboolean Rf_isObject(SEXP s)` |
 | `R.lcons` | `SEXP Rf_lcons(SEXP car, SEXP cdr)` |
 | `R.LOGICAL` | `int* LOGICAL(SEXP x)` |
 | `R.lsInternal3` | `SEXP R_lsInternal3(SEXP env, Rboolean all, Rboolean sorted)` |
 | `R.MakeExternalPtr` | `SEXP R_MakeExternalPtr(void *p, SEXP tag, SEXP prot)` |
 | `R.mkChar` | `SEXP Rf_mkChar(const char* name)` |
 | `R.mkCharLen` | `SEXP Rf_mkCharLen(const char* name, int len)` |
-| `R.namesgets` | `SEXP Rf_namesgets(SEXP, SEXP)` |
+| `R.namesgets` | `SEXP Rf_namesgets(SEXP vec, SEXP val)` |
 | `R.NewEnv`\* | `SEXP R_NewEnv(SEXP enclos, int hash, int size)` <span style="color: gray; font-style: italic;">added in 4.1.0</span> |
 | `R.ParentEnv`\* | `SEXP R_ParentEnv(SEXP x)` <span style="color: gray; font-style: italic;">added in 4.5.0</span> |
 | `R.PreserveObject` | `void R_PreserveObject(SEXP object)` |
+| `R.PrintValue` | `void Rf_PrintValue(SEXP s)` |
 | `R.PROTECT` | `SEXP Rf_protect(SEXP s)` |
 | `R.RAW` | `Rbyte* RAW(SEXP x)` |
 | `R.ReadConsole` | `int R_ReadConsole(const char* prompt, unsigned char* buf, int buflen, int hist)` |
@@ -135,11 +142,13 @@ the following R API functions:
 | `R.ScalarReal` | `SEXP Rf_ScalarReal(double x)` |
 | `R.ScalarString` | `SEXP Rf_ScalarString(SEXP x)` |
 | `R.SET_STRING_ELT` | `void SET_STRING_ELT(SEXP x, R_xlen_t i, SEXP v)` |
+| `R.SET_TAG` | `void SET_TAG(SEXP x, SEXP y)` |
 | `R.SET_VECTOR_ELT` | `SEXP SET_VECTOR_ELT(SEXP x, R_xlen_t i, SEXP v)` |
 | `R.setAttrib` | `SEXP Rf_setAttrib(SEXP vec, SEXP name, SEXP val)` |
 | `R.SHALLOW_DUPLICATE_ATTRIB` | `void SHALLOW_DUPLICATE_ATTRIB(SEXP to, SEXP from)` |
 | `R.STRING_ELT` | `SEXP STRING_ELT(SEXP x, R_xlen_t i)` |
 | `R.STRING_PTR_RO` | `const SEXP* STRING_PTR_RO(SEXP x)` |
+| `R.TAG` | `SEXP TAG(SEXP e)` |
 | `R.type2char` | `const char* Rf_type2char(SEXPTYPE t)` |
 | `R.TYPEOF` | `int TYPEOF(SEXP x)` |
 | `R.UNPROTECT` | `void Rf_unprotect(int l)` |
