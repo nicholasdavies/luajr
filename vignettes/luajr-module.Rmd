@@ -19,7 +19,7 @@ started with calling Lua code from R. This vignette gives more details on how
 to create and manipulate R objects -- such as vectors, lists, and data.frames -- 
 in your Lua code.
 
-## The `luajr` Lua module
+## The `luajr.lua` module
 
 Whenever the **luajr** R package opens a new Lua state, it opens all the 
 [standard Lua libraries](https://www.lua.org/manual/5.1/manual.html#5) in that 
@@ -36,9 +36,9 @@ Specifically, this vignette describes:
   numeric, character) and lists.
 - [Additional types](#extra), including environments, R functions, matrices,
   and data frames.
-- [Constants](#constants) defined by the `luajr` module.
-- [Parallel processing](#parallel) features of the `luajr` module.
-- [Utility functions](#utility) for `luajr`.
+- [Constants](#constants) defined by the `luajr.lua` module.
+- [Parallel processing](#parallel) features of the `luajr.lua` module.
+- [Utility functions](#utility) for `luajr.lua`.
 - Considerations for using [long vectors](#longvec) in Lua.
 
 ## Vector types {#vector}
@@ -74,7 +74,7 @@ All these and more are described in more detail below.
 **Important**: For vector types, indexes start at 1, not at 0, and writing to
 an index that is less than 1 or greater than the length of the vector is
 **undefined behaviour**. You must be very careful not to access or write out of 
-these bounds, as the `luajr` module does not do bounds checking. Going out of 
+these bounds, as the `luajr.lua` module does not do bounds checking. Going out of 
 bounds will cause crashes. Also note that unlike Lua tables, vector types can 
 only be indexed with integers from 1 to the vector length, not with strings or 
 any other types (although there are methods of getting or setting elements by
@@ -144,7 +144,7 @@ to amortize future growth (see below).
 Get or set the `i`th element of the vector. 
 
 Again: Note that for vector types, indexes start at 1, not at 0. You must be 
-very careful not to access or write out of these bounds, as the `luajr` module 
+very careful not to access or write out of these bounds, as the `luajr.lua` module 
 does **not** do bounds checking. Going out of bounds will cause crashes or 
 other undefined behaviour. Unlike Lua tables, vector types can only be indexed 
 with integers from 1 to the vector length, not with strings or any other types.
@@ -343,7 +343,7 @@ Returns `true` if `obj` is a `luajr.rfunction`, and `false` otherwise.
 **`f(...)`**
 
 Calls the R function with positional arguments. Each argument is converted to 
-an R type automatically, and the result is returned as a `luajr` value 
+an R type automatically, and the result is returned as a **luajr** value 
 depending on what the R function returned. For example:
 
 ```lua
@@ -401,7 +401,7 @@ Returns `true` if `obj` is a `luajr.environment`, and `false` otherwise.
 Returns the value bound to `k` in the environment, or `nil` if no such
 binding exists. The returned value is converted using the same rules as
 [`luajr.from_sexp`](#utility), so atomic vectors come back as the
-corresponding `luajr` vector type, R functions as `luajr.rfunction`, etc.
+corresponding **luajr** vector type, R functions as `luajr.rfunction`, etc.
 
 **`e:set(k, v)`**
 
@@ -506,7 +506,7 @@ luajr.NULL          -- equal to R.NilValue
 
 Note that Lua's semantics in dealing with logical types and NA values are
 very different from R's semantics. Lua does not "understand" NA values in the
-same way that R does, and `luajr` sees the R logical type as fundamentally an
+same way that R does, and **luajr** sees the R logical type as fundamentally an
 integer, not a boolean.
 
 Specifically, whereas in R you can do the following:
@@ -564,21 +564,27 @@ but if you use arg code `"auto"`, it will come out as `luajr.NULL`.
 
 ## Parallel processing {#parallel}
 
-`luajr` can run Lua code in parallel across multiple worker Lua states. Each
-worker is a fully independent Lua state. Because the vector types described
-above depend on R, and R is not fully thread-safe, **do not allocate new R
-objects from inside a worker** (do not create new `luajr.numeric`,
-`luajr.list`, etc., and do not call R functions that allocate). Reading and
-writing the elements of a vector that was *allocated in the main state* and
-passed in to the worker is safe, provided different workers do not write to
-the same slot — this is the standard pattern for collecting per-worker
-results, illustrated below.
+The `luajr.lua` module has facilities for running Lua code in parallel across 
+multiple threads. To use this functionality, you first need to create a "worker 
+pool"; each worker has its own independent Lua state. You can then assign work 
+to each worker in the pool using some basic functions detailed below. 
 
-The following renders a *Buddhabrot* in parallel — a Monte Carlo image of the
-Mandelbrot set built by sampling random points, iterating each one, and
-accumulating the trajectories of those that escape. Each worker accumulates
-into its own image buffer (to avoid write races on shared pixels), and the
-main state sums them at the end. Then displays the result with R's `image()`:
+This is an advanced feature and you have to know what you are doing to use it
+effectively. Note that because the vector types described above depend on R, 
+and R is not thread-safe, you should not allocate new R objects from inside a 
+worker (do not create new `luajr.numeric`,`luajr.list`, etc.) and in general 
+you should not call any R functions. If you break these guidelines your program 
+will probably crash. Reading and writing the elements of a vector that was 
+allocated in the main state and passed in to the worker is safe, provided 
+different workers do not write to the same slot--this is the standard pattern 
+for collecting per-worker results, illustrated below.
+
+The following example uses parallel processing to generate an image of what is 
+known as a "Buddhabrot": a Monte Carlo image of the Mandelbrot set built by 
+sampling random points, iterating each one, and accumulating the trajectories 
+of those that escape the Mandelbrot set. Each worker accumulates into its own 
+image buffer (to avoid write races on shared pixels), and the main state sums 
+them at the end, then displays the result with R's `image()`:
 
 ```{r, eval = FALSE}
 buddhabrot <- lua_func("function(cfg)
@@ -593,11 +599,13 @@ buddhabrot <- lua_func("function(cfg)
     -- One image buffer per worker, allocated in the main state. Each worker
     -- writes only to its own buffer, so there's no race on shared pixels.
     local bufs = {}
-    for t = 1, pool.n do bufs[t] = luajr.matrix(cfg.W, cfg.H, 0) end
+    for t = 1, #pool do 
+        bufs[t] = luajr.matrix(cfg.W, cfg.H, 0)
+    end
 
     -- Each worker samples `n_per` random points and accumulates the orbits
     -- of those that escape into its own buffer.
-    local n_per = math.ceil(cfg.samples / pool.n)
+    local n_per = math.ceil(cfg.samples / #pool)
     pool:prun(function(bufs, cfg, n_per, thread_id)
         local img = bufs[thread_id]
         local W, H, max_iter = cfg.W, cfg.H, cfg.max_iter
@@ -638,7 +646,9 @@ buddhabrot <- lua_func("function(cfg)
     local n = cfg.W * cfg.H
     for t = 1, #bufs do
         local b = bufs[t]
-        for k = 1, n do result[k] = result[k] + b[k] end
+        for k = 1, n do 
+            result[k] = result[k] + b[k] 
+        end
     end
     return result
 end", "$.")
@@ -646,7 +656,7 @@ end", "$.")
 cfg <- list(W = 600, H = 400, max_iter = 200, samples = 1e8,
             cx = -0.5, cy = 0, scale = 1.25)
 img <- buddhabrot(cfg)
-image(-img, col = hcl.colors(256, "Oslo"),
+image(img, col = hcl.colors(256, "Oslo", rev = TRUE),
       useRaster = TRUE, axes = FALSE)
 ```
 
@@ -654,36 +664,41 @@ image(-img, col = hcl.colors(256, "Oslo"),
 knitr::include_graphics("images/buddhabrot.jpg")
 ```
 
-Pulling the example apart:
+Stepping through the above example:
 
-- `luajr.workers()` creates a pool of one worker per core; `pool.n` reports
-  the count.
-- `pool:srun(setup)` runs `setup` in each worker once, in sequence — used
-  here to give each worker a different RNG seed (via `thread_id`) so the
+- `luajr.workers()` creates a pool of one worker per core; `#pool` gives the
+  number of workers. You can also pass a number of requested workers to
+  `luajr.workers(n)`.
+- `pool:srun(setup)` runs `setup` in each worker once, in sequence. This is 
+  used here to give each worker a different RNG seed (via `thread_id`) so the
   workers don't redundantly sample the same points. Because `srun` is
   sequential, the setup doesn't need to be thread-safe.
 - `bufs` is a Lua table of `luajr.matrix` buffers (one per worker), all
   allocated in the main state. Passing the table into the workers gives each
-  one access to all the buffers; each worker picks its own via `thread_id`,
-  so writes don't race.
+  one access to all the buffers. Each worker picks its own via `thread_id`,
+  so writes to the buffers don't race between threads.
 - `pool:prun(work, bufs, cfg, n_per)` runs `work` once in every worker,
   concurrently. Each worker draws `n_per` random points, runs the Mandelbrot
-  escape test, and for escaping orbits re-traces the orbit and increments
+  escape test, and for escaping orbits, re-traces the orbit and increments
   the pixel that each visited point maps to.
-- `pool:close()` shuts the workers down.
-- The main state sums the per-worker buffers into one result. `log1p()` on
-  the R side compresses the long count tail before `image()` displays it.
+- `pool:close()` shuts the workers down. This is done automatically by Lua
+  garbage collection, but you can also run it manually.
+- The main state sums the per-worker buffers into one result. Back in R, the
+  image is displayed using the function `image()`.
+  
+The complete reference for luajr's parallel processing functionality follows.
 
 **`luajr.ncores()`**
 
 Returns a suggested number of concurrent threads for the current machine
-(the value of `std::thread::hardware_concurrency()` from C++).
+(the value of `std::thread::hardware_concurrency()` from C++). This is often
+the number of physical cores on the machine.
 
 **`luajr.workers(n)`**
 
 Constructs a pool of `n` worker Lua states. If `n` is `nil` or missing, the
-default is `luajr.ncores()`. Each worker is created with the standard `luajr`
-and Lua libraries already loaded.
+default is `luajr.ncores()`. Each worker is created with the standard 
+`luajr.lua` and Lua modules already loaded.
 
 ```lua
 local pool = luajr.workers()      -- one worker per core
@@ -692,11 +707,11 @@ local pool = luajr.workers(4)     -- four workers
 
 The pool's workers are torn down automatically when the pool is garbage
 collected, or explicitly via `pool:close()`. A pool must be created and used
-within a single R `.Call` (i.e. within a single call from R into Lua):
-cross-state argument transfer uses by-reference handles that are only valid
-for that scope. Specifically, cdata arguments (vectors, environments, R
+within a single call from R into Lua, because when the workers are provided
+with references to all required data and these references may only be valid
+within that scope. Specifically, cdata arguments (vectors, environments, R
 functions) carried into workers reference the calling state's R objects,
-which R only keeps alive for the duration of the `.Call`; pointer-type cdata
+which R may only keep alive for the duration of the `.Call`; pointer-type cdata
 transferred as light userdata is similarly subject to whatever lifetime the
 source state guarantees.
 
@@ -704,8 +719,7 @@ source state guarantees.
 
 Loads the function `f` and the additional arguments `...` into every worker
 state. `f` is a Lua function, and the additional arguments are copied to each 
-worker by value (for plain Lua values) or by reference handle (for cdata, 
-restricted to the calling `.Call` lifetime).
+worker by value (for plain Lua values) or by reference (for cdata / R values).
 
 **`pool:srun(f, ...)`**
 
@@ -717,11 +731,17 @@ case is running code that touches each worker's Lua state, such as loading
 modules, setting globals, or otherwise preparing per-worker state, without
 having to worry about thread safety, since each worker runs sequentially.
 
+**`#pool`**
+
+Returns the number of workers in the pool. This may not be the same as the 
+number of requested workers; for example, in debug mode, parallel processing is
+disabled and so `#pool` will always be 1.
+
 **`pool:prun(f, ...)`**
 
-Same call shape as `srun`, but runs the workers concurrently on separate
-threads. If any worker throws an error, the first error is propagated back to
-the calling state after all workers complete.
+Same as `srun`, but runs the workers concurrently on separate threads. If any 
+worker throws an error, the first error is propagated back to the calling state 
+after all workers complete.
 
 **`pool:pfor(i0, i1, f, ...)`**
 
@@ -735,13 +755,9 @@ atomic work-stealing. The function is invoked once per iteration as
 Closes all worker states in the pool and releases their resources. Safe to
 call more than once. Workers cannot be used after the pool has been closed.
 
-**`#pool`**
-
-Returns the number of workers in the pool.
-
 ## Utility functions {#utility}
 
-These are general-purpose helpers exposed by the `luajr` module.
+These are general-purpose helpers exposed by the `luajr.lua` module.
 
 **`luajr.to_sexp(v)`**
 
@@ -754,7 +770,7 @@ Converts a Lua value `v` to an R SEXP. The conversion rules are:
   embedded null bytes)
 - Lua `table` &rarr; `VECSXP`; integer keys become positional entries, string keys
   become named entries (see also [`luajr.list`](#vcreate))
-- `luajr` vector/environment/rfunction cdata &rarr; the underlying SEXP
+- `luajr` vector/environment/rfunction &rarr; the underlying SEXP
 - bare `R.sexp` cdata &rarr; the SEXP unchanged
 
 Returns the result as an `R.sexp`. The returned SEXP is unprotected; most
@@ -785,21 +801,21 @@ current Lua frame.
 
 ## Long vectors {#longvec}
 
-`luajr` can handle what are called "long vectors" in R (i.e., vectors with 2^31 
-elements or more), but there are some restrictions.
+**luajr** can handle what are called "long vectors" in R (i.e., vectors with 
+2^31 elements or more), but there are some restrictions.
 
 Vector types are allocated by R, so their size is limited by R's vector 
 memory limit. This limit can be set and queried using the R function 
 `mem.maxVSize()`.
 
 There are limits on how large of a table you can create in Lua when using the
-`lua_createtable()` function, which is what `luajr` uses to allocate space for
+`lua_createtable()` function, which is what **luajr** uses to allocate space for
 tables. This means that if you try to pass a large vector into Lua as a native
 Lua array (e.g. arg code `$N` for an atomic vector, or `$V` for a list), the
 operation will fail if there are too many elements in the vector. The maximum
 number of elements is currently set by LuaJIT to 2^27, or just over 134 million
 elements. This is also the maximum length of an R `list` that can be passed
-into Lua. Passing a vector as a SEXP (arg code `S`) or as a `luajr` vector type
+into Lua. Passing a vector as a SEXP (arg code `S`) or as a **luajr** vector type
 (arg codes `.`, `L`, `I`, `N`, `C`, `V`) does not go through `lua_createtable`
 and is not subject to this limit.
 

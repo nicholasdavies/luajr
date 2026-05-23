@@ -126,7 +126,7 @@ The argcode `"auto"` means that the parameter should be passed as a **luajr**
 type providing direct access to the R variable passed in. For example, with the 
 argcode `"auto"`, an R numeric vector is passed as a `luajr.numeric` type, an R 
 character vector is passed as a `luajr.character` type, and an R function is 
-passed as a `luajr.rfunction type`. For a guide to `luajr` types, see the 
+passed as a `luajr.rfunction type`. For a guide to **luajr** types, see the 
 vignette [The luajr.lua module](luajr-module.html)
 
 The argcode `"native"` means that the R value passed in should be converted to 
