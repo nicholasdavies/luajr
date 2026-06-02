@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -154,7 +154,7 @@ meaning of <code>a</code> and <code>b</code> depends on the type of
 <code>a</code> and <code>b</code> and whether both are present.
 Specifically,</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>logical<span class="op">()</span>     <span class="co">-- Size-0 logical vector</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>integer<span class="op">(</span><span class="va">s</span><span class="op">)</span>    <span class="co">-- Integer vector copy of SEXP</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>integer<span class="op">(</span><span class="va">s</span><span class="op">)</span>    <span class="co">-- Integer vector copy of SEXP s</span></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>numeric<span class="op">(</span><span class="va">n</span><span class="op">,</span> <span class="va">x</span><span class="op">)</span> <span class="co">-- Size-n numeric vector, all entries equal to x</span></span>
 <span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>character<span class="op">(</span><span class="va">v</span><span class="op">)</span>  <span class="co">-- Character vector copy of v</span></span>
 <span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="va">luajr</span><span class="op">.</span>list<span class="op">(</span><span class="va">t</span><span class="op">)</span>       <span class="co">-- List copied from Lua table t</span></span>
@@ -167,7 +167,10 @@ object of the same type, <code>t</code> is a Lua table, and
 <code>z</code> is a Lua table or vector type. If <code>t</code> is a
 table and the vector is <code>luajr.list</code> type, then the names
 from <code>t</code> will be copied over into the
-<code>luajr.list</code>.</p>
+<code>luajr.list</code>. Lua tables can also be converted to other
+vector types (such as <code>luajr.numeric</code>), but only if all
+elements are compatible with representation as a numeric vector, and in
+this case names will not be copied over.</p>
 <p>If <code>x == nil</code> in the <code>(n, x)</code> form of the above
 functions, then the values of the vector are left uninitialized (except
 for <code>luajr.character</code>, where the values are set to the empty
@@ -192,10 +195,10 @@ attribute is preserved across length-changing operations
 preserve <code>dim</code> or <code>dimnames</code> attributes is
 undefined, so do not call them on a matrix-shaped value unless you
 intend the matrix shape to be discarded. “Replacing” operations
-(<code>v:assign()</code>, <code>v:clear()</code>) drop all structural
-attributes (<code>names</code>, <code>dim</code>, <code>dimnames</code>)
-consistently. If you need a result to keep matrix shape after such
-changes, re-attach <code>dim</code> via
+(<code>v:assign()</code>, <code>v:clear()</code>) always drop structural
+attributes (<code>names</code>, <code>dim</code>,
+<code>dimnames</code>). If you need a result to have dimensions after
+such changes, re-attach <code>dim</code> via
 <code>v:set_attr("dim", ...)</code> before returning it.</p>
 <p><strong><code>#v</code></strong></p>
 <p>Returns the number of elements in the vector.</p>
@@ -215,9 +218,10 @@ types.</p>
 <p><strong><code>x = v(i)</code></strong></p>
 <p>Gets the <code>i</code>th element of the vector, but as a new vector
 type instead of as a ‘bare’ value. If you are returning a single value
-to R, prefer to use this form as it will preserve <code>NA</code>s; for
-example, if <code>v = luajr.integer({1, 2, luajr.NA_integer_})</code>,
-then <code>return v[3]</code> will return -2147483648 to R, but
+to R, you should prefer to use this form as it will preserve
+<code>NA</code>s; for example, if
+<code>v = luajr.integer({1, 2, luajr.NA_integer_})</code>, then
+<code>return v[3]</code> will return -2147483648 to R, but
 <code>return v(3)</code> will correctly return <code>NA</code> of
 integer type.</p>
 <p>Instead of a numeric index, you can also pass a string key as
@@ -227,14 +231,15 @@ return the appropriate <code>NA</code> for atomic vectors or
 <p><strong><code>v:is_na(i)</code></strong></p>
 <p>Returns <code>true</code> if the <code>i</code>th element of the
 vector is <code>NA</code>, and <code>false</code> otherwise. This is the
-recommended way to test for <code>NA</code> because direct comparison
-with <code>luajr.NA_real_</code> always returns <code>false</code> (due
-to NaN semantics in IEEE-754: <code>NaN == NaN</code> is false). For
-<code>luajr.numeric</code>, <code>v:is_na(i)</code> matches R’s
-<code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> semantics and returns <code>true</code> for both
-<code>NA_real_</code> and any other <code>NaN</code> value.
-<code>v:is_na(i)</code> errors on <code>luajr.list</code>, since list
-elements are themselves R values and have no per-element NA concept.</p>
+recommended way to test for <code>NA</code> because for numeric vectors,
+direct comparison with <code>luajr.NA_real_</code> always returns
+<code>false</code> (due to NaN semantics in IEEE-754:
+<code>NaN == NaN</code> is false). For <code>luajr.numeric</code>,
+<code>v:is_na(i)</code> matches R’s <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> semantics and
+returns <code>true</code> for both <code>NA_real_</code> and any other
+<code>NaN</code> value. <code>v:is_na(i)</code> errors on
+<code>luajr.list</code>, since list elements are themselves R values and
+have no per-element NA concept.</p>
 <p><strong><code>ipairs(v)</code>, <code>pairs(v)</code></strong></p>
 <p>Use with a Lua <code>for</code> loop to iterate over the values of
 the vector. <code>ipairs</code> is used to iterate over integer keys and
@@ -262,7 +267,7 @@ rather than its full contents.</p>
 have the same meaning as in the <a href="#vcreate">vector
 constructors</a>. Unlike construction, <code>assign</code> reuses the
 vector’s existing storage in place when capacity allows, and only
-allocates a new buffer if the new length would exceed the current
+allocates new memory if the new length would exceed the current
 capacity.</p>
 <p><strong><code>v:concat(sep)</code></strong></p>
 <p>Returns a string comprised of the elements of the vector converted
@@ -693,7 +698,7 @@ follows.</p>
 <p><strong><code>luajr.ncores()</code></strong></p>
 <p>Returns a suggested number of concurrent threads for the current
 machine (the value of <code>std::thread::hardware_concurrency()</code>
-from C++). This is often the number of physical cores on the
+from C++). This is usually the number of physical cores on the
 machine.</p>
 <p><strong><code>luajr.workers(n)</code></strong></p>
 <p>Constructs a pool of <code>n</code> worker Lua states. If

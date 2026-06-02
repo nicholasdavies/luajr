@@ -24,7 +24,7 @@ but there is also a just-in-time compiler for Lua called
 This is **not** a guide to Lua or LuaJIT; it is a quick-start guide to 
 **luajr** for people who already know how to program in Lua. See the 
 [Lua web site](https://www.lua.org) for resources related to coding in Lua,
-and the [LuaJIT web site](https://www.luajit.org) for resources related to
+and the [LuaJIT web site](https://luajit.org) for resources related to
 LuaJIT itself.
 
 ## Running Lua code: `lua()` and `lua_shell()`

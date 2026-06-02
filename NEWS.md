@@ -1,7 +1,10 @@
-# luajr (development version)
+# luajr 0.3.0
 
 -   Overhauled the args code system in lua_func() for richer capabilities. This 
     breaks compatibility with previous versions of luajr.
+    
+-   Added new vignettes on benchmarks and the R.lua module and reorganised
+    vignettes.
     
 -   Overhauled representation of atomic vectors and lists within luajr. There 
     is no longer a separate type for vectors passed by reference (but passing 
@@ -15,7 +18,10 @@
 
 -   Added a new 'R' module which can be used in Lua code to access R's API.
 
--   luajr is now compatible (and tested) with R versions 4.0.0 and up.
+-   luajr is now officially compatible (and tested) with R versions 4.0.0 and 
+    up.
+    
+-   Improved efficiency of calls into Lua functions from R.
 
 -   Fixed some bugs in running long Lua strings and when passing / returning 
     certain LuaJIT cdata types.

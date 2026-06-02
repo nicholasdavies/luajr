@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">luajr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,13 +42,15 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="luajr-development-version">luajr (development version)<a class="anchor" aria-label="anchor" href="#luajr-development-version"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.3.0" id="luajr-030">luajr 0.3.0<a class="anchor" aria-label="anchor" href="#luajr-030"></a></h2>
 <ul><li><p>Overhauled the args code system in lua_func() for richer capabilities. This breaks compatibility with previous versions of luajr.</p></li>
+<li><p>Added new vignettes on benchmarks and the R.lua module and reorganised vignettes.</p></li>
 <li><p>Overhauled representation of atomic vectors and lists within luajr. There is no longer a separate type for vectors passed by reference (but passing by reference is still supported).</p></li>
 <li><p>Removed <code>lua_parallel()</code>, replacing it with a new parallel processing system that runs entirely within Lua.</p></li>
 <li><p>Added native support for R functions, environments, and generic SEXP variables in Lua.</p></li>
 <li><p>Added a new ‘R’ module which can be used in Lua code to access R’s API.</p></li>
-<li><p>luajr is now compatible (and tested) with R versions 4.0.0 and up.</p></li>
+<li><p>luajr is now officially compatible (and tested) with R versions 4.0.0 and up.</p></li>
+<li><p>Improved efficiency of calls into Lua functions from R.</p></li>
 <li><p>Fixed some bugs in running long Lua strings and when passing / returning certain LuaJIT cdata types.</p></li>
 </ul></div>
     <div class="section level2">
