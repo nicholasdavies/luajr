@@ -125,13 +125,14 @@ else
 end
 
 
--- Resolve R API symbols. On Windows, the luajr dylib doesn't re-export R's
--- symbols, so load R's shared library directly.
+-- Resolve R API symbols. On POSIX, R loads libR with RTLD_GLOBAL so its
+-- symbols are reachable via the default C namespace (dlsym(RTLD_DEFAULT, ...)).
+-- On Windows there is no equivalent, so load R.dll directly.
 local C
 if ffi.os == "Windows" then
     C = ffi.load(R_dll_path)
 else
-    C = ffi.load(luajr_dylib_path)
+    C = ffi.C
 end
 
 -- Module table
