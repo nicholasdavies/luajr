@@ -60,8 +60,11 @@ extern "C" int luajr_Cfputc(int ch, FILE* stream)
     if (stream == luajr_Cstdout || stream == luajr_Cstderr)
     {
         int otype = (stream == luajr_Cstdout ? 0 : 1);
-        char c = (char)ch;
-        R_WriteConsoleEx(&c, 1, otype);
+        // R_WriteConsoleEx takes a length, but its standard back-end
+        // (Rstd_WriteConsole in sys-std.c) prints via printf("%s", buf),
+        // which ignores the length and requires NUL termination.
+        char c[2] = { (char)ch, '\0' };
+        R_WriteConsoleEx(c, 1, otype);
         return ch;
     }
     else if (stream == luajr_Cstdin)
@@ -139,7 +142,23 @@ extern "C" size_t luajr_Cfwrite(const void* buffer, size_t size, size_t count, F
         if (size == 1)
         {
             int otype = (stream == luajr_Cstdout ? 0 : 1);
-            R_WriteConsoleEx((const char*)buffer, (int)count, otype);
+            // R_WriteConsoleEx's standard back-end requires NUL termination
+            // (see luajr_Cfputc). The input buffer is not guaranteed to be
+            // NUL-terminated, so copy through a NUL-terminated static chunk,
+            // chunking when count exceeds the buffer size.
+            static const size_t chunksize = 4096;
+            static char chunk[chunksize];
+            const char* p = (const char*)buffer;
+            size_t remaining = count;
+            while (remaining > 0)
+            {
+                size_t n = remaining < chunksize - 1 ? remaining : chunksize - 1;
+                memcpy(chunk, p, n);
+                chunk[n] = '\0';
+                R_WriteConsoleEx(chunk, (int)n, otype);
+                p += n;
+                remaining -= n;
+            }
             return count;
         }
         else

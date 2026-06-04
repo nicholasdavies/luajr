@@ -57,6 +57,7 @@ devtools::install(build_vignettes = TRUE)
 # update copyright year
 devtools::check(remote = TRUE, manual = TRUE)
 devtools::check_win_devel()
+rhub::rhub_check(platforms = "clang-asan")
 
 usethis::use_version('patch') # patch, minor, or major
 
