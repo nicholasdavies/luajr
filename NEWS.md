@@ -1,4 +1,7 @@
-# luajr (development version)
+# luajr 0.3.1
+
+-   Bug fixes: potential memory bugs unearthed by Address Sanitizer and UB 
+    Sanitizer; correct loading R API entry points in R.lua on Fedora.
 
 # luajr 0.3.0
 

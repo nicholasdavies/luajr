@@ -57,9 +57,11 @@ devtools::install(build_vignettes = TRUE)
 # update copyright year
 devtools::check(remote = TRUE, manual = TRUE)
 devtools::check_win_devel()
+
+# These checks are run on the REMOTE master branch, so changes have to be pushed.
 rhub::rhub_check(platforms = "clang-asan")
 rhub::rhub_check(platforms = "clang-ubsan")
-rhub::rhub_check(platforms = c("gcc15", "clang20"))
+rhub::rhub_check(platforms = c("gcc16", "clang22"))
 
 usethis::use_version('patch') # patch, minor, or major
 
