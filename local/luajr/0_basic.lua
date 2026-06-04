@@ -96,6 +96,7 @@ typedef struct { lua_State** l; int n; } workers_t;
 
 // C functions
 void* memcpy(void* dest, const void* src, size_t count);
+void* memmove(void* dest, const void* src, size_t count);
 size_t strlen(const char* str);
 
 // Parallel functionality

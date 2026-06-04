@@ -159,3 +159,25 @@ test_that("numeric vector stress test", {
     expect_identical(lua("return x[1]"), 5001)
     lua_reset()
 })
+
+test_that("self-aliased assign is a no-op", {
+    # op_copy may see src == dst when a vector is assigned its own SEXP.
+    # memmove handles this; the prior memcpy form was UB.
+    lua("x = luajr.numeric({1.5, 2.5, 3.5, 4.5, 5.5})")
+    lua("x:assign(x.s)")
+    expect_equal(lua("return x:debug_str()"), "5|5|1.5,2.5,3.5,4.5,5.5")
+    lua_reset()
+})
+
+test_that("in-place erase preserves names", {
+    # The set() erase branch was restructured to split in-place from
+    # new-buffer; names handling shares code across both, so a regression
+    # check on the in-place path is worthwhile.
+    lua("x = luajr.numeric({10, 20, 30, 40, 50})")
+    lua("x:set_attr('names', luajr.character({'a','b','c','d','e'}))")
+    lua("x:erase(2, 3)")
+    y <- lua("return x")
+    expect_identical(unname(y), c(10, 40, 50))
+    expect_identical(names(y), c("a", "d", "e"))
+    lua_reset()
+})

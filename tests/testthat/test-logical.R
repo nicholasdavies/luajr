@@ -31,6 +31,32 @@ test_that("logical vector push_back and insert work", {
     lua_reset()
 })
 
+test_that("logical vector erase works", {
+    # In-place erase exercises a tail shift in the same buffer, which is the
+    # path that previously triggered an ASAN memcpy-overlap report.
+    lua("T = luajr.TRUE; F = luajr.FALSE")
+    lua("x = luajr.logical({T,F,T,F,T,F,T,F,T,F})")
+    lua("x:erase(1)")
+    expect_equal(lua("return x:debug_str()"), "9|10|0,1,0,1,0,1,0,1,0")
+    lua("x:erase(2,3)")
+    expect_equal(lua("return x:debug_str()"), "7|10|0,1,0,1,0,1,0")
+    lua("x:erase(5,7)")
+    expect_equal(lua("return x:debug_str()"), "4|10|0,1,0,1")
+    lua("x:erase(1,4)")
+    expect_equal(lua("return x:debug_str()"), "0|10|")
+
+    # Single-element erase from various positions, including the last.
+    lua("y = luajr.logical({T,F,T,F,T})")
+    lua("y:erase(5)")           # tail position, no shift
+    expect_equal(lua("return y:debug_str()"), "4|5|1,0,1,0")
+    lua("y:erase(1)")           # head, maximal shift
+    expect_equal(lua("return y:debug_str()"), "3|5|0,1,0")
+    lua("y:erase(2)")           # middle
+    expect_equal(lua("return y:debug_str()"), "2|5|0,0")
+
+    lua_reset()
+})
+
 test_that("logical vector NA values", {
     # Returning a single NA element doesn't round-trip as NA (it's INT_MIN as a double).
     # Test via the vector return path instead.

@@ -1,3 +1,5 @@
+-- AUTOGEN: do not edit; assembled by local/prebuild.sh from local/luajr/*.lua
+-- AUTOGEN-HASH: b3cc9da3944b7858a28ba7219ca44d7b330a0bd86a5d6881b476be21dffc6e5b
 -- luajr module
 
 -- CONTENTS --
@@ -96,6 +98,7 @@ typedef struct { lua_State** l; int n; } workers_t;
 
 // C functions
 void* memcpy(void* dest, const void* src, size_t count);
+void* memmove(void* dest, const void* src, size_t count);
 size_t strlen(const char* str);
 
 // Parallel functionality
@@ -288,7 +291,9 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
             for i = 0,n-1 do p[k + i] = v end
         end
         op_copy = function(p, s, k, p_src, n)
-            ffi.copy(p + k, p_src + 1, sizeof(vtype, n))
+            -- memmove (not memcpy/ffi.copy) so callers may pass overlapping
+            -- src/dst, e.g. in-place erase tail shift or self-aliased assign.
+            ffi.C.memmove(p + k, p_src + 1, sizeof(vtype, n))
         end
         op_copyv = function(p, s, k, p_src, n)
             for i = 0,n-1 do p[k + i] = p_src[i + 1] end
@@ -346,14 +351,20 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
             end
             return params.insert_n + params.outer_n
         elseif params.erase ~= nil then
-            if p ~= params.outer_p then
+            local ndel = params.erase_last - params.erase + 1
+            if p == params.outer_p then
+                -- In-place: forward op_write loop to shift the tail down,
+                -- mirroring the reverse op_write loop used by in-place insert.
+                for j = params.erase, params.outer_n - ndel do
+                    op_write(p, s, j, p[j + ndel])
+                end
+            else
                 op_copy(p, s, 1, params.outer_p, params.erase - 1)
+                op_copy(p, s, params.erase,
+                    params.outer_p + params.erase_last,
+                    params.outer_n - params.erase_last)
             end
-            op_copy(p, s, params.erase,
-                params.outer_p + params.erase_last,
-                params.outer_n - params.erase_last)
             if nd then
-                local ndel = params.erase_last - params.erase + 1
                 if nd ~= ns then
                     for i = 0, params.erase - 2 do R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i)) end
                 end
@@ -361,7 +372,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                     R.SET_STRING_ELT(nd, i, R.STRING_ELT(ns, i + ndel))
                 end
             end
-            return params.outer_n - (params.erase_last - params.erase + 1)
+            return params.outer_n - ndel
         elseif params.n == nil then
             error("unsupported parameters in set")
         end

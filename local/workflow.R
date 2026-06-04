@@ -59,6 +59,7 @@ devtools::check(remote = TRUE, manual = TRUE)
 devtools::check_win_devel()
 rhub::rhub_check(platforms = "clang-asan")
 rhub::rhub_check(platforms = "clang-ubsan")
+rhub::rhub_check(platforms = c("gcc15", "clang20"))
 
 usethis::use_version('patch') # patch, minor, or major
 
