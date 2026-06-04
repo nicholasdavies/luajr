@@ -291,11 +291,16 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                 end
                 local alen = R.length(a)
                 if self.c == byref and alen ~= self.n then byref_error("assign") end
+                -- Protect a: it may be an unprotected bare SEXP, and the
+                -- alloc below (allocVector, directly or via set_inplace names)
+                -- can trigger GC before its payload is read via dataptr(a).
+                R.PROTECT(a)
                 if self.c == byref or alen <= self.c then
                     set_inplace(self, { p = dataptr(a) - 1, n = alen }, a)
                 else
                     allocate(self, alen, { p = dataptr(a) - 1, n = alen }, a)
                 end
+                R.UNPROTECT(1)
             elseif a == nil and b == nil then
                 -- empty vector
                 if self.c == byref then
@@ -470,8 +475,13 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                         " vector from " .. R.type_string(a), 2)
                 end
                 local alen = R.length(a)
+                -- Protect a: it may be an unprotected bare SEXP, and
+                -- insert_shift may allocVector (triggering GC) before its
+                -- payload is read via dataptr(a) in op_copy.
+                R.PROTECT(a)
                 insert_shift(self, i, alen, a)
                 op_copy(self.p, self.s, i, dataptr(a) - 1, alen)
+                R.UNPROTECT(1)
             elseif type(a) == "number" and (is_val(b) or b == nil) then
                 -- a copies of b
                 if a < 0 then error("insert: count must be non-negative", 2) end
