@@ -4,6 +4,9 @@
 
 -   Bug fixes: potential memory bugs unearthed by Address Sanitizer and UB 
     Sanitizer; correct loading R API entry points in R.lua on Fedora.
+    
+-   Updated LuaJIT to 1787165859, which makes backported LuaJIT 3.0 syntax 
+    extensions available.
 
 # luajr 0.3.0
 
