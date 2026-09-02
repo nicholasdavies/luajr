@@ -19,7 +19,7 @@ lorenz1 = function(n, init, rho, sigma, beta)
     result = matrix(0, nrow = n, ncol = 3)
     for (i in 1:n) {
         result[i, ] = x
-        x = R_step(x, rho, sigma, beta, 0.01)
+        x = step1(x, rho, sigma, beta, 0.01)
     }
     return (result)
 }
