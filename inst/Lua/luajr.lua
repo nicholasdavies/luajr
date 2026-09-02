@@ -1,5 +1,5 @@
 -- AUTOGEN: do not edit; assembled by local/prebuild.sh from local/luajr/*.lua
--- AUTOGEN-HASH: b3cc9da3944b7858a28ba7219ca44d7b330a0bd86a5d6881b476be21dffc6e5b
+-- AUTOGEN-HASH: 78527d649898fd359a06bb0fffdbf826d8fa956c19b236213f400674bfa1ee24
 -- luajr module
 
 -- CONTENTS --
@@ -261,12 +261,6 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         end
         is_val = function(v) return type(v) == "string" or v == R.NA_STRING end
     elseif stype == R.VECSXP then
-        -- Element of a list is itself a SEXP. On read, wrap based on TYPEOF
-        -- and the parent list's mode: byref-list -> byref children (writes
-        -- propagate, no resize); alias- or owned-list -> alias children
-        -- (COW). The alias/owned uniformity ensures the user experience is
-        -- the same across the alias->owned transition that happens when an
-        -- alias list is first mutated.
         op_readv = function(self, k)
             return from_sexp(self.p[k], (self.c == byref) and ac_reference or ac_value)
         end
@@ -353,8 +347,6 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         elseif params.erase ~= nil then
             local ndel = params.erase_last - params.erase + 1
             if p == params.outer_p then
-                -- In-place: forward op_write loop to shift the tail down,
-                -- mirroring the reverse op_write loop used by in-place insert.
                 for j = params.erase, params.outer_n - ndel do
                     op_write(p, s, j, p[j + ndel])
                 end
@@ -379,8 +371,8 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         return params.n
     end
 
-    -- In-place set, replacing self's names from a source SEXP.
-    -- names_from: SEXP to read source names from, or nil to clear names.
+    -- In-place set, replacing self's names from a source SEXP
+    -- names_from is a SEXP to copy source names from (nil: clear names)
     local set_inplace = function(self, set_params, names_from)
         local src_names = names_from and get_names(names_from) or nil
         if src_names then
@@ -395,8 +387,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         else
             R.setAttrib(self.s, R.NamesSymbol, R.NilValue)
         end
-        -- Always drop dim/dimnames on in-place replacement, matching the
-        -- allocate path (copyMostAttrib also drops these).
+        -- drop dim and dimnames, matching allocate path with copyMostAttrib
         R.setAttrib(self.s, R.DimSymbol, R.NilValue)
         R.setAttrib(self.s, R.DimNamesSymbol, R.NilValue)
         self.n = set(self.p, self.s, set_params)
@@ -406,7 +397,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
     -- self is the current vector
     -- new_c is the new capacity
     -- set_params gets passed on to set()
-    -- names_from: optional SEXP to read source names from (defaults to self.s)
+    -- names_from is a SEXP to copy source names from (nil: keep current names)
     local allocate = function(self, new_c, set_params, names_from)
         -- ensure not a byref
         if self.c == byref then
@@ -446,7 +437,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
 
     -- Shift self to make room for insert_n elements at position i,
     -- then copy source names into the gap.
-    -- names_from: SEXP whose names fill the gap, or nil for blank.
+    -- names_from is a SEXP to copy source names from (nil: no names)
     local insert_shift = function(self, i, insert_n, names_from)
         if self.n + insert_n <= self.c then
             local names = get_names(self.s)
@@ -477,11 +468,13 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                 end
                 local alen = R.length(a)
                 if self.c == byref and alen ~= self.n then byref_error("assign") end
+                R.PROTECT(a)
                 if self.c == byref or alen <= self.c then
                     set_inplace(self, { p = dataptr(a) - 1, n = alen }, a)
                 else
                     allocate(self, alen, { p = dataptr(a) - 1, n = alen }, a)
                 end
+                R.UNPROTECT(1)
             elseif a == nil and b == nil then
                 -- empty vector
                 if self.c == byref then
@@ -656,8 +649,10 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                         " vector from " .. R.type_string(a), 2)
                 end
                 local alen = R.length(a)
+                R.PROTECT(a)
                 insert_shift(self, i, alen, a)
                 op_copy(self.p, self.s, i, dataptr(a) - 1, alen)
+                R.UNPROTECT(1)
             elseif type(a) == "number" and (is_val(b) or b == nil) then
                 -- a copies of b
                 if a < 0 then error("insert: count must be non-negative", 2) end
