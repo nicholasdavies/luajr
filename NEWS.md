@@ -1,5 +1,14 @@
 # luajr (development version)
 
+-   Indexing vector types with `v[i]` now checks bounds and works like R's `[[`
+    operator: reading outside 1 to `#v` is an error (`subscript out of bounds`),
+    and writing past the end grows the vector, filling any gap with the 
+    appropriate `NA`. As before, `v.p[i]` gives unchecked access to logical, 
+    integer and numeric vectors.
+
+-   New `v(i, x)` sets an element by index or name, as R's `[<-` operator does
+    for a single element. `v(i)` now truncates a fractional index, as R does.
+
 # luajr 0.3.1
 
 -   Bug fixes: potential memory bugs unearthed by Address Sanitizer and UB 

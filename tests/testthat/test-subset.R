@@ -118,3 +118,102 @@ test_that("list __call out of bounds returns NULL", {
 
     lua_reset()
 })
+
+test_that("__call truncates a fractional index", {
+    expect_identical(lua("return luajr.numeric({10, 20, 30})(3.5)"), 30)
+    expect_identical(lua("return luajr.numeric({10, 20, 30})(2.7)"), 20)
+
+    lua_reset()
+})
+
+test_that("__call with a value sets an element as R's [<- does", {
+    lua("x = luajr.numeric({10, 20, 30})")
+    lua("x(2, 99)")
+    lua("x(3.5, 77)")
+    x = c(10, 20, 30)
+    x[2] = 99
+    x[3.5] = 77
+    expect_identical(lua("return x"), x)
+
+    lua_reset()
+})
+
+test_that("__call with a value past the end grows the vector as R's [<- does", {
+    lua("x = luajr.numeric({10, 20, 30})")
+    lua("x(5, 9)")
+    x = c(10, 20, 30)
+    x[5] = 9
+    expect_identical(lua("return x"), x)
+
+    lua("y = luajr.character({'a'})")
+    lua("y(3, 'c')")
+    y = "a"
+    y[3] = "c"
+    expect_identical(lua("return y"), y)
+
+    lua_reset()
+})
+
+test_that("__call with a value and index 0, a fraction below 1 or NaN changes nothing", {
+    lua("x = luajr.numeric({10, 20, 30})")
+    lua("x(0, 9)")
+    lua("x(0.5, 9)")
+    lua("x(-0.5, 9)")
+    lua("x(0/0, 9)")
+    x = c(10, 20, 30)
+    x[0] = 9
+    x[0.5] = 9
+    x[-0.5] = 9
+    x[NA_real_] = 9
+    expect_identical(lua("return x"), x)
+
+    lua_reset()
+})
+
+test_that("__call with a value and a negative index is an error", {
+    lua("x = luajr.numeric({10, 20, 30})")
+    expect_error(lua("x(-1, 9)"), "negative indexes are not supported yet")
+    expect_error(lua("x(true, 9)"), "cannot subset vector with type boolean")
+    expect_identical(lua("return x"), c(10, 20, 30))
+
+    lua_reset()
+})
+
+test_that("__call with a value sets an element by name as R's [<- does", {
+    lua("x = luajr.numeric({10, 20, 30})")
+    lua("x:set_attr('names', luajr.character({'a', 'b', 'a'}))")
+    lua("x('a', 1)")
+    lua("x('z', 2)")
+    x = c(a = 10, b = 20, a = 30)
+    x["a"] = 1
+    x["z"] = 2
+    expect_identical(lua("return x"), x)
+
+    lua("y = luajr.numeric({1, 2})")
+    lua("y('z', 9)")
+    y = c(1, 2)
+    y["z"] = 9
+    expect_identical(lua("return y"), y)
+
+    lua_reset()
+})
+
+test_that("__call with a value sets a list element to NULL", {
+    lua("x = luajr.list()")
+    lua("for i = 1, 3 do x:push_back(i) end")
+    lua("x(2, luajr.NULL)")
+    l = list(1, 2, 3)
+    l[2] = list(NULL)
+    expect_identical(lua("return x"), l)
+
+    lua_reset()
+})
+
+test_that("__call with a value on an argument leaves the caller's vector unchanged", {
+    f = lua_func("function(x) x(2, 99); x(4, 1); return x end", "N")
+    v = c(1, 2, 3)
+    expect_identical(f(v), c(1, 99, 3, 1))
+    expect_identical(v, c(1, 2, 3))
+
+    lua_reset()
+})

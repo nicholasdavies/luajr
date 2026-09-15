@@ -4,8 +4,8 @@
 
 -- Vector capacity flags
 -- TODO document
-local byref = -1
-local alias = -2
+const byref = -1
+const alias = -2
 
 -- Caches for CHARSXP <-> Lua string conversion
 local charsxp_read_cache = {}   -- CHARSXP (as double via bit cast) -> Lua string
@@ -76,7 +76,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         is_val = function(v) return type(v) == "string" or v == R.NA_STRING end
     elseif stype == R.VECSXP then
         op_readv = function(self, k)
-            return from_sexp(self.p[k], (self.c == byref) and ac_reference or ac_value)
+            return from_sexp(self.p[k], self.c == byref ? ac_reference : ac_value)
         end
         op_writev = function(self, k, v) R.SET_VECTOR_ELT(self.s, k - 1, to_sexp(v)) end
         op_write = function(p, s, k, v) R.SET_VECTOR_ELT(s, k - 1, v) end
@@ -188,7 +188,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
     -- In-place set, replacing self's names from a source SEXP
     -- names_from is a SEXP to copy source names from (nil: clear names)
     local set_inplace = function(self, set_params, names_from)
-        local src_names = names_from and get_names(names_from) or nil
+        local src_names = names_from ? get_names(names_from) : nil
         if src_names then
             local dst_names = get_names(self.s)
             if not dst_names then
@@ -227,7 +227,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         R.copyMostAttrib(self.s, new_s)
 
         -- handle names: if source has names, create new names at capacity
-        local old_names = get_names(names_from or self.s)
+        local old_names = get_names(names_from ?? self.s)
         if old_names and new_c > 0 then
             local new_names = R.PROTECT(R.allocVector(R.STRSXP, new_c))
             R.setAttrib(new_s, R.NamesSymbol, new_names)
@@ -263,7 +263,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                 outer_p = self.p, outer_n = self.n })
         end
         local dst_names = get_names(self.s)
-        local src_names = names_from and get_names(names_from) or nil
+        local src_names = names_from ? get_names(names_from) : nil
         if dst_names and src_names then
             for j = 0, insert_n - 1 do
                 R.SET_STRING_ELT(dst_names, i - 1 + j, R.STRING_ELT(src_names, j))
@@ -338,7 +338,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
             elseif vectorish(a) and b == nil then
                 -- from vector-ish object
                 if self.c == byref and #a ~= self.n then byref_error("assign") end
-                local src_sexp = (type(a) ~= "table") and a.s or R.NilValue
+                local src_sexp = type(a) == "table" ? R.NilValue : a.s
                 if self.c == byref or #a <= self.c then
                     set_inplace(self, { copy = a, n = #a }, src_sexp)
                 else
@@ -351,7 +351,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         end,
 
         concat = function(self, sep)
-            sep = sep or ","
+            sep = sep ?? ","
             local parts = {}
             for i = 1, #self do parts[i] = tostring(self[i]) end
             return table.concat(parts, sep)
@@ -430,7 +430,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
             elseif self.c < self.n + 1 then
                 allocate(self, math.max(1, self.c * 2), { p = self.p, n = self.n })
             end
-            self.n = self.n + 1
+            self.n += 1
             op_writev(self, self.n, value)
             local names = get_names(self.s)
             if names then R.SET_STRING_ELT(names, self.n - 1, R.BlankString) end
@@ -443,7 +443,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                 if self.c == alias then
                     allocate(self, self.n - 1, { erase = self.n, erase_last = self.n, outer_p = self.p, outer_n = self.n })
                 else
-                    self.n = self.n - 1
+                    self.n -= 1
                 end
             end
         end,
@@ -478,7 +478,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
                 op_copy(self.p, self.s, i, a.p, #a)
             elseif vectorish(a) and b == nil then
                 -- from vector-ish object
-                insert_shift(self, i, #a, (type(a) ~= "table") and a.s or R.NilValue)
+                insert_shift(self, i, #a, type(a) == "table" ? R.NilValue : a.s)
                 for j = 1, #a do op_writev(self, i + j - 1, a[j]) end
             else
                 error("cannot use vector:insert with argument types " ..
@@ -488,7 +488,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
 
         erase = function(self, first, last)
             if self.c == byref then byref_error("erase") end
-            if last == nil then last = first end
+            last = last ?? first
             if type(first) ~= "number" or first < 1 or last > self.n or first > last then
                 error("erase: range must satisfy 1 <= first <= last <= #vec", 2)
             end
@@ -531,7 +531,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
             end
             if self.c == alias then self:detach() end
             if k == "names" and luajr.is_character(v) then
-                local cap = (self.c >= 0) and self.c or self.n
+                local cap = self.c >= 0 ? self.c : self.n
                 if v.n == cap then
                     R.setAttrib(self.s, R.NamesSymbol, v.s)
                 else
@@ -625,22 +625,54 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
 
         __index = function(self, k)
             if type(k) == "number" then
-                return op_readv(self, k)
+                if k >= 1 and k < self.n + 1 then
+                    return op_readv(self, k)
+                end
+                error("subscript out of bounds", 2)
             else
                 return methods[k]
             end
         end,
 
         __newindex = function(self, k, v)
-            if self.c == alias then self:detach() end
-            op_writev(self, k, v)
+            if type(k) == "number" and k >= 1 and k < self.n + 1 then
+                if self.c == alias then self:detach() end
+                op_writev(self, k, v)
+            elseif type(k) == "number" and k >= self.n + 1 then
+                if self.c == byref then error("cannot grow a vector passed by reference", 2) end
+                local i = math.floor(k)
+                if i > self.c then self:reserve(math.max(i, 2 * self.n)) end
+                self:resize(i, na_val)
+                op_writev(self, i, v)
+            elseif type(k) == "number" then
+                error("subscript out of bounds", 2)
+            else
+                error("cannot index vector with type " .. type(k), 2)
+            end
         end,
 
-        __call = function(self, j)
-            -- Resolve j to a 1-based index (or nil if not found / out of bounds)
+        __call = function(self, j, ...)
+            -- v(j, x): set element j or the element named j to x, as R's [<- does
+            if select("#", ...) > 0 then
+                local x = ...
+                if type(j) == "number" then
+                    if j >= 1 then
+                        self[j] = x
+                    elseif j <= -1 then
+                        error("negative indexes are not supported yet", 2)
+                    end
+                elseif type(j) == "string" then
+                    self:set(j, x)
+                else
+                    error("cannot subset vector with type " .. type(j), 2)
+                end
+                return
+            end
+
+            -- v(j): get element j (or nil if not found / out of bounds)
             local i
             if type(j) == "number" then
-                if j >= 1 and j <= #self then i = j end
+                if j >= 1 and j < #self + 1 then i = j end
             elseif type(j) == "string" then
                 i = self:find(j)
             else
@@ -648,12 +680,12 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
             end
             -- Build length-1 result
             local v = ffi.typeof(self)(1)
-            v[1] = i and self[i] or na_val
+            v[1] = i ? self[i] : na_val
             -- Copy or set name
             local names = get_names(self.s)
             if names then
                 local v_names = R.PROTECT(R.allocVector(R.STRSXP, 1))
-                R.SET_STRING_ELT(v_names, 0, i and R.STRING_ELT(names, i - 1) or R.NA_STRING)
+                R.SET_STRING_ELT(v_names, 0, i ? R.STRING_ELT(names, i - 1) : R.NA_STRING)
                 R.setAttrib(v.s, R.NamesSymbol, v_names)
                 R.UNPROTECT(1)
             end
@@ -661,7 +693,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
         end,
 
         __tostring = function(self)
-            local limit = 100
+            const limit = 100
             local n = math.min(self.n, limit)
             local ns = get_names(self.s)
             local parts = {}
@@ -690,7 +722,7 @@ local mt_vector_template = function(ct, stype, na_val, dataptr)
 
         __ipairs = function(self)
             return function(t, k)
-                k = k + 1
+                k += 1
                 if k > t.n then
                     return nil
                 end

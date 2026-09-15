@@ -78,9 +78,7 @@ local methods_environment = {
     end,
 
     ls = function(self, all, sorted)
-        if all == nil then all = false end
-        if sorted == nil then sorted = true end
-        return luajr.character(R.lsInternal3(self.s, all and 1 or 0, sorted and 1 or 0))
+        return luajr.character(R.lsInternal3(self.s, all ? 1 : 0, (sorted ?? true) ? 1 : 0))
     end
 }
 
@@ -140,7 +138,7 @@ local mt_rfunction = {
                 error("cannot construct R function from SXPTYPE " .. R.type_string(a) .. ".", 2)
             end
         elseif type(a) == "string" then
-            local env = luajr.environment(b or R.GlobalEnv)
+            local env = luajr.environment(b ?? R.GlobalEnv)
             self.s = R.findFun(R.install(a), env.s)
         else
             error("cannot construct R function with argument types " .. type(a) ..
@@ -245,7 +243,7 @@ luajr.workers = ffi.metatype("workers_t", mt_workers)
 -- Debugger module
 local dbg = nil
 local dbg_queue = {}
-local dbg_xmsg = "~!#DBGEXIT#!~"
+const dbg_xmsg = "~!#DBGEXIT#!~"
 
 -- Custom dbg.read function
 -- Allows running commands "invisibly" from a queue.

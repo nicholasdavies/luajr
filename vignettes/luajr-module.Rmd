@@ -71,12 +71,11 @@ my_vec:clear()      -- erase all elements of the vector
 
 All these and more are described in more detail below.
 
-**Important**: For vector types, indexes start at 1, not at 0, and writing to
-an index that is less than 1 or greater than the length of the vector is
-**undefined behaviour**. You must be very careful not to access or write out of 
-these bounds, as the `luajr.lua` module does not do bounds checking. Going out of 
-bounds will cause crashes. Also note that unlike Lua tables, vector types can 
-only be indexed with integers from 1 to the vector length, not with strings or 
+**Important**: For vector types, indexes start at 1, not at 0. Indexing a
+vector `v` with `v[i]` works like R's `[[` operator: reading `v[i]` with an
+index that is less than 1 or greater than or equal to `#v + 1` is an error, and
+writing `v[i] = x` past the end of the vector grows it. Also note that unlike
+Lua tables, vector types can only be indexed with numbers, not with strings or
 any other types (although there are methods of getting or setting elements by
 name; see below).
 
@@ -144,25 +143,57 @@ to amortize future growth (see below).
 
 **`x = v[i]`, `v[i] = x`**
 
-Get or set the `i`th element of the vector. 
+Get or set the `i`th element of the vector. These work like R's `[[` and `[[<-`
+operators:
 
-Again: Note that for vector types, indexes start at 1, not at 0. You must be 
-very careful not to access or write out of these bounds, as the `luajr.lua` module 
-does **not** do bounds checking. Going out of bounds will cause crashes or 
-other undefined behaviour. Unlike Lua tables, vector types can only be indexed 
-with integers from 1 to the vector length, not with strings or any other types.
+- Indexes start at 1, not at 0.
+- Reading with an index that is less than 1, greater than or equal to `#v + 1`,
+  `NA` or `NaN` is an error (`subscript out of bounds`).
+- Writing to an index greater than or equal to `#v + 1` grows the vector,
+  filling any gap with `NA` (or `NULL` for `luajr.list`). As with `v:push_back()`, the
+  capacity grows geometrically, so `v[#v + 1] = x` can be used in a loop. A
+  vector passed by reference cannot grow.
+- Writing to an index that is less than 1, `NA` or `NaN` is an error.
 
-**`x = v(i)`**
+Unlike Lua tables, vector types can only be indexed with numbers, not with
+strings or any other types. For access without these checks, see `v.p[i]` below.
 
-Gets the `i`th element of the vector, but as a new vector type instead of as
-a 'bare' value. If you are returning a single value to R, you should prefer to 
-use this form as it will preserve `NA`s; for example, if 
-`v = luajr.integer({1, 2, luajr.NA_integer_})`, then `return v[3]` will return 
+**`x = v(i)`, `v(i, x)`**
+
+`v(i)` gets the `i`th element of the vector, but as a new vector type instead of
+as a 'bare' value. If you are returning a single value to R, you should prefer
+to use this form as it will preserve `NA`s; for example, if
+`v = luajr.integer({1, 2, luajr.NA_integer_})`, then `return v[3]` will return
 -2147483648 to R, but `return v(3)` will correctly return `NA` of integer type.
 
-Instead of a numeric index, you can also pass a string key as `i`. If this
-string key is not found, `v(i)` will return the appropriate `NA` for atomic
-vectors or `NULL` for `luajr.list`.
+Instead of a numeric index, you can also pass a string key as `i`. As with R's
+`[` operator, if `i` is out of range or the string key is not found, `v(i)`
+returns the appropriate `NA` for atomic vectors or `NULL` for `luajr.list`.
+
+`v(i, x)` sets the `i`th element, or the element named `i`, to `x`, as R's `[<-`
+operator does for a single element. An index greater than or equal to `#v + 1`
+grows the vector as `v[i] = x` does; an index greater than -1 and less than 1, or `NaN`, changes
+nothing; and a name that is not found adds a new element with that name, as
+`v:set()` does. Negative indexes are not supported yet.
+
+**`v.p[i]`**
+
+Directly reads or writes the `i`th element of a `luajr.logical`, `luajr.integer`
+or `luajr.numeric` vector, without any checks, for code where speed is critical.
+`v.p` is a pointer to the vector's elements, offset so that `v.p[1]` is the
+first element. Elements of `luajr.logical` vectors are integers (0, 1 or
+`luajr.NA_logical_`). Take care that:
+
+- Reading or writing using `v.p[i]` outside 1 to `#v` is **undefined
+  behaviour** and can crash R.
+- `v.p` may change whenever the vector is reallocated, e.g. by `v:push_back()`,
+  `v:insert()`, `v:resize()`, `v:reserve()`, `v:assign()` or `v:detach()`, or
+  by writing past its end with `v[i] = x`. Do not keep `v.p` in a variable
+  across such operations.
+- Writing through `v.p` does not copy a vector that is aliasing an R object, so
+  it changes the R object itself. Call `v:detach()` before writing through `v.p`
+  to a vector that was passed into Lua by value.
+- `v.p` cannot be used with `luajr.character` or `luajr.list`; use `v[i]`.
 
 **`v:is_na(i)`**
 

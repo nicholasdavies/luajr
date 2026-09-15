@@ -117,7 +117,7 @@ extern SEXP R_NamespaceRegistry;
 ]]
 
 -- R non-public API with changing signatures
-if R_version < 40300 then
+if R_version < 4_03_00 then
     -- Used in R.NewEnv, pre-4.1.0
     ffi.cdef [[SEXP R_NewHashedEnv(SEXP enclos, SEXP size);]]
 else
@@ -228,7 +228,7 @@ R.VECTOR_ELT = C.VECTOR_ELT
 
 -- back-compatible R_getVarEx(SEXP sym, SEXP rho, Rboolean inherits, SEXP ifnotfound)
 R.getVarEx = function(sym, rho, inherits, ifnotfound)
-    if R_version < 40500 then
+    if R_version < 4_05_00 then
         -- pre 4.5.0: Rf_findVar or Rf_findVarInFrame (non-API)
         local val
         if inherits == 0 then
@@ -242,7 +242,7 @@ R.getVarEx = function(sym, rho, inherits, ifnotfound)
             val = R.eval(val, R.GlobalEnv)
         end
 
-        return val == R.UnboundValue and ifnotfound or val
+        return val == R.UnboundValue ? ifnotfound : val
     else
         -- 4.5.0 and later: R_getVarEx
         -- NB no forcing needed
@@ -252,7 +252,7 @@ end
 
 -- back-compatible R_getRegisteredNamespace(SEXP name)
 R.getRegisteredNamespace = function(name)
-    if R_version < 40600 then
+    if R_version < 4_06_00 then
         -- pre 4.6.0: use back-compatible R.getVarEx
         return R.getVarEx(R.install(name), R.NamespaceRegistry, 0, R.NilValue)
     else
@@ -263,7 +263,7 @@ end
 
 -- back-compatible R_NewEnv(SEXP parent, int hash, int size)
 R.NewEnv = function(parent, hash, size)
-    if R_version < 40100 then
+    if R_version < 4_01_00 then
         -- pre 4.1.0: Rf_NewEnvironment or R_NewHashedEnv (non-API)
         if hash == 0 then
             return C.Rf_NewEnvironment(R.NilValue, R.NilValue, parent)
@@ -278,7 +278,7 @@ end
 
 -- back-compatible R_ParentEnv
 R.ParentEnv = function(x)
-    if R_version < 40500 then
+    if R_version < 4_05_00 then
         -- pre 4.5.0: ENCLOS (non-API)
         return C.ENCLOS(x)
     else

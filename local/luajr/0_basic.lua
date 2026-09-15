@@ -39,8 +39,8 @@ local from_sexp     = cfuncs.fromsexp
 local this_state_cf = cfuncs.thisstate
 
 -- Argcode constants, reflect AC namespace in src/shared.h
-local ac_value = 0
-local ac_reference = 64
+const ac_value = 0
+const ac_reference = 64
 
 -- to_sexp: inline scalar conversions and fall through to C++ for others
 local to_sexp = function(v)
@@ -155,11 +155,11 @@ function luajr.readline(prompt)
     end
 
     R.FlushConsole()
-    R.ReadConsole(prompt or "", buf, 1024, 0)
+    R.ReadConsole(prompt ?? "", buf, 1024, 0)
 
     -- remove terminating newline, but guard against 0-length string
     local len = ffi.C.strlen(buf)
-    return ffi.string(buf, len == 0 and 0 or len - 1)
+    return ffi.string(buf, len == 0 ? 0 : len - 1)
 end
 
 -- Get nparams and isvararg for a Lua function, plus argument names.
@@ -170,7 +170,7 @@ function luajr.get_func_info(f)
     for i = 1, info.nparams do
         arg_names[i] = debug.getlocal(f, i)
     end
-    return info.nparams, info.isvararg and 1 or 0, arg_names
+    return info.nparams, info.isvararg ? 1 : 0, arg_names
 end
 
 -- sizeof helper

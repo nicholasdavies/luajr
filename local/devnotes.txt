@@ -1,5 +1,145 @@
 
 
+R object protection: release cost and a leak
+--------------------------------------------
+Scripts for this item: local/preserve_bench.R and local/luajr_bench.R.
+Measured 2026-09-12, R 4.6.1, 2025-era MacBook Pro.
+
+- LEAK: vectors passed from R by value are never released. push_to.cpp calls
+  R_PreserveObject(x) for non-reference vectors, but luajr_internal_pushvector
+  (src/luajit/src/lj_luajr.c) creates the cdata with lj_cdata_new, which does
+  not register the metatype __gc finalizer (ffi.new does; see ffi_new in
+  lib_ffi.c). 50 calls passing a fresh 8 Mb vector by value took R memory
+  from 25.3 Mb to 406.7 Mb after gc(full = TRUE); by reference, no growth.
+  luajr_internal_pushenvironment and luajr_internal_pushrfunction create
+  their cdata the same way and push_to.cpp preserves those SEXPs too, so they
+  probably leak as well (untested).
+  Fix: in each push function, after setcdataV and incr_top, register the
+  finalizer as ffi_new does:
+
+      cTValue *tv = lj_tab_getinth(cts->miscmap, -(int32_t)id);
+      if (tv && tvistab(tv) && (tv = lj_meta_fast(L, tabV(tv), MM_gc))) {
+          GCtab *t = tabref(G(L)->gcroot[GCROOT_FFI_FIN]);
+          if (gcref(t->metatable)) {
+              copyTV(L, lj_tab_set(L, t, L->top - 1), tv);
+              lj_gc_anybarriert(L, t);
+              cd->marked |= LJ_GC_CDATA_FIN;
+          }
+      }
+
+- RELEASE COST: R_ReleaseObject searches R's precious list linearly from the
+  most recently preserved object, so releasing in arbitrary order (as the Lua
+  GC does) costs O(number preserved). Per release: 10,000 preserved, oldest
+  first, 10,179 ns; 40,000 preserved, oldest first, 39,523 ns; newest first,
+  about 3 ns. R_HASH_PRECIOUS=TRUE (1069 chained hash buckets) brings this to
+  11-84 ns, but R reads it once at startup, so luajr cannot turn it on.
+  Example: a Lua loop doing arithmetic through length-1 luajr vectors (three
+  allocations per iteration) took 24,400 ns per iteration by default and
+  about 700 ns with R_HASH_PRECIOUS=TRUE.
+
+- R_PreserveInMSet / R_ReleaseFromMSet (R >= 3.6.0) do not help. Release
+  scans the set from the newest entry and then shifts later entries down, so
+  out-of-order release is also O(n): 11,723 ns at 10,000 and 48,081 ns at
+  40,000, oldest first. R-exts says they should not be needed outside
+  parsers.
+
+- OPTIONS for O(1) protection, storing a token in each struct, e.g.
+  typedef struct { double* p; SEXP s; double n; double c; <token> t; }:
+  (a) Doubly-linked cons list, as in cpp11 (include/cpp11/protect.hpp).
+      Preserve adds one Rf_cons cell, which is the token; release unlinks it.
+      PROTECT(x) before Rf_cons; clear the cell's CAR/CDR on release so a
+      second release is a no-op.
+  (b) Slot array: VECSXP store plus a free list of indices; the token is the
+      index. No allocation per preserve. SET_VECTOR_ELT of a young object
+      into an old store puts the whole store on R's old-to-new list, so the
+      next minor GC rescans every slot; a chunked store (e.g. 4096 slots per
+      chunk) limits the rescan to changed chunks.
+  (c) Pointer-keyed hash table in a VECSXP. Only needed to release by SEXP
+      without a token (keeps the struct layout); slower than (b), with the
+      same rescan issue.
+  local/preserve_bench.R keeps K long-lived objects preserved, then runs
+  200,000 cycles of allocate, preserve, and release the object preserved
+  1,000 cycles earlier (cycle time includes the allocation):
+
+      scheme             memory/object  cycle K=1e4  cycle K=1e6  full gc K=1e6
+      R_PreserveObject   56 B cons         848 ns       850 ns       32 ms
+      R_HASH_PRECIOUS    56 B cons          33 ns        27 ns      138 ms
+      (a) linked list    56 B cons          35 ns        29 ns       32 ms
+      (b) slot array     8-16 B slot        14 ns        13 ns       18 ms
+
+  Recommendation: (b) with a chunked store.
+  GC: full collections mark the container (one node or slot per object, on
+  top of the objects themselves); minor collections skip old, already-marked
+  nodes (FORWARD_NODE and the unmark loop in memory.c's RunGenCollect).
+
+- WHAT TO CHANGE: the struct typedefs (ffi.cdef in luajr.lua, luajr_vector_t
+  and the cdata sizes in lj_luajr.c's push functions); R.PreserveObject and
+  R.ReleaseObject calls in luajr.lua (allocate, assign from a table, __new
+  for aliases, __gc, and environment and rfunction __new/__gc);
+  R_PreserveObject calls in push_to.cpp. A custom scheme has no
+  R_CHECK_THREAD, so only the main thread may preserve or release. Never
+  copy these structs (ffi.new(ctype, other), ffi.copy): two cdata sharing a
+  token would both release it.
+
+- EFFECT ON CURRENT BENCHMARKS (local/luajr_bench.R, default vs
+  R_HASH_PRECIOUS=TRUE as a stand-in for O(1) release): no change except
+  ctor_loop (10,000 preserve/release calls per call), 6.40 ms -> 5.45 ms.
+  The vignette examples, sum2 variants, read_loop and write_cdata_loop make
+  0-5 Lua-side preserve/release calls per call. Once the leak is fixed,
+  by-value calls such as sum2_v will release their arguments in batches when
+  the Lua GC runs, out of order, so they should become sensitive to release
+  cost (not yet measured).
+
+- To rerun, from the luajr directory:
+      Rscript local/preserve_bench.R slots 1000000
+      R_HASH_PRECIOUS=TRUE Rscript local/preserve_bench.R R 1000000
+      Rscript local/luajr_bench.R ctor_loop time
+      Rscript local/luajr_bench.R ctor_loop count
+
+
+LuaJIT gives up on loops that run only a few iterations per call
+----------------------------------------------------------------
+Found with qrst's local/bench_types.lua (section 4), 2026-09-12.
+
+- LuaJIT permanently stops compiling a loop after repeated failed attempts to
+  record a trace starting at it. A loop that runs only a couple of iterations
+  per call still becomes hot; the trace leaves the loop at once and aborts
+  (LLEAVE, "leaving loop in root trace"). Each abort doubles a penalty that
+  starts at 72 and gets 0-15 added at random; above 60000 the loop is
+  blacklisted, i.e. after about 10 aborts (penalty_pc in lj_trace.c,
+  PENALTY_* in lj_jit.h). Blacklisting patches the loop's bytecode from FORL
+  to IFORL, so the loop runs interpreted for every caller from then on.
+
+- Measured with a helper vec_add(a, b) that allocates a luajr.numeric result
+  and fills it in a loop, timing add(x, w) at length 1e6:
+      fresh copy of the helper               0.77 ns/element  loop JFORL
+      after 1e5 calls with length-2 vectors 48.6 ns/element   loop IFORL
+  Length-1 loops never triggered this; length-2 loops called 1e5 times did in
+  5 of 5 trials. Once the loop has been compiled (JFORL) by a long-vector
+  call, later short calls exit the trace and do not trigger it.
+
+- Whether a loop gets blacklisted depends on what ran before: the 64 penalty
+  slots are shared by all code and reused in turn, and random bits are
+  added. This makes benchmark results depend on run order. Loading separate
+  copies of a function (load(src)) gives each copy its own bytecode and its
+  own blacklisting.
+
+- Relevance to luajr: a loop inside a shared Lua helper in luajr.lua that is
+  called with both short and long vectors could be blacklisted by the
+  short-vector callers, slowing every caller. Trace aborts inside the luajr
+  module (LUNROLL) did show up while benchmarking operations on length-1
+  luajr vectors.
+
+- Diagnosing: jit.v and jit.dump are not available in luajr (jit/v.lua is not
+  on package.path), but these are:
+      jit.attach(function(what, tr, func, pc, otr, oex) ... end, "trace")
+  reports "abort" events, where otr is a 0-based index into lj_traceerr.h
+  (8 = LLEAVE, 5 = BLACKL) or an error string; jit.util.funcinfo(func, pc)
+  gives the source line. jit.util.funcbc(f, pc) returns each instruction;
+  bit.band(ins, 255) is the opcode, and FORL, IFORL and JFORL are consecutive
+  opcodes (79, 80, 81 in luajr's LuaJIT).
+
+
 Feature plan / to do
 --------------------
 - vector:slice(i, j) for subsetting a range; vector:slice(luajr.logical) for
@@ -27,6 +167,10 @@ function(x:integer, y:numeric_r) etc)
 - Once there is something to cite, usethis::use_citation()
 - Do typedefs for underlying R logical, integer, numeric types?
 - There could be a 'debug mode' which does bounds checking on luajr types?
+- v(i) and v(i, x) follow R's [ and [<- for a single number or name only. Add
+  the rest of [: negative indexes (drop elements), index 0, logical indexes
+  (with recycling), vectors of indexes or names, and for v(i, x), recycling
+  the value over the selected elements.
 
 
 luajit as subfolder in src/luajit
