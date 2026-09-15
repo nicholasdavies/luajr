@@ -163,7 +163,11 @@ test_that("__call with a value and index 0, a fraction below 1 or NaN changes no
     x = c(10, 20, 30)
     x[0] = 9
     x[0.5] = 9
-    x[-0.5] = 9
+    # Before R 4.2.0, R does not truncate the index -0.5 to 0 as documented, so
+    # there the expected result is the documented one, with x unchanged
+    if (getRversion() >= "4.2.0") {
+        x[-0.5] = 9
+    }
     x[NA_real_] = 9
     expect_identical(lua("return x"), x)
 

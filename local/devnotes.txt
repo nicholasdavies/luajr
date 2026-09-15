@@ -171,6 +171,14 @@ function(x:integer, y:numeric_r) etc)
   the rest of [: negative indexes (drop elements), index 0, logical indexes
   (with recycling), vectors of indexes or names, and for v(i, x), recycling
   the value over the selected elements.
+  Note: luajr.NA_integer_ (and NA_logical_) is the number -2147483648, which
+  Lua cannot tell apart from the double index -2147483648. In R they differ:
+  x[NA_integer_] <- 9 changes nothing, but x[-2147483648] <- 9 sets every
+  element except element 2147483648 (all of them, unless x is a long vector).
+  v(i, x) currently gives the negative index error for this value; once
+  negative indexes are supported, follow R's meaning for the double, and
+  document that an NA index should be written as luajr.NA_real_ or NaN (which
+  already change nothing).
 
 
 luajit as subfolder in src/luajit
